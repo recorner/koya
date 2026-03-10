@@ -107,7 +107,7 @@ export function HeroSection() {
       />
 
       <div
-        className="mx-auto grid min-h-[calc(100dvh-7rem)] max-w-7xl grid-cols-1 items-center gap-8 px-6 py-10 md:gap-14 md:px-8 md:py-16 lg:grid-cols-12 lg:gap-10 lg:px-10 xl:px-12"
+        className="mx-auto grid min-h-[calc(100dvh-7rem)] max-w-7xl grid-cols-1 items-start gap-8 px-6 py-10 md:gap-14 md:px-8 md:py-16 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:pt-24 xl:px-12"
       >
         {/* LEFT SIDE */}
         <div className="lg:col-span-5">

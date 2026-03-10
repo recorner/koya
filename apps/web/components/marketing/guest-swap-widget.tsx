@@ -194,8 +194,8 @@ function SwapPanel({
   onAmountChange?: (value: string) => void;
 }) {
   return (
-    <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rounded-[20px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] sm:rounded-[24px] sm:p-4">
+      <div className="mb-2 flex items-center justify-between sm:mb-3">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/38">
           {label}
         </p>
@@ -253,38 +253,34 @@ export function GuestSwapWidget() {
   const hasAmount = numericSourceAmount > 0;
 
   return (
-    <div className="mx-auto w-full max-w-[460px]">
-      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
+    <div className="mx-auto w-full max-w-[420px]">
+      <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-[28px] sm:p-5">
         {/* ambient glow */}
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[rgba(212,175,55,0.10)] blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-[rgba(0,229,255,0.06)] blur-2xl" />
 
         {/* Header */}
-        <div className="relative mb-5 flex items-start justify-between gap-4">
+        <div className="relative mb-3 flex items-start justify-between gap-3 sm:mb-4">
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1">
+            <div className="mb-1.5 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1">
               <Dot className="h-4 w-4 text-emerald-300" />
               <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
                 Indicative live quote
               </span>
             </div>
 
-            <h3 className="font-display text-xl font-bold tracking-tight text-white">
+            <h3 className="font-display text-lg font-bold tracking-tight text-white">
               Convert between wallets
             </h3>
-
-            <p className="mt-1 text-sm leading-6 text-white/52">
-              Preview cross-asset conversion across fiat, crypto, and stablecoins.
-            </p>
           </div>
 
-          <div className="rounded-full border border-[rgba(212,175,55,0.18)] bg-[rgba(212,175,55,0.08)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(212,175,55,0.95)]">
+          <div className="hidden rounded-full border border-[rgba(212,175,55,0.18)] bg-[rgba(212,175,55,0.08)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgba(212,175,55,0.95)] sm:block">
             Guest mode
           </div>
         </div>
 
         {/* Panels */}
-        <div className="relative space-y-3">
+        <div className="relative space-y-2">
           <SwapPanel
             label="You pay"
             asset={source}
@@ -297,14 +293,14 @@ export function GuestSwapWidget() {
           />
 
           {/* Swap button */}
-          <div className="relative z-10 flex justify-center py-1">
+          <div className="relative z-10 flex justify-center py-0.5">
             <motion.button
               type="button"
               onClick={() => {
                 swapDirection();
                 setRotations((r) => r + 1);
               }}
-              className="group flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-[#111111] shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all duration-200 hover:border-[rgba(212,175,55,0.22)] hover:bg-[#151515]"
+              className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#111111] shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition-all duration-200 hover:border-[rgba(212,175,55,0.22)] hover:bg-[#151515]"
               animate={{ rotate: rotations * 180 }}
               transition={{ duration: 0.35, ease: 'easeInOut' }}
             >
@@ -326,46 +322,24 @@ export function GuestSwapWidget() {
         </div>
 
         {/* Quote meta */}
-        <div className="mt-4 rounded-[24px] border border-white/8 bg-black/20 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
-                Quote summary
-              </p>
-              <p className="mt-2 font-mono text-xs text-white/62">
-                {rateDisplay || 'Enter an amount to preview conversion'}
-              </p>
-            </div>
-
-            <div className="hidden shrink-0 items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-2.5 py-1.5 sm:flex">
-              <TimerReset className="h-3.5 w-3.5 text-white/42" />
-              <span className="text-[10px] text-white/45">Refreshes live</span>
-            </div>
+        <div className="mt-3 flex items-center justify-between rounded-[16px] border border-white/8 bg-black/20 px-3 py-2.5">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
+              Quote
+            </p>
+            <p className="mt-0.5 font-mono text-xs text-white/62">
+              {rateDisplay || 'Enter an amount'}
+            </p>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-3">
-              <div className="mb-1 flex items-center gap-2 text-white/40">
-                <Zap className="h-3.5 w-3.5" />
-                <span className="text-[10px] uppercase tracking-[0.14em]">
-                  Execution
-                </span>
-              </div>
-              <div className="text-sm font-medium text-white/80">
-                Instant on sign up
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-white/40">
+              <Zap className="h-3 w-3" />
+              <span className="text-[10px]">Instant</span>
             </div>
-
-            <div className="rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-3">
-              <div className="mb-1 flex items-center gap-2 text-white/40">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                <span className="text-[10px] uppercase tracking-[0.14em]">
-                  Quote quality
-                </span>
-              </div>
-              <div className="text-sm font-medium text-white/80">
-                Indicative market rate
-              </div>
+            <div className="flex items-center gap-1.5 text-white/40">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="text-[10px]">Market rate</span>
             </div>
           </div>
         </div>
@@ -373,14 +347,14 @@ export function GuestSwapWidget() {
         {/* CTA */}
         <Button
           size="lg"
-          className="mt-5 h-12 w-full text-base font-medium"
+          className="mt-3 h-10 w-full text-sm font-medium"
           disabled={!hasAmount}
         >
           {hasAmount ? 'Unlock live conversion' : 'Enter amount to continue'}
         </Button>
 
         {/* Disclaimer */}
-        <p className="mt-3 text-center text-[10px] leading-5 text-white/28">
+        <p className="mt-2 text-center text-[10px] leading-4 text-white/28">
           Preview rates are indicative and may move with market conditions. Create
           an account for live quotes, execution, and wallet settlement.
         </p>
