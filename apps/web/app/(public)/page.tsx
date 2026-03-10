@@ -1,44 +1,13 @@
-import dynamic from 'next/dynamic';
 import { MarketRibbon } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
-
-/* Lightweight placeholder that matches section height to prevent layout shift */
-function SectionSkeleton({ className = 'h-[400px]' }: { className?: string }) {
-  return <div className={`${className} w-full`} />;
-}
-
-const GuestSwapWidget = dynamic(
-  () => import('@/components/marketing/guest-swap-widget').then(m => ({ default: m.GuestSwapWidget })),
-  { loading: () => <SectionSkeleton className="mx-auto h-[420px] max-w-[460px]" /> },
-);
-const TrustStrip = dynamic(
-  () => import('@/components/marketing/trust-strip').then(m => ({ default: m.TrustStrip })),
-  { loading: () => <SectionSkeleton className="h-16" /> },
-);
-const ProductPillars = dynamic(
-  () => import('@/components/marketing/product-pillars').then(m => ({ default: m.ProductPillars })),
-  { loading: () => <SectionSkeleton className="h-[600px]" /> },
-);
-const HowItWorks = dynamic(
-  () => import('@/components/marketing/how-it-works').then(m => ({ default: m.HowItWorks })),
-  { loading: () => <SectionSkeleton className="h-[700px]" /> },
-);
-const SecuritySection = dynamic(
-  () => import('@/components/marketing/security-section').then(m => ({ default: m.SecuritySection })),
-  { loading: () => <SectionSkeleton className="h-[600px]" /> },
-);
-const CardsSection = dynamic(
-  () => import('@/components/marketing/cards-section').then(m => ({ default: m.CardsSection })),
-  { loading: () => <SectionSkeleton className="h-[500px]" /> },
-);
-const GlobalFinanceSection = dynamic(
-  () => import('@/components/marketing/global-finance-section').then(m => ({ default: m.GlobalFinanceSection })),
-  { loading: () => <SectionSkeleton className="h-[500px]" /> },
-);
-const FinalCTA = dynamic(
-  () => import('@/components/marketing/final-cta').then(m => ({ default: m.FinalCTA })),
-  { loading: () => <SectionSkeleton className="h-[400px]" /> },
-);
+import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
+import { TrustStrip } from '@/components/marketing/trust-strip';
+import { ProductPillars } from '@/components/marketing/product-pillars';
+import { HowItWorks } from '@/components/marketing/how-it-works';
+import { SecuritySection } from '@/components/marketing/security-section';
+import { CardsSection } from '@/components/marketing/cards-section';
+import { GlobalFinanceSection } from '@/components/marketing/global-finance-section';
+import { FinalCTA } from '@/components/marketing/final-cta';
 
 export default function LandingPage() {
   return (
