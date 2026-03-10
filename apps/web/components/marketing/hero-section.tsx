@@ -22,43 +22,6 @@ function MastercardLogo({ className }: { className?: string }) {
 
 const currencies = ['KES', 'USD', 'BTC', 'USDC', 'USDT'];
 
-const container = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.15,
-    },
-  },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.65, ease: 'easeOut' as const },
-  },
-};
-
-const fadeLeft = {
-  hidden: { opacity: 0, x: -24 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.7, ease: 'easeOut' as const },
-  },
-};
-
-const fadeRight = {
-  hidden: { opacity: 0, x: 24 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.7, ease: 'easeOut' as const },
-  },
-};
-
 const floatSoft = {
   animate: {
     y: [0, -8, 0],
@@ -143,23 +106,19 @@ export function HeroSection() {
         }}
       />
 
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="visible"
+      <div
         className="mx-auto grid min-h-[calc(100dvh-7rem)] max-w-7xl grid-cols-1 items-center gap-8 px-6 py-10 md:gap-14 md:px-8 md:py-16 lg:grid-cols-12 lg:gap-10 lg:px-10 xl:px-12"
       >
         {/* LEFT SIDE */}
         <div className="lg:col-span-5">
-          <motion.div variants={fadeLeft} className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
+          <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
             <KoyaMark size={20} id="hero-badge" />
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
               Borderless financial operating system
             </span>
-          </motion.div>
+          </div>
 
-          <motion.h1
-            variants={fadeLeft}
+          <h1
             className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl"
           >
             Move money across
@@ -167,19 +126,17 @@ export function HeroSection() {
               currencies like
             </span>
             one controlled system.
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            variants={fadeLeft}
+          <p
             className="mt-6 max-w-xl text-base leading-7 text-white/64 md:text-lg"
           >
             Koya unifies wallets, conversion, cards, and global value rails into one premium
             interface. Hold, convert, send, spend, and manage KES, USD, BTC, and stablecoins
             without the usual financial circus.
-          </motion.p>
+          </p>
 
-          <motion.div
-            variants={fadeLeft}
+          <div
             className="mt-8 flex flex-wrap items-center gap-3"
           >
             <Button size="lg" className="group">
@@ -190,10 +147,9 @@ export function HeroSection() {
             <Button variant="outline" size="lg" className="border-white/12 bg-white/[0.02] text-white hover:bg-white/[0.06]">
               See How It Works
             </Button>
-          </motion.div>
+          </div>
 
-          <motion.div
-            variants={fadeLeft}
+          <div
             className="mt-8 flex flex-wrap items-center gap-2"
           >
             {currencies.map((c) => (
@@ -204,10 +160,9 @@ export function HeroSection() {
                 {c}
               </span>
             ))}
-          </motion.div>
+          </div>
 
-          <motion.div
-            variants={fadeLeft}
+          <div
             className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
           >
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
@@ -239,12 +194,11 @@ export function HeroSection() {
                 Premium controls, settlement clarity, and safer movement.
               </p>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* RIGHT SIDE */}
-        <motion.div
-          variants={fadeRight}
+        <div
           className="relative lg:col-span-7"
         >
           <div className="relative mx-auto h-[620px] w-full max-w-[760px]">
@@ -469,8 +423,8 @@ export function HeroSection() {
               </GlassCard>
             </motion.div>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 }
