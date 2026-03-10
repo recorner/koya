@@ -1,13 +1,15 @@
+import dynamic from 'next/dynamic';
 import { MarketRibbon } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
-import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
-import { TrustStrip } from '@/components/marketing/trust-strip';
-import { ProductPillars } from '@/components/marketing/product-pillars';
-import { HowItWorks } from '@/components/marketing/how-it-works';
-import { SecuritySection } from '@/components/marketing/security-section';
-import { CardsSection } from '@/components/marketing/cards-section';
-import { GlobalFinanceSection } from '@/components/marketing/global-finance-section';
-import { FinalCTA } from '@/components/marketing/final-cta';
+
+const GuestSwapWidget = dynamic(() => import('@/components/marketing/guest-swap-widget').then(m => ({ default: m.GuestSwapWidget })));
+const TrustStrip = dynamic(() => import('@/components/marketing/trust-strip').then(m => ({ default: m.TrustStrip })));
+const ProductPillars = dynamic(() => import('@/components/marketing/product-pillars').then(m => ({ default: m.ProductPillars })));
+const HowItWorks = dynamic(() => import('@/components/marketing/how-it-works').then(m => ({ default: m.HowItWorks })));
+const SecuritySection = dynamic(() => import('@/components/marketing/security-section').then(m => ({ default: m.SecuritySection })));
+const CardsSection = dynamic(() => import('@/components/marketing/cards-section').then(m => ({ default: m.CardsSection })));
+const GlobalFinanceSection = dynamic(() => import('@/components/marketing/global-finance-section').then(m => ({ default: m.GlobalFinanceSection })));
+const FinalCTA = dynamic(() => import('@/components/marketing/final-cta').then(m => ({ default: m.FinalCTA })));
 
 export default function LandingPage() {
   return (

@@ -161,7 +161,9 @@ const PAUSE_DURATION_MS = 10000;
 export function HowItWorks() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [visible, setVisible] = useState(false);
   const pauseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   const current = steps[active] as Step;
   const CurrentIcon = current.icon;
@@ -189,14 +191,26 @@ export function HowItWorks() {
   }, []);
 
   useEffect(() => {
-    if (paused) return;
+    if (paused || !visible) return;
     const id = setInterval(advance, AUTO_ADVANCE_MS);
     return () => clearInterval(id);
-  }, [advance, paused]);
+  }, [advance, paused, visible]);
 
   useEffect(() => {
     return () => clearPause();
   }, [clearPause]);
+
+  // Pause auto-advance when section is off-screen
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(!!entry?.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -219,6 +233,7 @@ export function HowItWorks() {
       : 'bg-gold';
 
   return (
+    <div ref={sectionRef}>
     <SectionShell id="how-it-works" bg="surface">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
@@ -535,5 +550,6 @@ export function HowItWorks() {
         </AnimatePresence>
       </div>
     </SectionShell>
+    </div>
   );
 }
