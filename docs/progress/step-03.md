@@ -69,42 +69,72 @@ White `border-b border-white-5` on scroll created a murky flash — felt cheap.
 
 ---
 
-## 4. How It Works Redesign
+## 4. How It Works Redesign (v2 — Product Data Pass)
 
 **File:** `components/marketing/how-it-works.tsx`
 
 ### Architecture
-Complete rewrite of the interaction model while preserving the Fund → Convert → Hold → Spend narrative.
+Complete rewrite replacing design-commentary placeholder copy with real Koya product data. Simplified layout, smoother motion, ARIA-accessible, color-coded steps.
 
-**Desktop:**
-- Horizontal timeline with 2px track and gold gradient progress fill
-- 14×14 step nodes with glow ring and ripple animation on active
-- ARIA tablist/tab/tabpanel semantics with keyboard navigation (arrow keys)
-- Detail panel with staggered content entrance (icon, step label, headline, description)
-- Auto-cycling progress bar inside detail card (linear fill over 5s)
-- Steps: Fund (emerald), Convert (gold), Hold (cyan), Spend & Invest (gold)
-- M-Pesa rail badge in Fund step detail
+**Layout:**
+- Desktop: horizontal timeline with 2px track + gold gradient fill, then a full-width detail panel below
+- Mobile: horizontal pill tabs (scrollable) with a progress bar, then the same detail panel
+- Detail panel: two-column on desktop (main content left, metric sidebar right), single-column on mobile
+
+**Step Content (real product data):**
+
+| Step | Title | Headline | Color | Key stat |
+|------|-------|----------|-------|----------|
+| 01 | Fund | Deposit in seconds, not days | Emerald | < 3 min avg. deposit |
+| 02 | Convert | Any asset to any asset. Transparent rates. | Gold | 30 sec quote lock |
+| 03 | Hold | Five wallets. One unified vault. | Cyan | 5 synced wallets |
+| 04 | Spend | Turn any balance into real-world action | Gold | 180+ countries |
+
+**Per-step features:**
+- **Fund:** M-Pesa STK push, auto-detect crypto deposits, guided KYC tiers. Badges: M-Pesa, KES, BTC.
+- **Convert:** 30-second locked quotes, full conversion path visibility, all 20 asset pairs. Badges: KES, USD, BTC, USDC, USDT.
+- **Hold:** Segregated per-currency wallets, portfolio dashboard, institutional custody. Badges: all 5 currencies.
+- **Spend:** Instant virtual cards (Visa), cross-border bank/mobile transfers, fractional US stocks (AAPL, etc). No badges (action-oriented step).
+
+**Desktop timeline:**
+- 2px track with gold gradient fill animating between nodes
+- 44px circular step nodes with icon, labeled below
+- Active node pulses with a ripple ring (2s infinite, step-colored)
+- Past nodes show emerald checkmark
+- ARIA tablist/tab/tabpanel semantics with full keyboard nav (arrow keys)
 
 **Mobile:**
-- Vertical accordion-style step cards (not just dots)
-- Each card shows icon + step number + title — always visible
-- Active card expands to reveal headline, description, and M-Pesa badge
-- `AnimatePresence` height animation for smooth expand/collapse
-- Touch-friendly 44px hit targets
-- Progress bar inside expanded card
+- Horizontal scrollable pill buttons (step number + title)
+- Active pill uses step color (emerald/gold/cyan)
+- Gold gradient progress bar below
 
-**Motion:**
-- `ease: [0.32, 0.72, 0, 1]` custom bezier for premium feel
-- Scale pulse on active node (2s infinite)
-- Gold glow + ripple ring on active (2s infinite cycle)
-- Staggered entrance delays on detail content (0.1→0.25s)
-- Tab panel slide: `y: 20` → `y: 0` enter, `y: -16` exit
+**Detail panel:**
+- Left: step icon + eyebrow + headline (font-display) + description + staggered bullet features + currency badges
+- Right sidebar: primary stat (font-mono, 3xl), detail card, "Next step" button with arrow
+- Ambient glow behind panel keyed to step color
+
+**Motion (smoother):**
+- `ease: [0.32, 0.72, 0, 1]` custom cubic-bezier on all transitions
+- Panel entrance: `y: 20 → 0` (0.4s), exit: `y: -16` (0.4s)
+- Bullets stagger in: `x: -12 → 0`, 0.08s apart
+- Currency badges scale in: `0.85 → 1`, 0.06s apart
+- Timeline fill: 0.5s smooth width animation
+- Active node ripple: `scale: [1, 1.4, 1]`, `opacity: [0.5, 0, 0.5]` (2s loop)
 
 **Behavior:**
 - Auto-cycles every 5 seconds
 - User interaction pauses for 10 seconds, then resumes
 - Pause timer properly cleared on re-interaction (ref-based)
 - Keyboard: ArrowRight/ArrowDown advances, ArrowLeft/ArrowUp goes back
+
+**What changed from v1:**
+- All meta/design-commentary copy replaced with real product messaging
+- Removed dev-facing controls (prev/next buttons, auto-play toggle)
+- Removed "Attention anchor" sidebar — replaced with stat + detail cards
+- Added currency icon badges (M-Pesa, KES, USD, BTC, USDC, USDT)
+- Color-coded steps: Fund (emerald), Convert (gold), Hold (cyan), Spend (gold)
+- Separated mobile/desktop navigation (pills vs timeline)
+- Smoother ease curve throughout
 
 ---
 
