@@ -395,7 +395,7 @@ export function HowItWorks() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
             transition={{ duration: 0.42, ease }}
-            className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl"
+            className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.34)] backdrop-blur-md"
           >
             <div
               className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full blur-3xl"

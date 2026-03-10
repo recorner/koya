@@ -30,7 +30,7 @@ function TickerItem({ pair, baseSymbol, price, change, positive }: {
 
 export function MarketRibbon() {
   return (
-    <div className="group relative z-40 border-b border-white-5 bg-cell/80 backdrop-blur-md overflow-hidden">
+    <div className="group relative z-40 bg-cell/80 backdrop-blur-sm overflow-hidden">
       <div className="flex animate-ticker-scroll group-hover:[animation-play-state:paused] py-2.5">
         {/* First set */}
         <div className="flex shrink-0 items-center">

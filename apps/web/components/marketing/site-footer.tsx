@@ -58,7 +58,7 @@ export function SiteFooter() {
 
       <div className="relative mx-auto max-w-7xl px-6 py-16 md:py-20">
         {/* top CTA panel */}
-        <div className="mb-14 overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-2xl md:p-8">
+        <div className="mb-14 overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-md md:p-8">
           <div className="grid items-center gap-8 lg:grid-cols-12">
             <div className="lg:col-span-8">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">

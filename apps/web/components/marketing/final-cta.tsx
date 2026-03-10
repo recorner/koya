@@ -33,7 +33,7 @@ export function FinalCTA() {
         transition={{ duration: 0.65, ease: 'easeOut' }}
         className="relative z-10 mx-auto max-w-5xl px-6"
       >
-        <div className="overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:p-10 md:p-12">
+        <div className="overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-10 md:p-12">
           <div className="grid items-center gap-10 lg:grid-cols-12">
             {/* left */}
             <div className="lg:col-span-7">

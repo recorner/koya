@@ -91,7 +91,7 @@ export function SecuritySection() {
       <div className="mt-14 grid gap-5 lg:grid-cols-12">
         {/* Featured anchor card */}
         <div className="lg:col-span-5">
-          <div className="relative h-full overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-7 shadow-[0_22px_80px_rgba(0,0,0,0.30)] backdrop-blur-2xl">
+          <div className="relative h-full overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-7 shadow-[0_22px_80px_rgba(0,0,0,0.30)] backdrop-blur-md">
             <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[rgba(212,175,55,0.10)] blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-[rgba(0,229,255,0.06)] blur-2xl" />
 
@@ -155,7 +155,7 @@ export function SecuritySection() {
 
               return (
                 <StaggerItem key={control.title}>
-                  <div className="group relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_16px_55px_rgba(0,0,0,0.22)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(212,175,55,0.20)] hover:shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
+                  <div className="group relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_16px_55px_rgba(0,0,0,0.22)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(212,175,55,0.20)] hover:shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
                     <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                       <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
                     </div>

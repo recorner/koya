@@ -63,7 +63,7 @@ export function TrustStrip() {
 
             return (
               <StaggerItem key={item.label}>
-                <div className="group relative h-full overflow-hidden rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_14px_45px_rgba(0,0,0,0.20)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.18)] hover:shadow-[0_22px_60px_rgba(0,0,0,0.30)]">
+                <div className="group relative h-full overflow-hidden rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_14px_45px_rgba(0,0,0,0.20)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.18)] hover:shadow-[0_22px_60px_rgba(0,0,0,0.30)]">
                   <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                     <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
                   </div>

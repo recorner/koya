@@ -83,7 +83,7 @@ export function ProductPillars() {
                 className={[
                   'group relative h-full overflow-hidden rounded-[28px] border border-white/10',
                   'bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(255,255,255,0.03)_100%)]',
-                  'p-7 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-xl',
+                  'p-7 shadow-[0_18px_60px_rgba(0,0,0,0.28)] backdrop-blur-sm',
                   'transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(212,175,55,0.22)]',
                   'hover:shadow-[0_28px_80px_rgba(0,0,0,0.42)]',
                 ].join(' ')}

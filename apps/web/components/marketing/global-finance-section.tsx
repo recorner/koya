@@ -114,7 +114,7 @@ export function GlobalFinanceSection() {
 
             <div className="grid gap-4 md:grid-cols-12">
               {/* main portfolio card */}
-              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl md:col-span-8">
+              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur-md md:col-span-8">
                 <div className="pointer-events-none absolute -right-14 -top-14 h-32 w-32 rounded-full bg-[rgba(212,175,55,0.10)] blur-3xl" />
 
                 <div className="relative">
@@ -194,7 +194,7 @@ export function GlobalFinanceSection() {
 
               {/* side chips */}
               <div className="space-y-4 md:col-span-4">
-                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm">
                   <div className="mb-3 flex items-center gap-2">
                     <Landmark className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
                     <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
@@ -217,7 +217,7 @@ export function GlobalFinanceSection() {
                   </div>
                 </div>
 
-                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm">
                   <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
                     Market access
                   </div>

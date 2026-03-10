@@ -30,6 +30,7 @@ export function SectionShell({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
+      style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}
       className={cn(
         bgVariants[bg],
         !noPadding && 'py-20 md:py-28',

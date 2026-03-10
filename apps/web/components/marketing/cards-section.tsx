@@ -103,7 +103,7 @@ export function CardsSection() {
             </div>
 
             {/* funding chip */}
-            <div className="absolute right-[2%] top-[10%] z-30 hidden w-[220px] rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.30)] backdrop-blur-xl sm:block">
+            <div className="absolute right-[2%] top-[10%] z-30 hidden w-[220px] rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.30)] backdrop-blur-sm sm:block">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
                 Funding source
               </div>
@@ -119,7 +119,7 @@ export function CardsSection() {
             </div>
 
             {/* controls chip */}
-            <div className="absolute bottom-[10%] left-[4%] z-30 hidden w-[230px] rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.30)] backdrop-blur-xl sm:block">
+            <div className="absolute bottom-[10%] left-[4%] z-30 hidden w-[230px] rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_16px_50px_rgba(0,0,0,0.30)] backdrop-blur-sm sm:block">
               <div className="mb-3 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
@@ -140,7 +140,7 @@ export function CardsSection() {
             </div>
 
             {/* usage chip */}
-            <div className="absolute bottom-[4%] right-[8%] z-30 hidden rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 backdrop-blur-xl sm:block">
+            <div className="absolute bottom-[4%] right-[8%] z-30 hidden rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 backdrop-blur-sm sm:block">
               <div className="flex items-center gap-2 text-[11px] text-white/58">
                 <Globe2 className="h-3.5 w-3.5 text-[rgba(212,175,55,0.95)]" />
                 Live across global merchants

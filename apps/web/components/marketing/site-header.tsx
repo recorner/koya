@@ -28,7 +28,7 @@ export function SiteHeader() {
       className={cn(
         'fixed inset-x-0 top-0 z-50 transition-all duration-500',
         scrolled
-          ? 'bg-vault-black/90 shadow-[0_1px_0_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
+          ? 'bg-vault-black/90 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-lg'
           : 'bg-transparent',
       )}
     >
@@ -71,7 +71,7 @@ export function SiteHeader() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="border-t border-white-5/50 bg-vault-black/95 backdrop-blur-2xl md:hidden">
+        <div className="border-t border-white-5/50 bg-vault-black/95 backdrop-blur-lg md:hidden">
           <nav className="flex flex-col gap-1 px-4 py-3 sm:px-6 sm:py-4">
             {navLinks.map((link) => (
               <a

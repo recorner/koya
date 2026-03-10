@@ -81,7 +81,7 @@ function GlassCard({
   return (
     <div
       className={[
-        'rounded-[28px] border border-white/10 bg-white/[0.06] backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.45)]',
+        'rounded-[28px] border border-white/10 bg-white/[0.06] backdrop-blur-md shadow-[0_20px_80px_rgba(0,0,0,0.45)]',
         'before:pointer-events-none before:absolute before:inset-0 before:rounded-[28px]',
         'before:border before:border-white/5 before:[mask-image:linear-gradient(to_bottom,white,transparent)]',
         className ?? '',
@@ -151,7 +151,7 @@ export function HeroSection() {
       >
         {/* LEFT SIDE */}
         <div className="lg:col-span-5">
-          <motion.div variants={fadeLeft} className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-xl">
+          <motion.div variants={fadeLeft} className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
             <KoyaMark size={20} id="hero-badge" />
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
               Borderless financial operating system
@@ -258,7 +258,7 @@ export function HeroSection() {
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
               className="absolute left-1/2 top-1/2 z-20 w-[92%] max-w-[560px] -translate-x-1/2 -translate-y-1/2"
             >
-              <div className="relative rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.04))] p-5 shadow-[0_30px_120px_rgba(0,0,0,0.58)] backdrop-blur-2xl">
+              <div className="relative rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.04))] p-5 shadow-[0_30px_120px_rgba(0,0,0,0.58)] backdrop-blur-md">
                 <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(212,175,55,0.10),transparent_25%)]" />
 
                 <div className="relative">

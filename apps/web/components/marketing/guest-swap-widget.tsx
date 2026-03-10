@@ -136,7 +136,7 @@ function AssetSelector({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className="absolute left-0 z-50 mt-2 min-w-[190px] overflow-hidden rounded-2xl border border-white/10 bg-[#0E0E0E]/95 p-1.5 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-2xl"
+            className="absolute left-0 z-50 mt-2 min-w-[190px] overflow-hidden rounded-2xl border border-white/10 bg-[#0E0E0E]/95 p-1.5 shadow-[0_24px_70px_rgba(0,0,0,0.45)] backdrop-blur-md"
           >
             {ASSET_LIST.filter((a) => a.symbol !== exclude).map((asset) => (
               <button
@@ -254,7 +254,7 @@ export function GuestSwapWidget() {
 
   return (
     <div className="mx-auto w-full max-w-[460px]">
-      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:p-6">
+      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:p-6">
         {/* ambient glow */}
         <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[rgba(212,175,55,0.10)] blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-[rgba(0,229,255,0.06)] blur-2xl" />
