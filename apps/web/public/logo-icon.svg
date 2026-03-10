@@ -1,0 +1,26 @@
+<svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0D060"/>
+      <stop offset="35%" stop-color="#D4AF37"/>
+      <stop offset="70%" stop-color="#A88520"/>
+      <stop offset="100%" stop-color="#C9A030"/>
+    </linearGradient>
+    <linearGradient id="gGoldBack" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#C9A030"/>
+      <stop offset="60%" stop-color="#8B6500"/>
+      <stop offset="100%" stop-color="#6B4F00"/>
+    </linearGradient>
+    <mask id="mFront">
+      <circle cx="38" cy="42" r="22" fill="white"/>
+      <circle cx="48" cy="42" r="15" fill="black"/>
+    </mask>
+    <mask id="mBack">
+      <circle cx="46" cy="42" r="20" fill="white"/>
+      <circle cx="55" cy="37" r="14" fill="black"/>
+    </mask>
+  </defs>
+  <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+  <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+  <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+</svg>

@@ -1,0 +1,16 @@
+{
+  "name": "Koya",
+  "short_name": "Koya",
+  "description": "Borderless Finance — Convert, hold, and move money across currencies and borders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070708",
+  "theme_color": "#070708",
+  "icons": [
+    {
+      "src": "/logo-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

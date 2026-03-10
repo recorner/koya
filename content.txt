@@ -1,0 +1,729 @@
+Here's the content of /memories/session/plan.md with line numbers:
+     1	# KOYA BANK — Comprehensive MVP North-Star Plan
+     2	
+     3	## TL;DR
+     4	
+     5	Koya Bank is a borderless financial operating system targeting African global workers and crypto-natives. The MVP delivers a full-stack fintech platform: multi-currency wallets (KES/USD/BTC/USDC/USDT), universal asset conversion, M-Pesa rails, stablecoin USD accounts, US stock trading, card issuance, and a transactional WhatsApp bot — all wrapped in a premium glassmorphism UI. Built solo on NestJS + Next.js + PostgreSQL, deployed on AWS, with a 3-month aggressive timeline requiring strict phased milestones.
+     6	
+     7	**Competitive edge over Xapo:** Xapo is Bitcoin-centric, members-only, Gibraltar-regulated, targets HNW Bitcoin holders. Koya is Africa-first, multi-asset, accessibility-focused (WhatsApp bot, guest swaps, M-Pesa integration), and serves the underbanked global worker — not just Bitcoin maximalists.
+     8	
+     9	---
+    10	
+    11	## Architecture Overview
+    12	
+    13	```
+    14	┌─────────────────────────────────────────────────────────────────────┐
+    15	│                        CLIENT LAYER                                 │
+    16	│  Next.js Web App │ React Native Mobile │ WhatsApp Bot (Twilio)      │
+    17	└──────────────────────────┬──────────────────────────────────────────┘
+    18	                           │
+    19	┌──────────────────────────▼──────────────────────────────────────────┐
+    20	│                      API GATEWAY (Kong / AWS API Gateway)           │
+    21	│              Rate Limiting │ Auth │ Request Routing                  │
+    22	└──────────────────────────┬──────────────────────────────────────────┘
+    23	                           │
+    24	┌──────────────────────────▼──────────────────────────────────────────┐
+    25	│                    CORE SERVICE MESH (NestJS Monorepo)              │
+    26	│                                                                     │
+    27	│  ┌─────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌───────────┐  │
+    28	│  │ Auth &  │ │  Ledger  │ │  FX /   │ │  Crypto  │ │ Brokerage │  │
+    29	│  │Identity │ │ Service  │ │Conversion│ │ Service  │ │  Adapter  │  │
+    30	│  │ Module  │ │          │ │ Engine  │ │          │ │           │  │
+    31	│  └─────────┘ └──────────┘ └─────────┘ └──────────┘ └───────────┘  │
+    32	│  ┌─────────┐ ┌──────────┐ ┌─────────┐ ┌──────────┐ ┌───────────┐  │
+    33	│  │Payment  │ │  Risk    │ │  Card   │ │Compliance│ │Notification│  │
+    34	│  │ Rails   │ │ Engine   │ │ Service │ │  Module  │ │  Service  │  │
+    35	│  └─────────┘ └──────────┘ └─────────┘ └──────────┘ └───────────┘  │
+    36	└──────────────────────────┬──────────────────────────────────────────┘
+    37	                           │
+    38	┌──────────────────────────▼──────────────────────────────────────────┐
+    39	│                      DATA LAYER                                     │
+    40	│  PostgreSQL (Ledger) │ Redis (Cache/Sessions) │ Kafka (Events)      │
+    41	│  S3 (Documents/KYC)  │ ElasticSearch (Logs)                        │
+    42	└─────────────────────────────────────────────────────────────────────┘
+    43	                           │
+    44	┌──────────────────────────▼──────────────────────────────────────────┐
+    45	│                   EXTERNAL INTEGRATIONS                              │
+    46	│  Safaricom Daraja │ Binance/Yellowcard │ Fireblocks │ DriveWealth   │
+    47	│  Sumsub/Jumio │ Twilio │ Visa/Mastercard Processor │ SWIFT gateway  │
+    48	└─────────────────────────────────────────────────────────────────────┘
+    49	```
+    50	
+    51	---
+    52	
+    53	## Phase Alpha — Foundation (Weeks 1–3)
+    54	
+    55	**Goal:** Core infrastructure that everything else builds on. Zero user-facing features, 100% critical plumbing.
+    56	
+    57	### Step 1: Project Scaffolding (Days 1–2)
+    58	- Initialize NestJS monorepo with Nx workspace
+    59	- Structure: `apps/api`, `apps/web`, `apps/whatsapp-bot`, `libs/shared`, `libs/ledger`, `libs/crypto`, `libs/payments`
+    60	- Configure TypeScript strict mode, ESLint, Prettier
+    61	- Set up PostgreSQL with TypeORM (or Prisma — recommend **Prisma** for speed as solo dev)
+    62	- Redis connection for caching & sessions
+    63	- Docker Compose for local development (Postgres, Redis, Kafka)
+    64	- CI/CD pipeline: GitHub Actions → AWS ECR → ECS Fargate
+    65	- Environment config management (AWS Secrets Manager)
+    66	
+    67	### Step 2: Database Schema & Ledger Core (Days 3–7) *depends on Step 1*
+    68	
+    69	**The ledger is the heart of Koya.** Every financial operation flows through it.
+    70	
+    71	#### Core Tables:
+    72	
+    73	```
+    74	users
+    75	  id (uuid, PK)
+    76	  email (unique, encrypted)
+    77	  phone (unique, encrypted)  
+    78	  full_name (encrypted)
+    79	  country_code
+    80	  kyc_status (enum: none, guest, basic, full)
+    81	  kyc_tier (enum: guest, standard, premium)
+    82	  status (enum: active, suspended, frozen, closed)
+    83	  created_at, updated_at
+    84	
+    85	wallets
+    86	  id (uuid, PK)
+    87	  user_id (FK → users)
+    88	  currency (enum: KES, USD, BTC, USDC, USDT)
+    89	  balance (decimal, 18 precision)
+    90	  available_balance (decimal, 18 precision)
+    91	  locked_balance (decimal, 18 precision)  
+    92	  status (enum: active, frozen)
+    93	  UNIQUE(user_id, currency)
+    94	
+    95	ledger_accounts
+    96	  id (uuid, PK)
+    97	  account_type (enum: user_wallet, treasury, fee_revenue, settlement, suspense)
+    98	  currency (enum: KES, USD, BTC, USDC, USDT)
+    99	  reference_id (nullable — links to wallet_id or system account name)
+   100	  balance (decimal, 18 precision)
+   101	
+   102	ledger_entries
+   103	  id (uuid, PK)
+   104	  transaction_id (FK → transactions)
+   105	  ledger_account_id (FK → ledger_accounts)
+   106	  entry_type (enum: debit, credit)
+   107	  amount (decimal, 18 precision)
+   108	  running_balance (decimal, 18 precision)
+   109	  created_at (immutable)
+   110	
+   111	transactions
+   112	  id (uuid, PK)
+   113	  idempotency_key (unique)
+   114	  type (enum: deposit, withdrawal, conversion, transfer, trade, card_auth, fee)
+   115	  status (enum: pending, processing, completed, failed, reversed)
+   116	  source_currency
+   117	  target_currency
+   118	  source_amount (decimal)
+   119	  target_amount (decimal)
+   120	  exchange_rate (decimal)
+   121	  fee_amount (decimal)
+   122	  fee_currency  
+   123	  user_id (FK → users)
+   124	  metadata (jsonb)
+   125	  created_at, completed_at
+   126	
+   127	conversion_quotes
+   128	  id (uuid, PK)
+   129	  user_id (FK)
+   130	  source_currency
+   131	  target_currency
+   132	  source_amount
+   133	  target_amount
+   134	  exchange_rate
+   135	  spread_bps (basis points)
+   136	  expires_at
+   137	  status (enum: pending, accepted, expired, executed)
+   138	
+   139	kyc_records
+   140	  id (uuid, PK)
+   141	  user_id (FK → users)
+   142	  provider (enum: sumsub, jumio, iprs)
+   143	  verification_type (enum: id_document, selfie, address, aml_screening)
+   144	  status (enum: pending, approved, rejected, expired)
+   145	  provider_reference
+   146	  metadata (jsonb — encrypted)
+   147	  created_at
+   148	
+   149	risk_events
+   150	  id (uuid, PK)
+   151	  user_id (FK)
+   152	  transaction_id (FK, nullable)
+   153	  event_type (enum: login, transaction, kyc_change, device_change)
+   154	  risk_score (integer 0-100)
+   155	  signals (jsonb)
+   156	  action_taken (enum: allow, flag, block, require_2fa)
+   157	  created_at
+   158	```
+   159	
+   160	#### System Accounts (seeded):
+   161	```
+   162	Treasury KES, Treasury USD, Treasury BTC, Treasury USDC, Treasury USDT
+   163	Fee Revenue KES, Fee Revenue USD, Fee Revenue BTC
+   164	Settlement KES, Settlement BTC, Settlement USDC, Settlement USDT
+   165	Suspense (for in-flight transactions)
+   166	```
+   167	
+   168	#### Ledger Invariants (enforced in code + DB constraints):
+   169	- Sum of all debits = Sum of all credits (always, globally)
+   170	- User wallet balance = Sum of all ledger entries for that account
+   171	- No negative balances on user wallets
+   172	- Every transaction creates exactly 2+ ledger entries (double-entry)
+   173	- All writes wrapped in PostgreSQL transactions with SERIALIZABLE isolation
+   174	- Idempotency keys prevent duplicate processing
+   175	
+   176	### Step 3: Auth & Identity Module (Days 5–8) *parallel with Step 2 (days 5–7)*
+   177	- Phone number + OTP authentication (Twilio Verify or Africa's Talking)
+   178	- Email + password as secondary auth method
+   179	- JWT access tokens (15 min) + refresh tokens (30 days, rotating)
+   180	- Google OAuth integration (GCP)
+   181	- Device fingerprinting (store device_id, IP, user-agent per session)
+   182	- Rate limiting on auth endpoints (5 attempts/minute)
+   183	- Session management in Redis
+   184	- RBAC: `user`, `admin`, `system` roles
+   185	
+   186	### Step 4: KYC/AML Pipeline (Days 8–12) *depends on Step 3*
+   187	
+   188	Three KYC tiers:
+   189	
+   190	| Tier | Requirements | Limits |
+   191	|------|-------------|--------|
+   192	| Guest | Name + National ID + IPRS check | 100K KES/day, 300K KES/month |
+   193	| Standard | Full ID doc + selfie + address (Sumsub/Jumio) | 1M KES/day, 5M KES/month |  
+   194	| Premium | Enhanced due diligence + source of funds | Unlimited |
+   195	
+   196	- **Kenya users:** Jumio for document verification + IPRS API for national ID validation
+   197	- **Global users:** Sumsub for document + biometric verification
+   198	- AML screening: Sumsub built-in sanctions/PEP screening (or ComplyAdvantage)
+   199	- Ongoing transaction monitoring: Rule engine that flags suspicious patterns
+   200	- Webhook handlers for async verification status updates
+   201	- KYC status stored encrypted, documents stored in S3 with encryption at rest
+   202	
+   203	### Step 5: Notification Service (Days 10–12) *parallel with Step 4*
+   204	- SMS via Africa's Talking (Kenya) / Twilio (global)
+   205	- Email via AWS SES
+   206	- Push notifications (for future mobile apps) via Firebase Cloud Messaging
+   207	- In-app notification center (WebSocket for real-time)
+   208	- Templates: OTP, transaction confirmation, conversion receipt, KYC status, security alerts
+   209	- Notification preferences per user
+   210	
+   211	---
+   212	
+   213	## Phase Beta — Core Product (Weeks 4–7)
+   214	
+   215	**Goal:** The actual product people use. Conversion engine + wallets + payments + web app.
+   216	
+   217	### Step 6: Multi-Currency Wallet System (Days 13–16) *depends on Steps 2, 3*
+   218	- Auto-create 5 wallets (KES, USD, BTC, USDC, USDT) on user registration
+   219	- Balance queries with available vs locked amounts
+   220	- Transaction history per wallet with pagination
+   221	- Wallet-level spending limits based on KYC tier
+   222	- Internal transfers between own wallets (instant, via ledger)
+   223	- Peer-to-peer transfers (Koya user → Koya user) by phone number or email
+   224	
+   225	### Step 7: Conversion/FX Engine (Days 15–22) *depends on Step 6*
+   226	
+   227	**The conversion engine is Koya's core product differentiator.**
+   228	
+   229	#### Supported Pairs (full matrix):
+   230	```
+   231	KES ↔ BTC    KES ↔ USD    KES ↔ USDT   KES ↔ USDC
+   232	BTC ↔ USD    BTC ↔ USDT   BTC ↔ USDC
+   233	USDT ↔ USD   USDC ↔ USD   USDT ↔ USDC
+   234	```
+   235	
+   236	#### Quote Engine:
+   237	- Fetches real-time prices from multiple sources
+   238	- Applies Koya spread (revenue): 0.5% – 1.5% depending on pair and volume
+   239	- Quote valid for 30 seconds (configurable)
+   240	- Prices cached in Redis (5 second TTL for volatile pairs, 30 sec for stablecoin/stablecoin)
+   241	
+   242	#### Liquidity Strategy (CRITICAL for solo operator):
+   243	
+   244	| Pair Category | Recommended Source | Backup |
+   245	|--------------|-------------------|--------|
+   246	| BTC ↔ USD/USDT/USDC | Binance Spot API | Kraken API |
+   247	| USDT ↔ USDC | 1:1 with tiny spread (internal) | Binance |
+   248	| USDC ↔ USD | 1:1 via stablecoin custodian/Circle | Internal |
+   249	| KES ↔ USD | Sponsor bank FX / Flutterwave | TransferZero |
+   250	| KES ↔ BTC | Route through KES→USD→BTC | Yellowcard API |
+   251	| KES ↔ USDT/USDC | Route through KES→USD→stablecoin | P2P matching |
+   252	
+   253	**Key insight:** Most KES pairs should be routed through USD as intermediary. You don't need 10 direct liquidity pools — you need 3 (KES↔USD, BTC↔USD, stablecoin↔USD) and route everything else through these.
+   254	
+   255	#### Execution Flow:
+   256	1. User requests quote (source currency, target currency, amount)
+   257	2. Quote engine fetches best price, adds spread, returns quote with `quote_id`
+   258	3. User accepts quote within TTL
+   259	4. Execution engine:  
+   260	   a. Lock source funds (wallet.available_balance -= amount)  
+   261	   b. Execute against liquidity source (Binance trade, FX transfer, etc.)  
+   262	   c. On success: Create ledger entries (debit source wallet, credit target wallet, credit fee account)  
+   263	   d. On failure: Unlock funds, mark transaction failed  
+   264	5. Send confirmation notification
+   265	
+   266	### Step 8: M-Pesa Integration (Days 20–26) *depends on Step 6*
+   267	
+   268	#### Deposits (M-Pesa → Koya KES Wallet):
+   269	- STK Push via Safaricom Daraja API
+   270	- User enters amount → STK push sent → user enters PIN on phone → callback received
+   271	- Ledger: Debit M-Pesa Settlement Account, Credit User KES Wallet
+   272	- Implement callback URL with HMAC validation
+   273	- Idempotent callback handling (M-Pesa sends duplicates)
+   274	
+   275	#### Withdrawals (Koya KES Wallet → M-Pesa):
+   276	- B2C API via Daraja
+   277	- User enters phone + amount → Compliance check → B2C request → callback
+   278	- Ledger: Debit User KES Wallet, Credit M-Pesa Settlement Account
+   279	- Queue withdrawals for batch processing during off-peak (cost optimization)
+   280	- Withdrawal limits per KYC tier
+   281	
+   282	#### Paybill Collections:
+   283	- For merchant payments and bill splits
+   284	- Useful for Phase 4 merchant products
+   285	
+   286	#### Technical Details:
+   287	- Daraja API consumer key/secret stored in AWS Secrets Manager
+   288	- Separate sandbox and production configs
+   289	- Retry logic with exponential backoff for failed callbacks
+   290	- Transaction reconciliation job (daily, compares Koya ledger vs M-Pesa statements)
+   291	
+   292	### Step 9: Guest Conversion System (Days 22–26) *depends on Steps 7, 4*
+   293	- No account required
+   294	- Collect: Name, Phone, National ID number
+   295	- IPRS verification (Kenya National ID lookup)
+   296	- AML screening (Sumsub)
+   297	- If clean: Generate quote → Execute → Send M-Pesa disbursement or crypto to provided address
+   298	- Daily limit: 100K KES, Monthly: 300K KES
+   299	- Accessible via Web and WhatsApp
+   300	- After 3 guest conversions: Prompt to create full account
+   301	
+   302	### Step 10: Web Application — Core (Days 18–30) *parallel with Steps 7–9 (frontend work)*
+   303	
+   304	**Stack:** Next.js 15 (App Router), TailwindCSS, Radix UI, Framer Motion
+   305	
+   306	#### Design System:
+   307	- Dark primary theme with glassmorphism cards
+   308	- Color palette: Deep navy (#0A0E27), Electric blue (#3B82F6), Emerald (#10B981), Gold accents
+   309	- Glass cards: `backdrop-blur-xl bg-white/5 border border-white/10`
+   310	- Typography: Inter (body), Space Grotesk (numbers/headings)
+   311	- Animations: Smooth micro-interactions, number count-ups on balances, slide transitions
+   312	
+   313	#### Pages & Components:
+   314	
+   315	**Public:**
+   316	- Landing page (hero, features, social proof, CTA)
+   317	- Guest swap page (simple conversion form)
+   318	- About / Legal / Terms
+   319	
+   320	**Auth:**
+   321	- Phone OTP login
+   322	- Email login
+   323	- Google OAuth
+   324	- KYC onboarding wizard (step-by-step, upload ID, selfie, address)
+   325	
+   326	**Dashboard:**
+   327	- Portfolio overview (total value in USD, 24h change)
+   328	- Balance cards for each wallet (KES, USD, BTC, USDC, USDT)
+   329	- Quick action buttons: Convert, Deposit, Withdraw, Send
+   330	- Recent transactions list
+   331	- Price charts (lightweight TradingView widget or recharts)
+   332	
+   333	**Conversion:**
+   334	- Two-panel swap interface (From → To)
+   335	- Real-time quote with spread displayed
+   336	- Confirmation modal with full breakdown
+   337	- Animated success state
+   338	
+   339	**Wallets:**
+   340	- Individual wallet detail pages
+   341	- Deposit/withdrawal flows (M-Pesa for KES, crypto address for BTC/USDC/USDT, wire for USD)
+   342	- Transaction history with filters
+   343	
+   344	**Settings:**
+   345	- Profile management
+   346	- Security (2FA, active sessions, trusted devices)
+   347	- Notification preferences
+   348	- KYC status & document management
+   349	
+   350	---
+   351	
+   352	## Phase Gamma — Extended Product (Weeks 8–10)
+   353	
+   354	**Goal:** Differentiation features — stocks, cards, WhatsApp, mobile.
+   355	
+   356	### Step 11: WhatsApp Bot — Full Transactional (Days 31–38) *depends on Steps 6, 7, 8*
+   357	
+   358	**Platform:** Twilio WhatsApp Business API (or Meta Cloud API directly)
+   359	
+   360	#### Conversation Flows:
+   361	
+   362	**Onboarding:**
+   363	```
+   364	User: "Hi"
+   365	Bot: "Welcome to Koya Bank 🏦 The borderless financial operating system.
+   366	      Reply with:
+   367	      1️⃣ Quick Swap (no account needed)
+   368	      2️⃣ Create Account  
+   369	      3️⃣ Login to Account
+   370	      4️⃣ Check Rates"
+   371	```
+   372	
+   373	**Guest Swap (no account):**
+   374	```
+   375	User: "1" 
+   376	Bot: "Quick Swap! What would you like to convert?
+   377	      Example: 50000 KES to BTC
+   378	      Or: 0.01 BTC to KES"
+   379	User: "50000 KES to BTC"
+   380	Bot: "📊 Quote: 50,000 KES → 0.00341 BTC
+   381	      Rate: 1 BTC = 14,662,756 KES
+   382	      Fee: 500 KES
+   383	      Expires in 30 seconds.
+   384	      Reply YES to confirm."
+   385	```
+   386	
+   387	**Authenticated Commands:**
+   388	```
+   389	BAL         → View all balances
+   390	SEND 1000 KES to 0712345678 → P2P transfer  
+   391	SWAP 100 USD to BTC → Conversion
+   392	DEPOSIT     → Get M-Pesa paybill / crypto address
+   393	WITHDRAW 5000 KES → M-Pesa withdrawal
+   394	HISTORY     → Last 5 transactions
+   395	RATES       → Current exchange rates
+   396	STOCKS      → Portfolio summary
+   397	HELP        → Command list
+   398	```
+   399	
+   400	**Security:**
+   401	- Session-based auth via phone number (OTP verification)
+   402	- Transaction PIN for amounts > 10,000 KES
+   403	- Session timeout: 10 minutes of inactivity
+   404	- IP/device logging per WhatsApp session
+   405	
+   406	### Step 12: Stablecoin Infrastructure (Days 33–38) *parallel with Step 11*
+   407	- USDC as primary reserve for USD wallets
+   408	- Integration with Circle (USDC minting/redeeming) or custody through Fireblocks
+   409	- User deposits USDC → credited to USDC wallet
+   410	- User can "hold USD" which is backed 1:1 by USDC in custody
+   411	- USDT integration via Tether on Ethereum/Tron
+   412	- Display: Users see "USD balance" but backend maintains USDC/USDT reserve tracking
+   413	- Reserve transparency page (total USD liabilities vs USDC reserves)
+   414	
+   415	### Step 13: US Stock Trading (Days 36–42) *depends on Step 6*
+   416	
+   417	**Broker:** DriveWealth API
+   418	
+   419	#### Capabilities:
+   420	- Fractional shares (buy $10 of Apple)
+   421	- US equities + major ETFs (S&P 500, QQQ, etc.)
+   422	- Market orders + limit orders
+   423	- Curated stock lists ("Popular", "Tech Giants", "ETFs", "Dividend")
+   424	
+   425	#### Trade Flow:
+   426	1. User selects stock, enters USD amount
+   427	2. Convert from any wallet to USD (if needed) — uses Conversion Engine
+   428	3. Submit order to DriveWealth
+   429	4. DriveWealth executes, returns confirmation
+   430	5. Update portfolio in Koya DB
+   431	6. Settlement T+1 (handle in background)
+   432	
+   433	#### UI:
+   434	- Stock browsing with search
+   435	- Individual stock page (price chart, company info, buy/sell)
+   436	- Portfolio view (holdings, P&L, allocation pie chart)
+   437	- Order history
+   438	
+   439	### Step 14: Card Infrastructure (Days 40–48) *parallel with Step 13*
+   440	
+   441	**Card Issuer:** Partner with a card processor (Marqeta, Stripe Issuing, or Africa-focused: Sudo Africa, Union54)
+   442	
+   443	#### Card Types:
+   444	- **Virtual card** (instant issuance) — for online purchases
+   445	- **Physical premium card** (metal, custom design) — mailed
+   446	- **Disposable virtual card** — single-use, privacy-focused
+   447	
+   448	#### Features:
+   449	- Fund from any wallet (auto-convert to transaction currency)
+   450	- Real-time authorization webhooks
+   451	- Wallet selection per card (default: USD wallet)
+   452	- Card controls: freeze/unfreeze, region lock, merchant category blocks, spending limits
+   453	- Transaction notifications (push + in-app)
+   454	- 1% BTC cashback on all card purchases (competitive with Xapo)
+   455	
+   456	#### Ledger Integration:
+   457	- Card authorization: Lock funds in wallet
+   458	- Card settlement (T+1): Debit wallet, credit card settlement account
+   459	- Refunds: Credit wallet, debit card settlement account
+   460	
+   461	### Step 15: Mobile Apps (Days 38–50) *parallel with Steps 13, 14*
+   462	
+   463	**Stack:** React Native (Expo) for iOS + Android
+   464	
+   465	- Share component library with web (design tokens, API client)
+   466	- Biometric auth (Face ID / fingerprint)
+   467	- Push notifications via Firebase
+   468	- Offline-capable balance viewing (cached)
+   469	- Deep links for WhatsApp → App handoff
+   470	- Feature parity with web dashboard
+   471	
+   472	Priority screens:
+   473	1. Dashboard (balances, quick actions)
+   474	2. Conversion/swap
+   475	3. Wallet detail + deposit/withdraw
+   476	4. Transaction history
+   477	5. Stock trading
+   478	6. Card management
+   479	7. Settings & security
+   480	
+   481	---
+   482	
+   483	## Phase Delta — Hardening & Launch (Weeks 11–12)
+   484	
+   485	### Step 16: Risk Engine (Days 49–52) *depends on all previous*
+   486	- Real-time risk scoring on every transaction
+   487	- Signals: transaction velocity, amount anomaly, device fingerprint, geo mismatch, time-of-day patterns
+   488	- Rule engine:
+   489	  - > 500K KES single transaction → flag for review
+   490	  - > 3 devices in 24 hours → require re-auth
+   491	  - New device + large withdrawal → block, notify user
+   492	  - Cross-border pattern inconsistent with profile → flag
+   493	- AML transaction monitoring: Daily batch analysis
+   494	- Suspicious Activity Reports (SAR) generation for compliance team
+   495	
+   496	### Step 17: Observability & Monitoring (Days 50–53) *parallel with Step 16*
+   497	- Prometheus metrics (transaction volume, conversion latency, error rates)
+   498	- Grafana dashboards (business KPIs + system health)
+   499	- OpenTelemetry distributed tracing across services
+   500	- Structured logging → ElasticSearch (or AWS CloudWatch)
+   501	- Alerting: PagerDuty / Opsgenie for P0 incidents
+   502	- Uptime monitoring: External health checks on critical paths
+   503	- Financial reconciliation alerts (ledger imbalance = P0)
+   504	
+   505	### Step 18: Security Hardening (Days 52–55)
+   506	- Penetration testing checklist (OWASP Top 10)
+   507	- Rate limiting on all public endpoints
+   508	- Input validation & sanitization everywhere
+   509	- SQL injection prevention (parameterized queries via Prisma)
+   510	- XSS prevention (React auto-escapes, CSP headers)
+   511	- CSRF protection (SameSite cookies + CSRF tokens)
+   512	- Secrets rotation procedure
+   513	- Encryption at rest (PostgreSQL TDE, S3 encryption)
+   514	- Encryption in transit (TLS 1.3 everywhere)
+   515	- API key rotation schedule
+   516	- Audit logging (who did what, when, from where)
+   517	
+   518	### Step 19: Compliance & Legal Prep (Days 53–56) *parallel with Step 18*
+   519	- Terms of Service
+   520	- Privacy Policy (GDPR + Kenya Data Protection Act compliant)
+   521	- AML/KYC Policy documentation
+   522	- Risk assessment documentation
+   523	- Transaction monitoring rules documentation
+   524	- Data retention policy (7 years for financial records)
+   525	- Prepare CBK engagement materials (for future licensing)
+   526	
+   527	### Step 20: Load Testing & Launch (Days 55–60)
+   528	- Load test: k6 scripts simulating 1000 concurrent users
+   529	- Stress test conversion engine under 100 req/sec
+   530	- Database query optimization (EXPLAIN ANALYZE critical queries)
+   531	- Redis cache warming strategy
+   532	- CDN for static assets (CloudFront)
+   533	- Blue-green deployment setup
+   534	- Launch checklist:
+   535	  - [ ] All integration sandbox → production migrations
+   536	  - [ ] DNS + SSL configured
+   537	  - [ ] Monitoring dashboards live
+   538	  - [ ] On-call rotation (even if solo — phone alerts)
+   539	  - [ ] Seed liquidity in exchange accounts
+   540	  - [ ] First 50 beta users onboarded
+   541	  - [ ] Guest swap flow tested end-to-end
+   542	  - [ ] KYC flow tested with real documents
+   543	  - [ ] M-Pesa production credentials active
+   544	
+   545	---
+   546	
+   547	## Infrastructure & Deployment
+   548	
+   549	### AWS Architecture:
+   550	```
+   551	Route 53 (DNS)
+   552	    │
+   553	CloudFront (CDN — static assets, web app)
+   554	    │
+   555	ALB (Application Load Balancer)
+   556	    │
+   557	ECS Fargate (API containers — auto-scaling)
+   558	    │
+   559	├── RDS PostgreSQL (Multi-AZ, encrypted, automated backups)
+   560	├── ElastiCache Redis (cluster mode)
+   561	├── MSK (Managed Kafka)
+   562	├── S3 (KYC documents, encrypted)
+   563	├── Secrets Manager (API keys, DB credentials)
+   564	├── SQS (async job queue — fallback for Kafka)
+   565	├── Lambda (webhook handlers, reconciliation jobs)
+   566	└── CloudWatch (logs, basic monitoring)
+   567	```
+   568	
+   569	### Estimated AWS Costs (MVP scale):
+   570	- RDS (db.t3.medium): ~$70/month
+   571	- ECS Fargate (2 tasks): ~$60/month
+   572	- ElastiCache (cache.t3.micro): ~$15/month
+   573	- ALB: ~$25/month
+   574	- S3 + CloudFront: ~$10/month
+   575	- Total: ~$200–350/month at MVP scale
+   576	
+   577	### DigitalOcean / Scaleway (secondary):
+   578	- Staging environment
+   579	- Development databases
+   580	- Cost savings for non-critical workloads
+   581	
+   582	---
+   583	
+   584	## Revenue Model — MVP Mechanics
+   585	
+   586	### Conversion Spread (Primary Revenue):
+   587	| Pair Type | Spread (bps) | Example |
+   588	|-----------|-------------|---------|
+   589	| Crypto ↔ Fiat | 100-150 bps | BTC→KES: user pays 1-1.5% |
+   590	| Crypto ↔ Crypto | 50-75 bps | BTC→USDT: user pays 0.5-0.75% |
+   591	| Stablecoin ↔ Stablecoin | 10-25 bps | USDC→USDT: user pays 0.1-0.25% |
+   592	| Fiat ↔ Fiat | 75-100 bps | KES→USD: user pays 0.75-1% |
+   593	
+   594	### Additional Revenue:
+   595	- **Card interchange:** ~0.5-1% of card transaction value
+   596	- **BTC cashback cost:** Offset by interchange revenue
+   597	- **Stock trading:** Commission per trade (or spread on DriveWealth)
+   598	- **Premium tier (future):** Monthly subscription for enhanced limits, priority support
+   599	
+   600	---
+   601	
+   602	## Relevant Files (Project Structure)
+   603	
+   604	```
+   605	koya/
+   606	├── apps/
+   607	│   ├── api/                          — NestJS backend application
+   608	│   │   ├── src/
+   609	│   │   │   ├── main.ts
+   610	│   │   │   ├── app.module.ts
+   611	│   │   │   ├── auth/                 — Auth module (JWT, OTP, OAuth)
+   612	│   │   │   ├── users/                — User management
+   613	│   │   │   ├── wallets/              — Multi-currency wallet logic
+   614	│   │   │   ├── ledger/               — Double-entry ledger core
+   615	│   │   │   ├── conversion/           — FX/conversion engine
+   616	│   │   │   ├── payments/             — M-Pesa, bank transfers
+   617	│   │   │   ├── crypto/               — Crypto operations, custody
+   618	│   │   │   ├── trading/              — Stock trading (DriveWealth)
+   619	│   │   │   ├── cards/                — Card issuance & management
+   620	│   │   │   ├── kyc/                  — KYC/AML pipeline
+   621	│   │   │   ├── risk/                 — Risk scoring engine
+   622	│   │   │   ├── notifications/        — SMS, email, push
+   623	│   │   │   ├── whatsapp/             — WhatsApp bot handlers
+   624	│   │   │   └── common/               — Guards, interceptors, filters
+   625	│   │   └── prisma/
+   626	│   │       └── schema.prisma         — Database schema
+   627	│   ├── web/                          — Next.js web application
+   628	│   │   ├── app/
+   629	│   │   │   ├── (public)/             — Landing, guest swap
+   630	│   │   │   ├── (auth)/               — Login, register, KYC
+   631	│   │   │   ├── (dashboard)/          — Main app (wallets, convert, trade)
+   632	│   │   │   └── api/                  — Next.js API routes (BFF)
+   633	│   │   ├── components/
+   634	│   │   │   ├── ui/                   — Design system (glassmorphism)
+   635	│   │   │   ├── dashboard/            — Dashboard components
+   636	│   │   │   ├── conversion/           — Swap interface
+   637	│   │   │   ├── wallets/              — Wallet cards, history
+   638	│   │   │   ├── trading/              — Stock trading UI
+   639	│   │   │   └── cards/                — Card management UI
+   640	│   │   └── lib/                      — API client, hooks, utils
+   641	│   ├── mobile/                       — React Native (Expo) app
+   642	│   └── whatsapp/                     — WhatsApp bot service
+   643	├── libs/
+   644	│   ├── shared/                       — Shared types, DTOs, constants
+   645	│   ├── ledger/                       — Ledger primitives (shared logic)
+   646	│   └── crypto/                       — Crypto utilities
+   647	├── docker-compose.yml
+   648	├── .github/workflows/ci.yml
+   649	└── infrastructure/
+   650	    └── terraform/                    — AWS IaC
+   651	```
+   652	
+   653	---
+   654	
+   655	## Verification Plan
+   656	
+   657	1. **Ledger integrity test:** Write a test suite that performs 10,000 random transactions and asserts total debits = total credits, all balances >= 0, and every transaction has matching entry pairs
+   658	2. **Conversion engine test:** Test all 10 currency pairs with mock exchange data, verify spread calculation accuracy to 6 decimal places
+   659	3. **M-Pesa integration test:** End-to-end test on Safaricom sandbox — STK push deposit → balance update → B2C withdrawal
+   660	4. **Guest swap E2E test:** Full flow from landing page → ID input → IPRS mock → quote → execute → receipt
+   661	5. **Auth security test:** Verify rate limiting (6th login attempt blocked), JWT expiry, refresh token rotation, session invalidation
+   662	6. **WhatsApp bot test:** Simulate full conversation flows for: guest swap, balance check, conversion, deposit, withdrawal
+   663	7. **Stock trading test:** Place order on DriveWealth sandbox, verify portfolio update
+   664	8. **Load test:** k6 script — 500 concurrent users performing conversions, target < 2 second p95 latency
+   665	9. **Reconciliation test:** Intentionally create mismatched state, verify reconciliation job catches it
+   666	10. **Card authorization test:** Simulate Visa/Mastercard auth webhook, verify balance lock + notification
+   667	
+   668	---
+   669	
+   670	## Decisions & Assumptions
+   671	
+   672	1. **Monorepo over microservices:** As a solo developer, a NestJS monorepo with well-separated modules is faster than managing 10 microservices. The module boundaries are designed so you can extract to microservices later when you have a team.
+   673	
+   674	2. **Prisma over TypeORM:** Prisma gives you type-safe database access, automatic migrations, and a great developer experience. Critical for a solo dev moving fast.
+   675	
+   676	3. **Liquidity routing through USD:** Instead of maintaining 10+ direct liquidity pools, route most conversions through USD as the intermediate currency. This reduces complexity from O(n²) liquidity pools to O(n).
+   677	
+   678	4. **No own banking license initially:** Operate under a sponsor bank model (or as a technology provider). Engage CBK for licensing path in parallel with building. This is the standard approach (Xapo started with Bitcoin custody, added banking license later through Gibraltar).
+   679	
+   680	5. **Fireblocks for crypto custody:** While expensive, Fireblocks provides MPC wallets, policy engine, and regulatory compliance out of the box. For MVP, you can start with a simpler setup (e.g., BitGo or even self-custody with proper key management) and upgrade.
+   681	
+   682	6. **React Native over native iOS/Android:** As a solo developer, code reuse is essential. Expo + React Native gives you both platforms with ~90% shared code.
+   683	
+   684	7. **Guest swaps as growth wedge:** This is your user acquisition funnel. No sign-up friction → demonstrate value → convert to full accounts. Xapo requires membership application — Koya's openness is a competitive advantage.
+   685	
+   686	8. **WhatsApp as distribution channel:** 97% of Kenyans with smartphones use WhatsApp. A full transactional bot isn't just a feature — it's market access to users who won't download another app.
+   687	
+   688	---
+   689	
+   690	## Critical Risk Factors
+   691	
+   692	1. **Regulatory:** Operating without a license is the #1 risk. Mitigate: Engage a Kenyan fintech lawyer immediately. Consider launching under a sandbox/pilot license from CBK Innovation Hub. Research if you can operate as a "technology platform" with a licensed partner.
+   693	
+   694	2. **Liquidity:** You need funded exchange accounts with sufficient BTC, USDC, USDT, and KES liquidity before launch. Under-capitalized liquidity = failed conversions = dead product.
+   695	
+   696	3. **Solo developer risk:** This plan is executable but demanding. Prioritize ruthlessly: Launch with guest swaps + web wallets first, then layer features. Don't try to ship everything on Day 60.
+   697	
+   698	4. **M-Pesa production access:** Getting Daraja production credentials requires a registered Kenyan business entity and compliance review. Start the application process in Week 1.
+   699	
+   700	---
+   701	
+   702	## Realistic Solo Developer Sequencing
+   703	
+   704	Given you're solo, here's the honest priority order if time runs short:
+   705	
+   706	**Must ship (Week 1–6):**
+   707	- Ledger + Auth + KYC pipeline
+   708	- Multi-currency wallets
+   709	- Conversion engine (start with BTC↔KES, BTC↔USDT, USDT↔KES)
+   710	- M-Pesa deposits/withdrawals
+   711	- Guest swap (web)
+   712	- Web dashboard (core flows)
+   713	
+   714	**Should ship (Week 7–9):**
+   715	- WhatsApp bot (basic: rates, guest swaps)
+   716	- All conversion pairs
+   717	- Stablecoin infrastructure
+   718	- Risk engine (basic rules)
+   719	
+   720	**Can defer (Week 10–12):**
+   721	- Stock trading
+   722	- Card issuance
+   723	- Mobile apps
+   724	- Full WhatsApp transactional bot
+   725	- Advanced risk engine
+   726	
+   727	This sequencing ensures you have a **working, revenue-generating product** even if Phase Gamma slips.
+   728	

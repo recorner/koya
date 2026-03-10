@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Koya — Fixed Mark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --black: #070708;
+    --navy:  #0A0E27;
+    --cell:  #0F0F10;
+  }
+  body {
+    background: var(--black);
+    font-family: 'DM Sans', sans-serif;
+    color: #fff;
+    padding: 64px 28px 100px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .ph { text-align:center; margin-bottom:80px; }
+  .ph-tag { font-size:9.5px; letter-spacing:0.22em; text-transform:uppercase; color:#1e1e20; font-weight:700; margin-bottom:12px; }
+  .ph-rule { width:32px; height:1px; background:linear-gradient(90deg,transparent,#D4AF37,transparent); margin:0 auto; }
+
+  .sw { max-width:1100px; margin:0 auto 3px; }
+  .sl { font-size:9px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:#1a1a1c; margin-bottom:3px; padding-left:2px; }
+
+  .grid { display:grid; gap:3px; }
+  .g3 { grid-template-columns:repeat(3,1fr); }
+  .g4 { grid-template-columns:repeat(4,1fr); }
+
+  .cell {
+    background: var(--cell);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:28px; padding:52px 20px; min-height:240px;
+    transition:background 0.15s; cursor:pointer;
+  }
+  .cell:hover { background:#141415; }
+  .cell.nv  { background:var(--navy); }
+  .cell.nv:hover { background:#0F1330; }
+  .cell.wh  { background:#fff; }
+  .cell.wh:hover { background:#F7F6F3; }
+  .cell.lt  { background:#F2F1EE; }
+  .cell.lt:hover { background:#E8E7E3; }
+  .cell.am  { background:#0d0b00; }
+  .cell.am:hover { background:#130f00; }
+
+  .lb {
+    font-size:9px; font-weight:600; letter-spacing:0.1em;
+    text-transform:uppercase; color:#1c1c1e; text-align:center; line-height:1.6;
+  }
+  .cell.nv .lb { color:rgba(255,255,255,0.1); }
+  .cell.wh .lb,.cell.lt .lb { color:#C0C0BA; }
+  .cell.am .lb { color:rgba(212,175,55,0.25); }
+
+  .hl { display:flex; align-items:center; gap:13px; }
+  .wm { font-family:'Syne',sans-serif; font-weight:800; letter-spacing:-0.04em; }
+  .gw { background:linear-gradient(135deg,#F0D060,#D4AF37,#A88520); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  .stk { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .tl { font-size:8px; letter-spacing:0.24em; text-transform:uppercase; font-weight:500; color:rgba(212,175,55,0.35); }
+
+  .strip {
+    background:var(--cell); max-width:1100px; margin:3px auto 0;
+    padding:44px 32px; display:flex; align-items:flex-end;
+    justify-content:center; gap:44px; flex-wrap:wrap;
+  }
+  .sz { display:flex; flex-direction:column; align-items:center; gap:14px; }
+  .szn { font-size:9px; color:#1a1a1c; font-weight:600; letter-spacing:0.06em; }
+
+  .sec-gap { margin-top:52px; }
+</style>
+</head>
+<body>
+
+<!-- ── ALL SHARED DEFS ── -->
+<svg width="0" height="0" style="position:absolute; overflow:hidden;">
+  <defs>
+    <!-- 24k metallic gold -->
+    <linearGradient id="gGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F0D060"/>
+      <stop offset="35%"  stop-color="#D4AF37"/>
+      <stop offset="70%"  stop-color="#A88520"/>
+      <stop offset="100%" stop-color="#C9A030"/>
+    </linearGradient>
+    <!-- Deeper gold for light bgs -->
+    <linearGradient id="gGoldD" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#C9A030"/>
+      <stop offset="50%"  stop-color="#8B6914"/>
+      <stop offset="100%" stop-color="#A88520"/>
+    </linearGradient>
+    <!-- Back crescent gold — slightly muted -->
+    <linearGradient id="gGoldBack" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%"   stop-color="#C9A030"/>
+      <stop offset="60%"  stop-color="#8B6500"/>
+      <stop offset="100%" stop-color="#6B4F00"/>
+    </linearGradient>
+
+    <!-- ── MASK: cuts the crescent from the front circle
+         White = show, Black = hide
+         Front circle radius 22, center 38,42
+         Cutout circle radius 15, center 48,42 ── -->
+    <mask id="mFront">
+      <circle cx="38" cy="42" r="22" fill="white"/>
+      <circle cx="48" cy="42" r="15" fill="black"/>
+    </mask>
+
+    <!-- ── MASK: back crescent
+         Back circle radius 20, center 46,42
+         Cutout circle radius 15, center 55,37 ── -->
+    <mask id="mBack">
+      <circle cx="46" cy="42" r="20" fill="white"/>
+      <circle cx="55" cy="37" r="14" fill="black"/>
+    </mask>
+
+    <!-- Same masks but sized for the circle avatar (no rect container) -->
+    <mask id="mFrontCirc">
+      <circle cx="38" cy="42" r="22" fill="white"/>
+      <circle cx="48" cy="42" r="15" fill="black"/>
+    </mask>
+    <mask id="mBackCirc">
+      <circle cx="46" cy="42" r="20" fill="white"/>
+      <circle cx="55" cy="37" r="14" fill="black"/>
+    </mask>
+  </defs>
+</svg>
+
+
+<div class="ph">
+  <div class="ph-tag">Koya Bank — Fixed Mark · v5.1</div>
+  <div class="ph-rule"></div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+  01 — MARK ON ALL BACKGROUNDS
+  True crescent via SVG mask — zero black hack
+═══════════════════════════════════════ -->
+<div class="sw">
+  <div class="sl">01 — Mark on Every Surface (mask-based, no black overlay)</div>
+  <div class="grid g4">
+
+    <!-- BLACK BG -->
+    <div class="cell" style="min-height:280px; gap:20px;">
+      <svg width="88" height="88" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+        <!-- Back crescent — muted gold, true transparent cutout -->
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <!-- Front crescent — full metallic gold, true transparent cutout -->
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">On Black</span>
+    </div>
+
+    <!-- NAVY BG -->
+    <div class="cell nv" style="min-height:280px; gap:20px;">
+      <svg width="88" height="88" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="20" fill="#0A0E27"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">On Navy</span>
+    </div>
+
+    <!-- WHITE BG -->
+    <div class="cell wh" style="min-height:280px; gap:20px;">
+      <svg width="88" height="88" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="20" fill="#fff"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGoldD)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">On White</span>
+    </div>
+
+    <!-- LIGHT BG -->
+    <div class="cell lt" style="min-height:280px; gap:20px;">
+      <svg width="88" height="88" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="20" fill="#F2F1EE"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGoldD)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">On Light</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+  02 — MARK ONLY (NO CONTAINER RECT)
+  Flat mark dropped directly on bg
+═══════════════════════════════════════ -->
+<div class="sw sec-gap">
+  <div class="sl">02 — Flat Mark (No Container)</div>
+  <div class="grid g4">
+
+    <div class="cell am" style="min-height:240px; gap:20px;">
+      <svg width="80" height="80" viewBox="0 0 84 84" fill="none">
+        <!-- No background rect — pure mark floating -->
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">Flat · Amber BG</span>
+    </div>
+
+    <div class="cell" style="min-height:240px; gap:20px;">
+      <svg width="80" height="80" viewBox="0 0 84 84" fill="none">
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">Flat · Black</span>
+    </div>
+
+    <div class="cell nv" style="min-height:240px; gap:20px;">
+      <svg width="80" height="80" viewBox="0 0 84 84" fill="none">
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">Flat · Navy</span>
+    </div>
+
+    <div class="cell wh" style="min-height:240px; gap:20px;">
+      <svg width="80" height="80" viewBox="0 0 84 84" fill="none">
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGoldD)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">Flat · White</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+  03 — FULL LOCKUPS
+═══════════════════════════════════════ -->
+<div class="sw sec-gap">
+  <div class="sl">03 — Full Lockups</div>
+  <div class="grid g3">
+
+    <!-- Horizontal · Black -->
+    <div class="cell" style="min-height:200px; gap:20px;">
+      <div class="hl">
+        <svg width="42" height="42" viewBox="0 0 84 84" fill="none">
+          <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm gw" style="font-size:32px;">koya</span>
+      </div>
+      <span class="lb">Horizontal · Black</span>
+    </div>
+
+    <!-- Horizontal · Navy -->
+    <div class="cell nv" style="min-height:200px; gap:20px;">
+      <div class="hl">
+        <svg width="42" height="42" viewBox="0 0 84 84" fill="none">
+          <rect width="84" height="84" rx="20" fill="#0A0E27"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm gw" style="font-size:32px;">koya</span>
+      </div>
+      <span class="lb">Horizontal · Navy</span>
+    </div>
+
+    <!-- Horizontal · White -->
+    <div class="cell wh" style="min-height:200px; gap:20px;">
+      <div class="hl">
+        <svg width="42" height="42" viewBox="0 0 84 84" fill="none">
+          <rect width="84" height="84" rx="20" fill="#fff"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGoldD)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm" style="font-size:32px; color:#0C0C0A;">koya</span>
+      </div>
+      <span class="lb">Horizontal · White</span>
+    </div>
+
+    <!-- Stacked · Black -->
+    <div class="cell" style="min-height:240px; gap:20px;">
+      <div class="stk">
+        <svg width="56" height="56" viewBox="0 0 84 84" fill="none">
+          <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm gw" style="font-size:28px;">koya</span>
+        <span class="tl">Borderless Finance</span>
+      </div>
+      <span class="lb">Stacked · Black</span>
+    </div>
+
+    <!-- Stacked · Navy -->
+    <div class="cell nv" style="min-height:240px; gap:20px;">
+      <div class="stk">
+        <svg width="56" height="56" viewBox="0 0 84 84" fill="none">
+          <rect width="84" height="84" rx="20" fill="#0A0E27"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm gw" style="font-size:28px;">koya</span>
+        <span class="tl">Borderless Finance</span>
+      </div>
+      <span class="lb">Stacked · Navy</span>
+    </div>
+
+    <!-- Full name · Black -->
+    <div class="cell am" style="min-height:240px; gap:20px;">
+      <div class="hl">
+        <svg width="36" height="36" viewBox="0 0 84 84" fill="none">
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span class="wm gw" style="font-size:24px;">koya bank</span>
+      </div>
+      <span class="lb">Full Name · Flat</span>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+  04 — SCALE TEST
+═══════════════════════════════════════ -->
+<div class="sw sec-gap">
+  <div class="sl">04 — Scale Test · 16px → 128px</div>
+  <div class="strip">
+    <div class="sz">
+      <svg width="16" height="16" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">16</span>
+    </div>
+    <div class="sz">
+      <svg width="24" height="24" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">24</span>
+    </div>
+    <div class="sz">
+      <svg width="32" height="32" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">32</span>
+    </div>
+    <div class="sz">
+      <svg width="48" height="48" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">48</span>
+    </div>
+    <div class="sz">
+      <svg width="64" height="64" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">64</span>
+    </div>
+    <div class="sz">
+      <svg width="96" height="96" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">96</span>
+    </div>
+    <div class="sz">
+      <svg width="128" height="128" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="18" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="szn">128</span>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+  05 — PRODUCT CONTEXTS
+═══════════════════════════════════════ -->
+<div class="sw sec-gap">
+  <div class="sl">05 — Product Contexts</div>
+  <div class="grid g3">
+
+    <!-- App icon -->
+    <div class="cell" style="min-height:260px; gap:20px;">
+      <svg width="120" height="120" viewBox="0 0 84 84" fill="none">
+        <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">App Icon</span>
+    </div>
+
+    <!-- Browser favicon -->
+    <div class="cell wh" style="min-height:260px; gap:20px;">
+      <div style="background:#1C1C1E;border-radius:10px;padding:10px 16px;display:flex;align-items:center;gap:9px;width:270px;">
+        <svg width="16" height="16" viewBox="0 0 84 84" fill="none" style="flex-shrink:0;">
+          <rect width="84" height="84" rx="20" fill="#0d0b00"/>
+          <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+          <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+        </svg>
+        <span style="font-size:12.5px;color:#888;font-family:'DM Sans',sans-serif;font-weight:500;">koya.bank</span>
+      </div>
+      <span class="lb">Browser Favicon</span>
+    </div>
+
+    <!-- WhatsApp circle -->
+    <div class="cell nv" style="min-height:260px; gap:20px;">
+      <svg width="96" height="96" viewBox="0 0 84 84" fill="none">
+        <circle cx="42" cy="42" r="42" fill="#0d0b00"/>
+        <circle cx="46" cy="42" r="20" fill="url(#gGoldBack)" mask="url(#mBack)"/>
+        <circle cx="38" cy="42" r="22" fill="url(#gGold)" mask="url(#mFront)"/>
+      </svg>
+      <span class="lb">WhatsApp Avatar</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
