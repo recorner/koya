@@ -9,6 +9,20 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
+  async redirects() {
+    return [
+      {
+        source: '/apple-touch-icon.png',
+        destination: '/apple-icon.png',
+        permanent: true,
+      },
+      {
+        source: '/apple-touch-icon-precomposed.png',
+        destination: '/apple-icon.png',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 const plugins = [

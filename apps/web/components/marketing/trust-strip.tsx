@@ -7,41 +7,87 @@ import {
   TrendingUp,
   ShieldCheck,
 } from 'lucide-react';
-import { StaggerContainer, StaggerItem } from '@/components/marketing/motion-wrapper';
+import {
+  StaggerContainer,
+  StaggerItem,
+} from '@/components/marketing/motion-wrapper';
 
 const pillars = [
-  { icon: Globe, label: 'Multi-Currency', detail: '5 currencies' },
-  { icon: ArrowLeftRight, label: 'Instant Conversion', detail: '< 2s swaps' },
-  { icon: CreditCard, label: 'Premium Cards', detail: 'Physical & virtual' },
-  { icon: TrendingUp, label: 'Global Investing', detail: 'U.S. markets' },
-  { icon: ShieldCheck, label: 'Secure Infrastructure', detail: 'Bank grade' },
+  {
+    icon: Globe,
+    label: 'Multi-currency system',
+    detail: 'KES, USD, BTC, USDC, USDT',
+  },
+  {
+    icon: ArrowLeftRight,
+    label: 'Instant conversion',
+    detail: 'Fast wallet-to-wallet value switching',
+  },
+  {
+    icon: CreditCard,
+    label: 'Premium cards',
+    detail: 'Physical and virtual spending controls',
+  },
+  {
+    icon: TrendingUp,
+    label: 'Global investing',
+    detail: 'Access to U.S. equities and ETFs',
+  },
+  {
+    icon: ShieldCheck,
+    label: 'Security posture',
+    detail: 'Monitored, controlled, auditable flows',
+  },
 ];
 
 export function TrustStrip() {
   return (
-    <section className="border-y border-white-5 bg-surface py-10 md:py-12">
-      <StaggerContainer
-        stagger={0.08}
-        className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 sm:grid-cols-3 md:grid-cols-5 md:gap-4"
-      >
-        {pillars.map((item) => {
-          const Icon = item.icon;
-          return (
-            <StaggerItem
-              key={item.label}
-              className="flex flex-col items-center gap-3 text-center"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white-5 text-gold">
-                <Icon size={20} strokeWidth={1.5} />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white-95">{item.label}</p>
-                <p className="font-mono text-[11px] text-white-40">{item.detail}</p>
-              </div>
-            </StaggerItem>
-          );
-        })}
-      </StaggerContainer>
+    <section className="relative border-y border-white/6 bg-[linear-gradient(180deg,#0A0A0A_0%,#0D0D0D_100%)] py-12 md:py-14">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-8 text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
+            Koya platform
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-white/50">
+            A compact view of the core layers that make Koya feel like one
+            coordinated financial operating system instead of a pile of disconnected tools.
+          </p>
+        </div>
+
+        <StaggerContainer
+          stagger={0.07}
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
+        >
+          {pillars.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <StaggerItem key={item.label}>
+                <div className="group relative h-full overflow-hidden rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_14px_45px_rgba(0,0,0,0.20)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-[rgba(212,175,55,0.18)] hover:shadow-[0_22px_60px_rgba(0,0,0,0.30)]">
+                  <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                    <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
+                  </div>
+
+                  <div className="relative">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[rgba(212,175,55,0.14)] bg-[rgba(212,175,55,0.10)] text-[rgba(212,175,55,0.95)]">
+                      <Icon size={18} strokeWidth={1.7} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold tracking-tight text-white">
+                        {item.label}
+                      </p>
+                      <p className="text-xs leading-5 text-white/50">
+                        {item.detail}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </StaggerItem>
+            );
+          })}
+        </StaggerContainer>
+      </div>
     </section>
   );
 }

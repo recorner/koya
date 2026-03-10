@@ -8,11 +8,16 @@
     "dev": "nx run-many -t serve -p web api",
     "build": "nx run-many -t build",
     "lint": "nx run-many -t lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.app.json",
     "format": "nx format:write",
     "format:check": "nx format:check"
   },
   "private": true,
+  "packageManager": "pnpm@10.32.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^9.8.0",
     "@nestjs/schematics": "^11.0.0",

@@ -9,6 +9,8 @@ import {
   CreditCard,
   ShieldCheck,
   Wallet,
+  Sparkles,
+  TimerReset,
 } from 'lucide-react';
 import { SectionShell } from '@/components/marketing/section-shell';
 import {
@@ -22,11 +24,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { ComponentType } from 'react';
 
-/* ─── Premium ease curve ─────────────────────────────────────────── */
-
 const ease = [0.32, 0.72, 0, 1] as const;
-
-/* ─── Step data ──────────────────────────────────────────────────── */
 
 type CurrencyBadge = {
   icon: ComponentType<{ size?: number; className?: string }>;
@@ -55,22 +53,22 @@ const steps: Step[] = [
   {
     id: '01',
     title: 'Fund',
-    headline: 'Deposit in seconds, not days',
+    headline: 'Deposit in seconds, not in banking geologic time.',
     description:
-      'Send KES via M-Pesa, wire USD from your bank, or deposit BTC, USDC, or USDT from any wallet. Funds land in the right currency wallet instantly.',
+      'Move money into Koya through M-Pesa, bank transfer, or crypto deposit. Funds land in the matching wallet layer so you can act immediately instead of waiting around like it’s 2009.',
     icon: Wallet,
     color: 'text-emerald-400',
     colorBg: 'bg-emerald-400/10',
     colorBorder: 'border-emerald-400/20',
     colorGlow: 'rgba(16,185,129,0.12)',
     stat: '< 3 min',
-    statLabel: 'Avg. deposit time',
-    detailLabel: 'Supported rails',
-    detailValue: 'M-Pesa \u00b7 Bank transfer \u00b7 Crypto deposit',
+    statLabel: 'Typical deposit speed',
+    detailLabel: 'Funding rails',
+    detailValue: 'M-Pesa · Bank transfer · Crypto deposit',
     bullets: [
-      'M-Pesa STK push for instant KES deposits \u2014 tap, confirm PIN, done.',
-      'Crypto deposits auto-detect the asset and credit the matching wallet.',
-      'Guided KYC tiers unlock higher limits as you grow with the platform.',
+      'KES funding can begin with an M-Pesa flow built for fast local entry.',
+      'Crypto deposits are matched to the right asset wallet after detection.',
+      'Verification tiers help expand limits as account usage grows.',
     ],
     badges: [
       { icon: MpesaIcon, label: 'M-Pesa' },
@@ -81,9 +79,9 @@ const steps: Step[] = [
   {
     id: '02',
     title: 'Convert',
-    headline: 'Any asset to any asset. Transparent rates.',
+    headline: 'Move from any supported asset to the next one cleanly.',
     description:
-      'Convert between KES, USD, BTC, USDC, and USDT with a locked quote you can review before confirming. Every rate, fee, and output amount is visible upfront.',
+      'Switch between KES, USD, BTC, USDC, and USDT with visible quote logic, clear output expectations, and fewer ugly surprises hiding behind the button.',
     icon: ArrowLeftRight,
     color: 'text-gold',
     colorBg: 'bg-gold/10',
@@ -91,12 +89,12 @@ const steps: Step[] = [
     colorGlow: 'rgba(212,175,55,0.12)',
     stat: '30 sec',
     statLabel: 'Quote lock window',
-    detailLabel: 'Available pairs',
-    detailValue: 'KES \u2194 USD \u2194 BTC \u2194 USDC \u2194 USDT',
+    detailLabel: 'Supported pathing',
+    detailValue: 'KES ↔ USD ↔ BTC ↔ USDC ↔ USDT',
     bullets: [
-      'Real-time quotes with a 30-second lock so the rate you see is the rate you get.',
-      'Full conversion path shown: source amount \u2192 rate \u2192 fees \u2192 destination amount.',
-      'All 20 asset pairs supported \u2014 fiat to crypto, crypto to stablecoin, and back.',
+      'Quotes are presented before execution so the conversion path stays legible.',
+      'Source amount, output amount, and pricing logic are surfaced upfront.',
+      'Cross-asset movement is designed to feel like one connected money graph.',
     ],
     badges: [
       { icon: KesIcon, label: 'KES' },
@@ -109,22 +107,22 @@ const steps: Step[] = [
   {
     id: '03',
     title: 'Hold',
-    headline: 'Five wallets. One unified vault.',
+    headline: 'Multiple wallets, one financial command surface.',
     description:
-      'Your KES, USD, BTC, USDC, and USDT each live in a dedicated wallet with independent balances. See your total portfolio value denominated in any currency you choose.',
+      'Each supported asset lives in a dedicated wallet context, while Koya still lets the user understand the full portfolio as one coherent system.',
     icon: ShieldCheck,
     color: 'text-cyan',
     colorBg: 'bg-cyan/10',
     colorBorder: 'border-cyan/20',
     colorGlow: 'rgba(0,229,255,0.10)',
     stat: '5',
-    statLabel: 'Synced wallets',
-    detailLabel: 'Security',
-    detailValue: 'Segregated custody \u00b7 Encrypted at rest',
+    statLabel: 'Wallet layers',
+    detailLabel: 'Portfolio logic',
+    detailValue: 'Segregated balances · Unified portfolio view',
     bullets: [
-      'Each currency has its own wallet \u2014 no commingling of fiat and crypto balances.',
-      'Portfolio dashboard shows combined value across all wallets in real time.',
-      'Institutional-grade custody with per-asset isolation and audit trails.',
+      'Wallets remain asset-specific instead of mushing everything into one soup.',
+      'Combined portfolio visibility helps users see total value across holdings.',
+      'Operational clarity improves when balances and asset contexts stay distinct.',
     ],
     badges: [
       { icon: KesIcon, label: 'KES' },
@@ -137,30 +135,28 @@ const steps: Step[] = [
   {
     id: '04',
     title: 'Spend',
-    headline: 'Turn any balance into real-world action',
+    headline: 'Turn stored value into spending, transfers, and market access.',
     description:
-      'Pay with virtual or physical Koya cards, send money across borders, or invest in global stock markets \u2014 all from the same platform, any currency.',
+      'Once value is inside the system, users can push it outward through cards, transfers, and investing flows without jumping into disconnected products.',
     icon: CreditCard,
     color: 'text-gold',
     colorBg: 'bg-gold/10',
     colorBorder: 'border-gold/20',
     colorGlow: 'rgba(212,175,55,0.12)',
     stat: '180+',
-    statLabel: 'Countries reached',
-    detailLabel: 'Channels',
-    detailValue: 'Cards \u00b7 Global transfers \u00b7 Stock markets',
+    statLabel: 'Destination reach',
+    detailLabel: 'Output channels',
+    detailValue: 'Cards · Transfers · Investing access',
     bullets: [
-      'Virtual cards issued instantly \u2014 spend BTC or USDC at any Visa merchant worldwide.',
-      'Send USD or KES to bank accounts and mobile wallets across Africa and beyond.',
-      'Access fractional US stocks through integrated brokerage \u2014 buy $10 of AAPL with KES.',
+      'Virtual and physical card rails can sit on top of the same wallet stack.',
+      'Transfers can extend value outward without forcing users into separate tools.',
+      'Investment access turns stored capital into deployable global exposure.',
     ],
   },
 ];
 
-const AUTO_ADVANCE_MS = 5000;
+const AUTO_ADVANCE_MS = 5500;
 const PAUSE_DURATION_MS = 10000;
-
-/* ─── Component ──────────────────────────────────────────────────── */
 
 export function HowItWorks() {
   const [active, setActive] = useState(0);
@@ -185,7 +181,7 @@ export function HowItWorks() {
       clearPause();
       pauseRef.current = setTimeout(() => setPaused(false), PAUSE_DURATION_MS);
     },
-    [clearPause],
+    [clearPause]
   );
 
   const advance = useCallback(() => {
@@ -198,9 +194,10 @@ export function HowItWorks() {
     return () => clearInterval(id);
   }, [advance, paused]);
 
-  useEffect(() => () => clearPause(), [clearPause]);
+  useEffect(() => {
+    return () => clearPause();
+  }, [clearPause]);
 
-  /* Keyboard navigation */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -211,54 +208,52 @@ export function HowItWorks() {
         selectStep((active - 1 + steps.length) % steps.length);
       }
     },
-    [active, selectStep],
+    [active, selectStep]
   );
 
-  /* Dot color helper */
   const dotColor =
     current.color === 'text-emerald-400'
       ? 'bg-emerald-400'
       : current.color === 'text-cyan'
-        ? 'bg-cyan'
-        : 'bg-gold';
+      ? 'bg-cyan'
+      : 'bg-gold';
 
   return (
     <SectionShell id="how-it-works" bg="surface">
-      <div className="mx-auto max-w-6xl">
-        {/* ── Section header ─────────────────────────────────────── */}
-        <div className="mb-12 md:mb-16">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-gold/80">
-              How It Works
-            </p>
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white-95 sm:text-4xl lg:text-5xl">
-              Four steps from any currency
-              <br className="hidden sm:block" />
-              to any destination
-            </h2>
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white-50 sm:text-base">
-              Koya connects M-Pesa, bank accounts, crypto wallets, and global
-              markets into one flow. Fund, convert, hold, and spend &mdash;
-              across five currencies, in seconds.
-            </p>
-          </div>
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="mx-auto mb-12 max-w-3xl text-center md:mb-16">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgba(212,175,55,0.90)]">
+            How Koya works
+          </p>
+
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            One operating flow from
+            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+              funding to deployment
+            </span>
+          </h2>
+
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
+            Koya is designed as a connected money system: bring value in, move it
+            across currencies, hold it with clarity, and push it outward through
+            spending, transfers, or investing.
+          </p>
         </div>
 
-        {/* ── Desktop timeline ───────────────────────────────────── */}
+        {/* Desktop rail */}
         <div className="mb-10 hidden lg:block">
-          <div className="relative mx-auto max-w-2xl">
-            {/* Track line — pinned to circle center (h-12 = 48px → center at 24px) */}
-            <div className="absolute left-0 right-0 top-[24px] h-[2px] bg-white/8" />
-            {/* Active fill */}
+          <div className="relative mx-auto max-w-4xl">
+            <div className="absolute left-0 right-0 top-[28px] h-[2px] bg-white/8" />
+
             <motion.div
-              className="absolute left-0 top-[24px] h-[2px] bg-[linear-gradient(90deg,#A88520,#D4AF37,#F0D060)]"
+              className="absolute left-0 top-[28px] h-[2px] bg-[linear-gradient(90deg,#A88520,#D4AF37,#F0D060)]"
               animate={{ width: `${(active / (steps.length - 1)) * 100}%` }}
               transition={{ duration: 0.5, ease }}
             />
 
-            {/* Step nodes + connector arrows */}
             <div
-              className="relative flex justify-between"
+              className="relative grid grid-cols-4 gap-6"
               role="tablist"
               aria-label="How it works steps"
               onKeyDown={handleKeyDown}
@@ -267,129 +262,75 @@ export function HowItWorks() {
                 const StepIcon = step.icon;
                 const isActive = index === active;
                 const isPast = index < active;
-                const isLast = index === steps.length - 1;
-                const isNextPast = index < active - 1;
 
                 return (
-                  <div key={step.id} className="relative flex flex-1 items-start">
-                    {/* Node button */}
-                    <button
-                      role="tab"
-                      type="button"
-                      aria-selected={isActive}
-                      aria-controls={`step-panel-${step.id}`}
-                      tabIndex={isActive ? 0 : -1}
-                      onClick={() => selectStep(index)}
-                      className="group relative z-10 flex flex-col items-center gap-2.5"
-                      style={{ width: 48 }}
-                    >
-                      {/* Circle node with icon */}
-                      <div className="relative">
-                        {/* Glow ring on active */}
-                        {isActive && (
-                          <motion.div
-                            className="absolute -inset-2.5 rounded-full"
-                            style={{
-                              background: `radial-gradient(circle, ${step.colorGlow}, transparent 70%)`,
-                            }}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: [0.4, 0.8, 0.4] }}
-                            transition={{
-                              duration: 2.5,
-                              repeat: Infinity,
-                              ease: 'easeInOut',
-                            }}
-                          />
-                        )}
-                        <div
-                          className={cn(
-                            'relative flex h-12 w-12 items-center justify-center rounded-full border-2 shadow-[0_0_0_6px_#0A0A0A] transition-all duration-300',
-                            isActive
-                              ? cn(step.colorBorder, 'bg-surface', step.color)
-                              : isPast
-                                ? 'border-emerald-400/30 bg-surface text-emerald-400'
-                                : 'border-white/10 bg-surface-raised text-white-40 group-hover:border-white/20 group-hover:bg-white/[0.06]',
-                          )}
-                        >
-                          {isPast && !isActive ? (
-                            <Check size={16} strokeWidth={2.5} />
-                          ) : (
-                            <StepIcon size={18} strokeWidth={1.8} />
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Label */}
-                      <div className="text-center">
-                        <p
-                          className={cn(
-                            'font-mono text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors',
-                            isActive
-                              ? step.color
-                              : isPast
-                                ? 'text-white-50'
-                                : 'text-white-30',
-                          )}
-                        >
-                          {step.id}
-                        </p>
-                        <p
-                          className={cn(
-                            'mt-0.5 text-sm font-semibold transition-colors',
-                            isActive ? 'text-white-95' : 'text-white-60',
-                          )}
-                        >
-                          {step.title}
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Connector arrow between nodes */}
-                    {!isLast && (
-                      <div className="absolute left-[48px] right-0 top-[24px] flex -translate-y-1/2 items-center justify-center">
-                        <motion.div
-                          animate={{
-                            opacity: isPast || isActive ? 0.8 : 0.25,
-                          }}
-                          transition={{ duration: 0.4 }}
-                        >
-                          <svg
-                            width="12"
-                            height="10"
-                            viewBox="0 0 12 10"
-                            fill="none"
-                            className={cn(
-                              'transition-colors duration-300',
-                              isNextPast || isPast
-                                ? 'text-gold'
-                                : 'text-white/20',
-                            )}
-                          >
-                            <path
-                              d="M7 1L11 5L7 9"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                            <path
-                              d="M0 5H10"
-                              stroke="currentColor"
-                              strokeWidth="1.5"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        </motion.div>
-                      </div>
+                  <button
+                    key={step.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`step-panel-${step.id}`}
+                    tabIndex={isActive ? 0 : -1}
+                    onClick={() => selectStep(index)}
+                    className="group relative flex flex-col items-center text-center"
+                  >
+                    {isActive && (
+                      <motion.div
+                        className="absolute left-1/2 top-[28px] h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+                        style={{ background: step.colorGlow }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: [0.35, 0.8, 0.35] }}
+                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                      />
                     )}
-                  </div>
+
+                    <div
+                      className={cn(
+                        'relative z-10 flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_0_0_6px_#0A0A0A] transition-all duration-300',
+                        isActive
+                          ? cn(step.colorBorder, 'bg-[#0D0D0D]', step.color)
+                          : isPast
+                          ? 'border-emerald-400/25 bg-[#0D0D0D] text-emerald-400'
+                          : 'border-white/10 bg-white/[0.03] text-white/42 group-hover:border-white/18 group-hover:bg-white/[0.05]'
+                      )}
+                    >
+                      {isPast && !isActive ? (
+                        <Check size={18} strokeWidth={2.4} />
+                      ) : (
+                        <StepIcon size={20} strokeWidth={1.8} />
+                      )}
+                    </div>
+
+                    <div className="mt-4">
+                      <p
+                        className={cn(
+                          'font-mono text-[10px] font-semibold uppercase tracking-[0.18em]',
+                          isActive
+                            ? step.color
+                            : isPast
+                            ? 'text-white/46'
+                            : 'text-white/28'
+                        )}
+                      >
+                        Step {step.id}
+                      </p>
+                      <p
+                        className={cn(
+                          'mt-1 text-sm font-semibold transition-colors',
+                          isActive ? 'text-white' : 'text-white/64'
+                        )}
+                      >
+                        {step.title}
+                      </p>
+                    </div>
+                  </button>
                 );
               })}
             </div>
           </div>
         </div>
 
-        {/* ── Mobile step selector ───────────────────────────────── */}
+        {/* Mobile tabs */}
         <div
           className="mb-6 flex gap-2 overflow-x-auto lg:hidden"
           role="tablist"
@@ -398,6 +339,7 @@ export function HowItWorks() {
           {steps.map((step, index) => {
             const isActive = index === active;
             const MobileIcon = step.icon;
+
             return (
               <button
                 key={step.id}
@@ -410,7 +352,7 @@ export function HowItWorks() {
                   'flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-all duration-300',
                   isActive
                     ? cn(step.colorBorder, step.colorBg, step.color)
-                    : 'border-white/8 bg-white/[0.03] text-white-50 hover:border-white/15',
+                    : 'border-white/8 bg-white/[0.03] text-white/54 hover:border-white/14'
                 )}
               >
                 <MobileIcon size={14} strokeWidth={1.8} />
@@ -420,72 +362,67 @@ export function HowItWorks() {
           })}
         </div>
 
-        {/* ── Mobile progress bar ────────────────────────────────── */}
         <div className="mb-6 h-[2px] overflow-hidden rounded-full bg-white/6 lg:hidden">
           <motion.div
             className="h-full rounded-full bg-[linear-gradient(90deg,#A88520,#D4AF37,#F0D060)]"
-            animate={{
-              width: `${((active + 1) / steps.length) * 100}%`,
-            }}
+            animate={{ width: `${((active + 1) / steps.length) * 100}%` }}
             transition={{ duration: 0.5, ease }}
           />
         </div>
 
-        {/* ── Detail panel ───────────────────────────────────────── */}
+        {/* Main panel */}
         <AnimatePresence mode="wait">
           <motion.div
             key={current.id}
             id={`step-panel-${current.id}`}
             role="tabpanel"
-            aria-labelledby={`step-tab-${current.id}`}
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.4, ease }}
-            className="relative overflow-hidden rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] shadow-[0_24px_80px_rgba(0,0,0,0.3)]"
+            exit={{ opacity: 0, y: -14 }}
+            transition={{ duration: 0.42, ease }}
+            className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] shadow-[0_28px_90px_rgba(0,0,0,0.34)] backdrop-blur-2xl"
           >
-            {/* Ambient glow keyed to step color */}
             <div
-              className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full blur-3xl"
+              className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full blur-3xl"
               style={{ background: current.colorGlow }}
             />
 
-            <div className="relative z-10 grid gap-0 lg:grid-cols-[1fr_300px]">
-              {/* ── Main content ──────────────────────────────────── */}
+            <div className="relative z-10 grid gap-0 xl:grid-cols-[1.15fr_380px]">
+              {/* Main content */}
               <div className="p-6 sm:p-8 lg:p-10">
-                {/* Icon + headline */}
                 <div className="flex items-start gap-4">
                   <div
                     className={cn(
                       'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border',
                       current.colorBorder,
                       current.colorBg,
-                      current.color,
+                      current.color
                     )}
                   >
                     <CurrentIcon size={24} strokeWidth={1.8} />
                   </div>
+
                   <div>
                     <p
                       className={cn(
                         'text-[11px] font-semibold uppercase tracking-[0.22em]',
-                        current.color,
+                        current.color
                       )}
                     >
-                      Step {current.id} &mdash; {current.title}
+                      Step {current.id} · {current.title}
                     </p>
-                    <h3 className="mt-2 font-display text-2xl font-bold leading-tight text-white-95 sm:text-3xl">
+
+                    <h3 className="mt-2 max-w-2xl font-display text-2xl font-bold leading-tight text-white sm:text-3xl">
                       {current.headline}
                     </h3>
                   </div>
                 </div>
 
-                <p className="mt-5 max-w-2xl text-[15px] leading-7 text-white-55">
+                <p className="mt-5 max-w-2xl text-[15px] leading-7 text-white/58">
                   {current.description}
                 </p>
 
-                {/* Bullet features */}
-                <div className="mt-8 space-y-3">
+                <div className="mt-8 grid gap-3">
                   {current.bullets.map((bullet, i) => (
                     <motion.div
                       key={bullet}
@@ -493,38 +430,37 @@ export function HowItWorks() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{
                         duration: 0.35,
-                        delay: 0.1 + i * 0.08,
+                        delay: 0.08 + i * 0.07,
                         ease,
                       }}
-                      className="flex items-start gap-3"
+                      className="rounded-[22px] border border-white/6 bg-white/[0.03] px-4 py-3.5"
                     >
-                      <div
-                        className={cn(
-                          'mt-2 h-1.5 w-1.5 shrink-0 rounded-full',
-                          dotColor,
-                        )}
-                      />
-                      <p className="text-sm leading-7 text-white-60">
-                        {bullet}
-                      </p>
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={cn(
+                            'mt-2 h-1.5 w-1.5 shrink-0 rounded-full',
+                            dotColor
+                          )}
+                        />
+                        <p className="text-sm leading-7 text-white/68">{bullet}</p>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
 
-                {/* Currency badges */}
                 {current.badges && (
-                  <div className="mt-8 flex flex-wrap items-center gap-2">
+                  <div className="mt-8 flex flex-wrap gap-2">
                     {current.badges.map((badge, i) => (
                       <motion.div
                         key={badge.label}
-                        initial={{ opacity: 0, scale: 0.85 }}
+                        initial={{ opacity: 0, scale: 0.86 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{
-                          duration: 0.3,
-                          delay: 0.25 + i * 0.06,
+                          duration: 0.28,
+                          delay: 0.18 + i * 0.05,
                           ease,
                         }}
-                        className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white-70"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3.5 py-1.5 text-xs font-medium text-white/72"
                       >
                         <badge.icon size={14} />
                         {badge.label}
@@ -534,48 +470,62 @@ export function HowItWorks() {
                 )}
               </div>
 
-              {/* ── Sidebar metrics ──────────────────────────────── */}
-              <div className="border-t border-white/6 p-6 sm:p-8 lg:border-l lg:border-t-0">
+              {/* Sidebar */}
+              <div className="border-t border-white/6 p-6 sm:p-8 xl:border-l xl:border-t-0">
                 <div className="space-y-4">
-                  {/* Primary stat */}
-                  <div className="rounded-xl border border-white/8 bg-white/[0.03] p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white-30">
-                      {current.statLabel}
-                    </p>
-                    <p className="mt-2 font-mono text-3xl font-semibold text-white-95">
+                  <div className="rounded-[24px] border border-white/8 bg-black/20 p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-[rgba(212,175,55,0.85)]" />
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/36">
+                        Key signal
+                      </p>
+                    </div>
+                    <p className="font-mono text-3xl font-semibold text-white">
                       {current.stat}
                     </p>
+                    <p className="mt-2 text-sm text-white/56">{current.statLabel}</p>
                   </div>
 
-                  {/* Detail card */}
-                  <div className="rounded-xl border border-white/8 bg-white/[0.03] p-5">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white-30">
+                  <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/36">
                       {current.detailLabel}
                     </p>
-                    <p className="mt-2 text-sm font-medium leading-6 text-white-75">
+                    <p className="mt-3 text-sm leading-6 text-white/72">
                       {current.detailValue}
                     </p>
                   </div>
 
-                  {/* Next step preview */}
+                  <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                    <div className="mb-3 flex items-center gap-2">
+                      <TimerReset className="h-4 w-4 text-white/40" />
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/36">
+                        Flow behavior
+                      </p>
+                    </div>
+                    <p className="text-sm leading-6 text-white/62">
+                      {paused
+                        ? 'Auto-advance is paused while you inspect this step.'
+                        : 'Steps rotate automatically to preview the full operating flow.'}
+                    </p>
+                  </div>
+
                   <button
                     type="button"
-                    onClick={() =>
-                      selectStep((active + 1) % steps.length)
-                    }
-                    className="group flex w-full items-center justify-between rounded-xl border border-white/6 bg-white/[0.02] p-4 text-left transition hover:border-white/12 hover:bg-white/[0.04]"
+                    onClick={() => selectStep((active + 1) % steps.length)}
+                    className="group flex w-full items-center justify-between rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] p-4 text-left transition-all duration-200 hover:border-[rgba(212,175,55,0.16)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.04))]"
                   >
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white-30">
-                        Next
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/34">
+                        Next step
                       </p>
-                      <p className="mt-1 text-sm font-medium text-white-70">
+                      <p className="mt-1 text-sm font-medium text-white/76">
                         {nextStep.title}
                       </p>
                     </div>
+
                     <ArrowRight
                       size={16}
-                      className="text-gold/60 transition-transform group-hover:translate-x-1"
+                      className="text-[rgba(212,175,55,0.72)] transition-transform duration-200 group-hover:translate-x-1"
                     />
                   </button>
                 </div>
