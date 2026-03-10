@@ -6,7 +6,7 @@
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
   "dependencies": {
-    "@koya/types": "0.0.1",
+    "@koya/types": "workspace:*",
     "@swc/helpers": "~0.5.18"
   }
 }

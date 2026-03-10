@@ -25,7 +25,7 @@ export function CardsSection() {
         <FadeUp className="flex items-center justify-center">
           <div className="relative">
             {/* Physical card mockup */}
-            <div className="relative h-[220px] w-[350px] overflow-hidden rounded-2xl border border-white-10 bg-gradient-to-br from-[#141415] via-[#0F0F10] to-[#0A0A0A] shadow-glass-strong sm:h-[240px] sm:w-[380px]">
+            <div className="relative h-[220px] w-full max-w-[350px] overflow-hidden rounded-2xl border border-white-10 bg-gradient-to-br from-[#141415] via-[#0F0F10] to-[#0A0A0A] shadow-glass-strong sm:h-[240px] sm:max-w-[380px]">
               {/* Card content */}
               <div className="flex h-full flex-col justify-between p-7">
                 {/* Top: logo */}
@@ -67,7 +67,7 @@ export function CardsSection() {
             </div>
 
             {/* Virtual card (offset behind) */}
-            <div className="absolute -right-4 -bottom-4 -z-10 h-[220px] w-[350px] rounded-2xl border border-white-5 bg-cell/80 opacity-50 blur-[1px] sm:h-[240px] sm:w-[380px]" />
+            <div className="absolute -right-4 -bottom-4 -z-10 h-[220px] w-full max-w-[350px] rounded-2xl border border-white-5 bg-cell/80 opacity-50 blur-[1px] sm:h-[240px] sm:max-w-[380px]" />
           </div>
         </FadeUp>
 

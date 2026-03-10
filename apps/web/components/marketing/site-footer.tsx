@@ -1,4 +1,8 @@
+'use client';
+
 import { KoyaWordmark } from '@/components/marketing/koya-mark';
+import { SiX, SiDiscord, SiGithub } from '@icons-pack/react-simple-icons';
+import { Mail } from 'lucide-react';
 
 const columns = [
   {
@@ -28,15 +32,13 @@ const columns = [
       { label: 'AML Policy', href: '#' },
     ],
   },
-  {
-    title: 'Connect',
-    links: [
-      { label: 'Twitter / X', href: '#' },
-      { label: 'Discord', href: '#' },
-      { label: 'Email', href: '#' },
-      { label: 'GitHub', href: '#' },
-    ],
-  },
+];
+
+const socials = [
+  { label: 'X', href: '#', icon: SiX },
+  { label: 'Discord', href: '#', icon: SiDiscord },
+  { label: 'GitHub', href: '#', icon: SiGithub },
+  { label: 'Email', href: 'mailto:hello@koya.finance', icon: Mail },
 ];
 
 export function SiteFooter() {
@@ -46,11 +48,34 @@ export function SiteFooter() {
         {/* Top row */}
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           {/* Brand */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <KoyaWordmark markSize={22} textSize="text-lg" id="footer" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white-40">
               The borderless financial operating system for Africa and beyond.
             </p>
+
+            {/* Social icons */}
+            <div className="mt-6 flex items-center gap-3">
+              {socials.map((social) => {
+                const Icon = social.icon;
+                // Lucide icons use `size`, simple-icons use `width`/`height`
+                const isLucide = social.icon === Mail;
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    aria-label={social.label}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white-5 bg-white-5/30 text-white-40 transition-all duration-200 hover:border-white-10 hover:bg-white-5 hover:text-white-80 focus-visible:ring-1 focus-visible:ring-gold/40 focus-visible:outline-none"
+                  >
+                    {isLucide ? (
+                      <Icon size={16} strokeWidth={1.5} />
+                    ) : (
+                      <Icon size={14} />
+                    )}
+                  </a>
+                );
+              })}
+            </div>
           </div>
 
           {/* Link columns */}

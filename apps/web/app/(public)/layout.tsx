@@ -9,7 +9,7 @@ export default function PublicLayout({
   return (
     <>
       <SiteHeader />
-      <div className="pt-16">{children}</div>
+      <div className="overflow-x-hidden pt-16">{children}</div>
       <SiteFooter />
     </>
   );

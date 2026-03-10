@@ -3,13 +3,8 @@
 import { SectionShell } from '@/components/marketing/section-shell';
 import { FadeUp } from '@/components/marketing/motion-wrapper';
 import { StaggerContainer, StaggerItem } from '@/components/marketing/motion-wrapper';
-
-const tickers = [
-  { symbol: 'AAPL', name: 'Apple Inc.', price: '237.42', change: '+1.24%', positive: true },
-  { symbol: 'TSLA', name: 'Tesla Inc.', price: '278.91', change: '-0.87%', positive: false },
-  { symbol: 'SPY', name: 'S&P 500 ETF', price: '584.16', change: '+0.52%', positive: true },
-  { symbol: 'MSFT', name: 'Microsoft', price: '428.53', change: '+0.91%', positive: true },
-];
+import { StockIcon } from '@/components/marketing/asset-icons';
+import { STOCK_TICKERS } from '@/components/marketing/asset-metadata';
 
 export function GlobalFinanceSection() {
   return (
@@ -44,18 +39,14 @@ export function GlobalFinanceSection() {
           </div>
         </FadeUp>
 
-        {/* Mock stock tickers */}
+        {/* Stock tickers with real icons */}
         <FadeUp delay={0.12}>
           <StaggerContainer stagger={0.08} className="flex flex-col gap-3">
-            {tickers.map((t) => (
+            {STOCK_TICKERS.map((t) => (
               <StaggerItem key={t.symbol}>
                 <div className="flex items-center justify-between rounded-xl border border-white-5 bg-white-5/30 px-5 py-4 backdrop-blur-sm">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white-5">
-                      <span className="font-mono text-xs font-bold text-gold">
-                        {t.symbol.slice(0, 2)}
-                      </span>
-                    </div>
+                    <StockIcon symbol={t.symbol} size={36} />
                     <div>
                       <p className="font-mono text-sm font-semibold text-white-95">
                         {t.symbol}

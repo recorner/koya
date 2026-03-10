@@ -26,13 +26,13 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        'fixed inset-x-0 top-0 z-50 transition-all duration-300',
+        'fixed inset-x-0 top-0 z-50 transition-all duration-500',
         scrolled
-          ? 'border-b border-white-5 bg-vault-black/80 backdrop-blur-xl'
+          ? 'bg-vault-black/90 shadow-[0_1px_0_rgba(255,255,255,0.04),0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-2xl'
           : 'bg-transparent',
       )}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6">
         {/* Logo */}
         <a href="/" aria-label="Koya Home">
           <KoyaWordmark markSize={24} textSize="text-xl" id="header" />
@@ -52,7 +52,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Desktop actions */}
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           <Button variant="ghost" size="sm">
             Sign In
           </Button>
@@ -71,8 +71,8 @@ export function SiteHeader() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="border-t border-white-5 bg-vault-black/95 backdrop-blur-xl md:hidden">
-          <nav className="flex flex-col gap-1 px-6 py-4">
+        <div className="border-t border-white-5/50 bg-vault-black/95 backdrop-blur-2xl md:hidden">
+          <nav className="flex flex-col gap-1 px-4 py-3 sm:px-6 sm:py-4">
             {navLinks.map((link) => (
               <a
                 key={link.href}

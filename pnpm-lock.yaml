@@ -11,6 +11,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.2.2
         version: 5.2.2(react-hook-form@7.71.2(react@19.2.4))
+      '@icons-pack/react-simple-icons':
+        specifier: ^13.12.0
+        version: 13.12.0(react@19.2.4)
       '@nestjs/common':
         specifier: ^11.0.0
         version: 11.1.16(reflect-metadata@0.1.14)(rxjs@7.8.2)
@@ -32,6 +35,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.2.1
         version: 4.2.1
+      '@web3icons/react':
+        specifier: ^4.1.17
+        version: 4.1.17(react@19.2.4)(typescript@5.9.3)
       axios:
         specifier: ^1.6.0
         version: 1.13.6
@@ -166,8 +172,29 @@ importers:
         specifier: ^5.1.4
         version: 5.1.4(webpack@5.105.4)
 
+  dist/apps/api:
+    dependencies:
+      '@nestjs/common':
+        specifier: 11.1.16
+        version: 11.1.16(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: 11.1.16
+        version: 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/platform-express@11.1.16)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: 11.1.16
+        version: 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.16)
+      reflect-metadata:
+        specifier: 0.1.14
+        version: 0.1.14
+      rxjs:
+        specifier: 7.8.2
+        version: 7.8.2
+
   libs/config:
     dependencies:
+      '@koya/types':
+        specifier: workspace:*
+        version: link:../types
       '@swc/helpers':
         specifier: ~0.5.18
         version: 0.5.19
@@ -1085,6 +1112,12 @@ packages:
   '@humanwhocodes/retry@0.4.3':
     resolution: {integrity: sha512-bV0Tgo9K4hfPCek+aMAn81RppFKv2ySDQeMoSZuvTASywNTnVJCArCZE2FWqpvIatKu7VMRLWlR1EazvVhDyhQ==}
     engines: {node: '>=18.18'}
+
+  '@icons-pack/react-simple-icons@13.12.0':
+    resolution: {integrity: sha512-RCtXJw+tTG8fmBieqBJSRA5BItVcXCPN6QOIqIJMmLD7ESLr8nB78JrahheXofy8ZWH+Fpwxou0oElseObu1dw==}
+    engines: {node: '>=24', pnpm: '>=10'}
+    peerDependencies:
+      react: ^16.13 || ^17 || ^18 || ^19
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3446,6 +3479,16 @@ packages:
 
   '@vitest/utils@4.0.18':
     resolution: {integrity: sha512-msMRKLMVLWygpK3u2Hybgi4MNjcYJvwTb0Ru09+fOyCXIgT5raYP041DRRdiJiI3k/2U6SEbAETB3YtBrUkCFA==}
+
+  '@web3icons/common@0.11.46':
+    resolution: {integrity: sha512-iwqDpB3sYLuBOM40jSci56Yj6XlkfSOaPRQqYYeGeWYtpsm9K5PVvJaC3bOfZxIYQ9zziu/Ncwm6Ma8bkNh/MA==}
+    peerDependencies:
+      typescript: ^5.0.0
+
+  '@web3icons/react@4.1.17':
+    resolution: {integrity: sha512-SNRvgjf+K83urUGjTYKxBKKJFQVozAyvFj6Rxmm8v81p+DbV6gK0RWjcrT/2/BkD5gLVYINdx+ATy0zIT5Vjlg==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -8772,6 +8815,10 @@ snapshots:
 
   '@humanwhocodes/retry@0.4.3': {}
 
+  '@icons-pack/react-simple-icons@13.12.0(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+
   '@img/colour@1.1.0':
     optional: true
 
@@ -11542,6 +11589,17 @@ snapshots:
       '@vitest/pretty-format': 4.0.18
       tinyrainbow: 3.0.3
     optional: true
+
+  '@web3icons/common@0.11.46(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@web3icons/react@4.1.17(react@19.2.4)(typescript@5.9.3)':
+    dependencies:
+      '@web3icons/common': 0.11.46(typescript@5.9.3)
+      react: 19.2.4
+    transitivePeerDependencies:
+      - typescript
 
   '@webassemblyjs/ast@1.14.1':
     dependencies:
