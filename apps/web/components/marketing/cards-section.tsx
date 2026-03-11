@@ -203,17 +203,17 @@ export function CardsSection() {
           </p>
 
           <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Premium cards wired into
+            One card, funded from
             <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-              your full money stack
+              any of your wallets
             </span>
           </h2>
 
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/56 sm:text-base">
-            Koya cards are not isolated payment tools. They connect directly to
-            your wallets, funding logic, and controls so you can spend globally
-            with better visibility, better switching, and tighter command over
-            how money leaves the system.
+            Koya cards connect directly to your wallets — spend in KES, USD,
+            or auto-convert from crypto. Freeze instantly, see every
+            transaction in real time, and control exactly how money leaves
+            your account.
           </p>
 
           <div className="mt-8 space-y-3">

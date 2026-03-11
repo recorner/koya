@@ -45,16 +45,16 @@ export function FinalCTA() {
               </div>
 
               <h2 className="mt-6 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-                Ready to operate money
+                Ready to take control
                 <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                  without borders?
+                  of your money?
                 </span>
               </h2>
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
-                Join the waitlist for early access to Koya — a premium financial
-                operating system for holding, converting, spending, and deploying
-                capital across currencies and markets.
+                Join the waitlist for early access to Koya — deposit via M-Pesa,
+                hold multiple currencies, buy Bitcoin, invest globally, and
+                spend with a premium card. All from one account.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-2">

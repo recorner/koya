@@ -270,7 +270,7 @@ export function GuestSwapWidget() {
             </div>
 
             <h3 className="font-display text-lg font-bold tracking-tight text-white">
-              Convert between wallets
+              Preview a conversion
             </h3>
           </div>
 
@@ -350,7 +350,7 @@ export function GuestSwapWidget() {
           className="mt-3 h-10 w-full text-sm font-medium"
           disabled={!hasAmount}
         >
-          {hasAmount ? 'Unlock live conversion' : 'Enter amount to continue'}
+          {hasAmount ? 'Create Account to Convert' : 'Enter amount to continue'}
         </Button>
 
         {/* Disclaimer */}

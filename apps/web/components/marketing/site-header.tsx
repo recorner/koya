@@ -53,10 +53,7 @@ export function SiteHeader() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-2 md:flex">
-          <Button variant="ghost" size="sm">
-            Sign In
-          </Button>
-          <Button size="sm">Get Early Access</Button>
+          <Button size="sm">Join Waitlist</Button>
         </div>
 
         {/* Mobile hamburger */}
@@ -84,11 +81,8 @@ export function SiteHeader() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-white-5 pt-4">
-              <Button variant="ghost" size="sm" className="justify-center">
-                Sign In
-              </Button>
               <Button size="sm" className="justify-center">
-                Get Early Access
+                Join Waitlist
               </Button>
             </div>
           </nav>

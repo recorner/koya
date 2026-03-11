@@ -21,10 +21,10 @@ export default function LandingPage() {
               Try It
             </p>
             <h2 className="font-display text-2xl font-bold text-white-95 sm:text-3xl">
-              Convert instantly
+              Preview your conversion
             </h2>
             <p className="mx-auto mt-3 max-w-md text-sm text-white-40">
-              Swap between KES, USD, BTC, and stablecoins — preview rates before you sign up.
+              See live indicative rates between KES, USD, BTC, and stablecoins — no account needed.
             </p>
           </div>
           <GuestSwapWidget />

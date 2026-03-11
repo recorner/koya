@@ -155,7 +155,7 @@ const steps: Step[] = [
   },
 ];
 
-const AUTO_ADVANCE_MS = 5500;
+const AUTO_ADVANCE_MS = 7500;
 const PAUSE_DURATION_MS = 10000;
 
 export function HowItWorks() {

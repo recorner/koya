@@ -19,50 +19,50 @@ const controls = [
   {
     icon: LockKeyhole,
     eyebrow: 'Data security',
-    title: 'Encryption across critical surfaces',
+    title: 'Your data is encrypted end to end',
     description:
-      'Sensitive data is protected in transit and at rest, with tighter handling around credentials, tokens, and financial operations.',
-    points: ['Encrypted transport', 'Protected storage', 'Sensitive data minimization'],
+      'Everything from your login credentials to financial activity is encrypted in transit and at rest — your information stays protected.',
+    points: ['Encrypted connections', 'Secure storage', 'Minimal data collection'],
   },
   {
     icon: ShieldCheck,
     eyebrow: 'Custody controls',
-    title: 'Layered protection for stored value',
+    title: 'Multiple layers protect your funds',
     description:
-      'Wallet and account protections are designed to reduce single points of failure and tighten authorization around high-risk actions.',
-    points: ['Access controls', 'Signing controls', 'Operational separation'],
+      'Your money is held with institutional-grade custody controls — no single point of failure, no shortcuts.',
+    points: ['Segregated accounts', 'Multi-party signing', 'Cold storage'],
   },
   {
     icon: Radar,
     eyebrow: 'Live defense',
-    title: 'Real-time monitoring and anomaly detection',
+    title: 'We watch for suspicious activity 24/7',
     description:
-      'Transactions, sessions, and account behavior can be observed continuously so suspicious activity is surfaced before it becomes expensive.',
-    points: ['Activity scoring', 'Risk signals', 'Escalation paths'],
+      'Every transaction and session is monitored in real time so unusual activity is caught and flagged before it becomes a problem.',
+    points: ['Real-time alerts', 'Risk scoring', 'Automatic escalation'],
   },
   {
     icon: Scale,
-    eyebrow: 'Compliance posture',
-    title: 'Verification and regulatory guardrails',
+    eyebrow: 'Compliance',
+    title: 'Identity verification and regulatory compliance',
     description:
-      'Identity, sanctions, and transaction review flows help support a more defensible operating model as the platform scales.',
-    points: ['KYC workflows', 'Screening checks', 'Review controls'],
+      'KYC, sanctions screening, and transaction review are built in from day one — not bolted on later.',
+    points: ['KYC verification', 'Sanctions screening', 'Transaction review'],
   },
   {
     icon: DatabaseZap,
     eyebrow: 'Ledger integrity',
-    title: 'Auditable movement of value',
+    title: 'Every transaction is recorded and auditable',
     description:
-      'Financial events should be recorded with strong consistency so balances, transfers, and settlement paths remain explainable.',
-    points: ['Traceable entries', 'Balance integrity', 'Audit readiness'],
+      'Your balances, transfers, and conversions are recorded with full consistency — every shilling and satoshi is accounted for.',
+    points: ['Full audit trail', 'Balance verification', 'Tamper-proof records'],
   },
   {
     icon: Fingerprint,
     eyebrow: 'Fraud prevention',
-    title: 'Behavioral and device-level protection',
+    title: 'Device and behavior checks block bad actors',
     description:
-      'Signals from devices, sessions, and transaction patterns can be used to identify abuse, account takeover risk, and unusual behavior.',
-    points: ['Device signals', 'Velocity checks', 'Behavior analysis'],
+      'Signals from your devices, sessions, and usage patterns help us identify and stop account takeover attempts and fraud.',
+    points: ['Device fingerprinting', 'Velocity limits', 'Behavior analysis'],
   },
 ];
 
@@ -71,20 +71,20 @@ export function SecuritySection() {
     <SectionShell id="security" bg="navy">
       <div className="mx-auto max-w-3xl text-center">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-          Security architecture
+          Security
         </p>
 
         <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-          Built to move real money
+          How your money
           <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-            with institutional discipline
+            is protected
           </span>
         </h2>
 
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
-          Security at Koya should not be a decorative claim. It should show up in
-          how accounts are protected, how activity is monitored, how value is
-          recorded, and how risky actions are controlled.
+          Koya is built with the same security standards used by banks and
+          institutional platforms — encryption, monitoring, custody controls,
+          and compliance from the ground up.
         </p>
       </div>
 
@@ -99,27 +99,27 @@ export function SecuritySection() {
               <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
                 <ShieldCheck className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/48">
-                  Hardened operating model
+                  Security-first design
                 </span>
               </div>
 
               <h3 className="mt-5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                Security is part of the product,
-                <span className="block text-white/70">not a footer promise.</span>
+                Your protection is built in,
+                <span className="block text-white/70">not bolted on.</span>
               </h3>
 
               <p className="mt-5 max-w-lg text-sm leading-7 text-white/58">
-                The platform should be designed so protection exists across the full
-                lifecycle of money movement: access, authorization, monitoring,
-                ledger integrity, and compliance controls.
+                Every layer of the platform — from login to settlement — is designed
+                with protection in mind. Your accounts, your funds, and your data are
+                guarded at every step.
               </p>
 
               <div className="mt-8 space-y-3">
                 {[
-                  'Protected account and wallet access',
-                  'Continuous monitoring of activity and risk',
-                  'Auditable financial event trails',
-                  'Stronger controls for sensitive operations',
+                  'Encrypted accounts and wallet access',
+                  '24/7 monitoring of activity and risk',
+                  'Full audit trail for every transaction',
+                  'Stronger controls for high-value operations',
                 ].map((item) => (
                   <div
                     key={item}
@@ -133,11 +133,11 @@ export function SecuritySection() {
 
               <div className="mt-8 rounded-[24px] border border-white/8 bg-black/20 p-4">
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                  Trust principle
+                  Our commitment
                 </div>
                 <p className="mt-2 text-sm leading-6 text-white/66">
-                  Reduce single points of failure. Limit unnecessary exposure.
-                  Record what matters. Escalate what looks wrong.
+                  Your funds are never commingled. Your data is never sold.
+                  Your security is never optional.
                 </p>
               </div>
             </div>

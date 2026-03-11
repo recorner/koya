@@ -64,34 +64,34 @@ export function SiteFooter() {
               <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
                 <Sparkles className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                  Borderless financial operating system
+                  Built in Kenya. Built for the world.
                 </span>
               </div>
 
               <h2 className="mt-5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
                 Built for people whose money
                 <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                  should move as globally as they do
+                  should work as hard as they do
                 </span>
               </h2>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
-                Hold across currencies, convert instantly, spend with premium
-                cards, and access global markets from one coordinated system.
+                Hold multiple currencies, convert instantly, spend with premium
+                cards, and invest globally — all from one Koya account.
               </p>
             </div>
 
             <div className="lg:col-span-4">
               <div className="flex flex-col gap-3 lg:items-end">
                 <Button size="lg" className="group min-w-[190px]">
-                  Get Early Access
+                  Join Waitlist
                   <ArrowUpRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </Button>
 
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-2">
                   <ShieldCheck className="h-4 w-4 text-[rgba(212,175,55,0.90)]" />
                   <span className="text-[11px] text-white/52">
-                    Security-first platform posture
+                    Kenya-based · Regulated
                   </span>
                 </div>
               </div>
@@ -106,9 +106,9 @@ export function SiteFooter() {
             <KoyaWordmark markSize={24} textSize="text-xl" id="footer" />
 
             <p className="mt-5 max-w-md text-sm leading-7 text-white/56">
-              Koya is building a premium financial operating system for Africa
-              and beyond — connecting wallets, conversion, cards, and investing
-              into one cleaner way to move and manage value.
+              Koya is a premium financial platform built in Kenya —
+              connecting M-Pesa deposits, multi-currency wallets, cards, and
+              investing into one account.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">
@@ -178,9 +178,9 @@ export function SiteFooter() {
           </p>
 
           <div className="flex flex-col gap-2 text-xs text-white/32 md:flex-row md:items-center md:gap-6">
-            <span>Built for the borderless generation.</span>
+            <span>Built in Kenya. Built for the world.</span>
             <span className="hidden md:inline">•</span>
-            <span>Premium finance across currencies, cards, and global access.</span>
+            <span>M-Pesa · Multi-currency · Cards · Investing</span>
           </div>
         </div>
       </div>

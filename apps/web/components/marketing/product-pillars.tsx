@@ -19,32 +19,32 @@ const pillars = [
     icon: ArrowLeftRight,
     title: 'Convert instantly',
     description:
-      'Move between KES, USD, BTC, USDC, and USDT from one unified balance system with fast execution and clean pricing.',
-    points: ['Live rates', 'Low-friction swaps', 'Cross-wallet liquidity'],
+      'Switch between KES, USD, BTC, USDC, and USDT at live rates — fast execution, transparent pricing, no hidden fees.',
+    points: ['Live rates', 'M-Pesa deposits', 'Cross-currency swaps'],
   },
   {
     number: '02',
     icon: Wallet,
-    title: 'Hold across currencies',
+    title: 'Hold multiple currencies',
     description:
-      'Keep fiat, crypto, and stablecoins inside one premium financial interface instead of juggling fragmented accounts.',
+      'Keep shillings, dollars, Bitcoin, and stablecoins in one account instead of juggling separate apps and bank accounts.',
     points: ['Multi-currency wallets', 'Single portfolio view', 'Always accessible'],
   },
   {
     number: '03',
     icon: CreditCard,
-    title: 'Spend with control',
+    title: 'Spend anywhere',
     description:
-      'Use premium physical and virtual cards funded from the right wallet, with better visibility, limits, and funding logic.',
-    points: ['Virtual + physical cards', 'Wallet-linked funding', 'Global usage'],
+      'Use a premium Koya card funded from any wallet — pay in KES locally or spend in USD abroad, with real-time notifications.',
+    points: ['Virtual + physical cards', 'Any-wallet funding', 'Global acceptance'],
   },
   {
     number: '04',
     icon: LineChart,
     title: 'Invest globally',
     description:
-      'Access U.S. markets and long-term wealth tools from the same account you use to hold, move, and manage money.',
-    points: ['Fractional investing', 'U.S. equities', 'Integrated wealth access'],
+      'Buy fractional U.S. stocks and ETFs from the same account you use to hold, convert, and spend your money.',
+    points: ['Fractional shares', 'U.S. equities & ETFs', 'Wallet-funded investing'],
   },
 ];
 
@@ -57,16 +57,16 @@ export function ProductPillars() {
         </p>
 
         <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-          One system for how money
+          One account for how your money
           <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
             moves, stays, spends, and grows
           </span>
         </h2>
 
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
-          Koya brings conversion, wallet infrastructure, card spending, and
-          investing into one coordinated financial stack — built for people who
-          move across currencies, borders, and asset classes.
+          Deposit via M-Pesa, hold multiple currencies, convert instantly,
+          spend with a premium card, and invest in global markets — all
+          from one Koya account.
         </p>
       </div>
 

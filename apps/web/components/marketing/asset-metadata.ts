@@ -44,14 +44,14 @@ export interface TickerInstrument {
 }
 
 export const TICKER_INSTRUMENTS: TickerInstrument[] = [
-  { pair: 'KES / USD', baseSymbol: 'KES', quoteSymbol: 'USD', price: '0.00770', change: '+0.12%', positive: true },
   { pair: 'USD / KES', baseSymbol: 'USD', quoteSymbol: 'KES', price: '129.85', change: '-0.12%', positive: false },
-  { pair: 'BTC / USD', baseSymbol: 'BTC', quoteSymbol: 'USD', price: '87,432.10', change: '+2.34%', positive: true },
+  { pair: 'KES / USD', baseSymbol: 'KES', quoteSymbol: 'USD', price: '0.00770', change: '+0.12%', positive: true },
   { pair: 'BTC / KES', baseSymbol: 'BTC', quoteSymbol: 'KES', price: '11,352,978', change: '+2.21%', positive: true },
-  { pair: 'USDC / USD', baseSymbol: 'USDC', quoteSymbol: 'USD', price: '1.0001', change: '+0.01%', positive: true },
-  { pair: 'USDT / USD', baseSymbol: 'USDT', quoteSymbol: 'USD', price: '1.0002', change: '+0.02%', positive: true },
+  { pair: 'BTC / USD', baseSymbol: 'BTC', quoteSymbol: 'USD', price: '87,432.10', change: '+2.34%', positive: true },
   { pair: 'USDC / KES', baseSymbol: 'USDC', quoteSymbol: 'KES', price: '129.83', change: '+0.10%', positive: true },
   { pair: 'USDT / KES', baseSymbol: 'USDT', quoteSymbol: 'KES', price: '129.82', change: '+0.09%', positive: true },
+  { pair: 'USDC / USD', baseSymbol: 'USDC', quoteSymbol: 'USD', price: '1.0001', change: '+0.01%', positive: true },
+  { pair: 'USDT / USD', baseSymbol: 'USDT', quoteSymbol: 'USD', price: '1.0002', change: '+0.02%', positive: true },
 ];
 
 /** Stock tickers for the global investing section. */

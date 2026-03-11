@@ -114,33 +114,32 @@ export function HeroSection() {
           <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
             <KoyaMark size={20} id="hero-badge" />
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-              Borderless financial operating system
+              Built in Kenya. Works globally.
             </span>
           </div>
 
           <h1
             className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl"
           >
-            Move money across
+            Your money,
             <span className="block text-gold">
-              currencies like
+              every currency,
             </span>
-            one controlled system.
+            one platform.
           </h1>
 
           <p
             className="mt-6 max-w-xl text-base leading-7 text-white/64 md:text-lg"
           >
-            Koya unifies wallets, conversion, cards, and global value rails into one premium
-            interface. Hold, convert, send, spend, and manage KES, USD, BTC, and stablecoins
-            without the usual financial circus.
+            Deposit via M-Pesa. Convert to dollars. Hold stablecoins. Buy Bitcoin.
+            Invest globally. Spend with a premium card. All from one Koya account.
           </p>
 
           <div
             className="mt-8 flex flex-wrap items-center gap-3"
           >
             <Button size="lg" className="group">
-              Get Early Access
+              Join the Waitlist
               <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
             </Button>
 
@@ -165,34 +164,19 @@ export function HeroSection() {
           <div
             className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
           >
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <div className="mb-2 flex items-center gap-2 text-white/80">
-                <ArrowRightLeft className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                <span className="text-sm font-medium">Instant conversion</span>
-              </div>
-              <p className="text-xs leading-5 text-white/52">
-                Switch value across wallets without breaking flow.
-              </p>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
+              <span className="text-xs text-white/52">Kenya-based</span>
             </div>
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <div className="mb-2 flex items-center gap-2 text-white/80">
-                <CreditCard className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                <span className="text-sm font-medium">Cards + spending</span>
-              </div>
-              <p className="text-xs leading-5 text-white/52">
-                Fund cards and control spend from the same stack.
-              </p>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
+              <span className="text-xs text-white/52">Regulated</span>
             </div>
 
-            <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <div className="mb-2 flex items-center gap-2 text-white/80">
-                <ShieldCheck className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                <span className="text-sm font-medium">Secure rails</span>
-              </div>
-              <p className="text-xs leading-5 text-white/52">
-                Premium controls, settlement clarity, and safer movement.
-              </p>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
+              <span className="text-xs text-white/52">Your funds, your control</span>
             </div>
           </div>
         </div>
@@ -392,36 +376,7 @@ export function HeroSection() {
               </GlassCard>
             </motion.div>
 
-            {/* Yield / markets chip */}
-            <motion.div
-              animate={{ y: [0, -8, 0], x: [0, 2, 0] }}
-              transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
-              className="absolute bottom-[6%] right-[4%] z-30 w-[240px]"
-            >
-              <GlassCard className="relative p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="text-[10px] uppercase tracking-[0.18em] text-white/42">
-                    Markets & yield
-                  </div>
-                  <TrendingUp className="h-4 w-4 text-emerald-300/80" />
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between text-white/78">
-                    <span>BTC</span>
-                    <span className="text-emerald-300">+3.2%</span>
-                  </div>
-                  <div className="flex items-center justify-between text-white/78">
-                    <span>USDC Yield</span>
-                    <span className="text-white/90">5.1% APY</span>
-                  </div>
-                  <div className="flex items-center justify-between text-white/78">
-                    <span>USD Cash</span>
-                    <span className="text-white/90">$820.10</span>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
+            {/* Yield / markets chip — removed to reduce visual noise */}
           </div>
         </div>
       </div>

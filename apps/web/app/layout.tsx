@@ -25,20 +25,20 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Koya — Borderless Finance',
+    default: 'Koya — Your Money, Every Currency, One Platform',
     template: '%s | Koya',
   },
   description:
-    'The borderless financial operating system. Convert, hold, and move money across currencies and borders.',
+    'Deposit via M-Pesa. Hold KES, USD, BTC, and stablecoins. Convert instantly. Spend with a premium card. Invest in U.S. stocks. All from one Koya account.',
   icons: {
     icon: '/logo-icon.svg',
     apple: '/logo-icon.svg',
   },
   manifest: '/site.webmanifest',
   openGraph: {
-    title: 'Koya — Borderless Finance',
+    title: 'Koya — Your Money, Every Currency, One Platform',
     description:
-      'The borderless financial operating system. Convert, hold, and move money across currencies and borders.',
+      'Deposit via M-Pesa. Hold KES, USD, BTC, and stablecoins. Convert instantly. Spend with a premium card. Invest in U.S. stocks. All from one Koya account.',
     locale: 'en_US',
     type: 'website',
   },

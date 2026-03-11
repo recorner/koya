@@ -29,17 +29,16 @@ export function GlobalFinanceSection() {
           </p>
 
           <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Put capital to work
+            Invest in U.S. stocks
             <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-              beyond your local market
+              from your Koya account
             </span>
           </h2>
 
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/56 sm:text-base">
-            Access U.S. equities and ETFs from the same Koya account you use to
-            hold, convert, and move money. Fund from multiple wallets, buy
-            fractional positions, and keep settlement logic clean inside one
-            premium financial system.
+            Buy fractional shares of Apple, Tesla, S&P 500 ETFs, and more —
+            funded directly from your Koya wallets. No separate brokerage
+            account needed.
           </p>
 
           <div className="mt-8 space-y-3">

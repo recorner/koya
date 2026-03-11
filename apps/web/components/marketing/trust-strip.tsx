@@ -15,28 +15,28 @@ import {
 const pillars = [
   {
     icon: Globe,
-    label: 'Multi-currency system',
+    label: 'Multi-currency wallets',
     detail: 'KES, USD, BTC, USDC, USDT',
   },
   {
     icon: ArrowLeftRight,
     label: 'Instant conversion',
-    detail: 'Fast wallet-to-wallet value switching',
+    detail: 'Swap currencies at live rates',
   },
   {
     icon: CreditCard,
     label: 'Premium cards',
-    detail: 'Physical and virtual spending controls',
+    detail: 'Spend from any wallet, anywhere',
   },
   {
     icon: TrendingUp,
     label: 'Global investing',
-    detail: 'Access to U.S. equities and ETFs',
+    detail: 'Buy U.S. stocks and ETFs',
   },
   {
     icon: ShieldCheck,
-    label: 'Security posture',
-    detail: 'Monitored, controlled, auditable flows',
+    label: 'Bank-grade security',
+    detail: 'Encrypted, monitored, compliant',
   },
 ];
 
@@ -49,8 +49,8 @@ export function TrustStrip() {
             Koya platform
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-white/50">
-            A compact view of the core layers that make Koya feel like one
-            coordinated financial operating system instead of a pile of disconnected tools.
+            Everything you need to manage money across currencies, borders, and
+            asset classes — in one account.
           </p>
         </div>
 
