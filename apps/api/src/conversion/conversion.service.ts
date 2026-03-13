@@ -367,6 +367,31 @@ export class ConversionService {
   }
 
   /**
+   * Confirm payment by manual M-Pesa reference
+   */
+  async confirmByReference(sessionId: string, mpesaReference: string) {
+    const session = await this.sessionService.getSession(sessionId);
+
+    if (session.currentState !== 'PAYMENT_PENDING') {
+      throw new BadRequestException(
+        `Cannot confirm reference in state ${session.currentState}`,
+      );
+    }
+
+    const result = await this.mpesaService.confirmByReference(
+      sessionId,
+      mpesaReference,
+    );
+
+    if (result.confirmed) {
+      // Trigger the same post-payment flow
+      await this.processPaymentConfirmation(sessionId);
+    }
+
+    return result;
+  }
+
+  /**
    * Get session status (safe for UI)
    */
   async getStatus(sessionId: string) {

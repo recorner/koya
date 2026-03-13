@@ -1,9 +1,10 @@
-import { Injectable, ConflictException } from '@nestjs/common';
+import { Injectable, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   generateGuestRef,
   normalizeDocumentNumber,
   normalizeKenyaPhone,
+  InvalidPhoneError,
 } from '../common/validation.utils';
 
 @Injectable()
@@ -23,7 +24,16 @@ export class GuestProfileService {
     email?: string;
   }) {
     const normalizedDoc = normalizeDocumentNumber(input.documentNumber);
-    const phoneE164 = normalizeKenyaPhone(input.phone);
+
+    let phoneE164: string;
+    try {
+      phoneE164 = normalizeKenyaPhone(input.phone);
+    } catch (err) {
+      if (err instanceof InvalidPhoneError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
 
     // Check for existing guest by canonical identity
     const existing = await this.prisma.guestProfile.findUnique({

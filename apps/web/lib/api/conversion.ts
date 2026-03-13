@@ -109,6 +109,15 @@ export const conversionApi = {
       method: 'POST',
     }),
 
+  confirmReference: (sessionId: string, mpesaReference: string) =>
+    request<{ confirmed: boolean; reason?: string }>(
+      `/guest-conversion/${sessionId}/confirm-reference`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ mpesaReference }),
+      },
+    ),
+
   getStatus: (sessionId: string) =>
     request<StatusResponse>(`/guest-conversion/${sessionId}/status`),
 };

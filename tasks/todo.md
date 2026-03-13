@@ -117,6 +117,43 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [x] **8.2** Update `docs/progress/step-05.md` with completion notes
 - [x] **8.3** Provider integration points documented via interface abstractions
 
+## Phase 9: UX Polish & Real-time Data
+
+- [x] **9.1** Landing → convert amount pass-through (`?amount=X` URL param)
+- [x] **9.2** Real-time processing step (animated 4-stage progress between payment and result)
+- [x] **9.3** Live BTC preview in AmountStep (replace static "—" with `MOCK_RATES` preview)
+- [x] **9.4** Phone validation returns 400 (not 500) — `InvalidPhoneError` + `BadRequestException`
+- [x] **9.5** Remove auto-submit on amount page — user must click "Get Quote"
+- [x] **9.6** Real-time rate updates every 2s — `useRealtimeRates` hook
+  - `useLiveRate()` → AmountStep
+  - `useRealtimeRates()` → GuestSwapWidget
+  - `useRealtimeTickers()` → MarketRibbon
+
+## Phase 10: Containerization & Deployment
+
+- [x] **10.1** Multi-stage Dockerfile (`apps/api/Dockerfile`) — Node 22 Alpine, non-root user, Prisma migrations on startup
+- [x] **10.2** `.dockerignore` — excludes frontend, tests, docs, IDE files
+- [x] **10.3** ECS Fargate deployment guide (`docs/deployment/ecs-fargate.md`) — task definition, ALB, security groups, secrets, CI/CD
+- [ ] **10.4** Create ECR repository + push first image
+- [ ] **10.5** Provision ECS cluster, service, ALB
+- [ ] **10.6** Configure Secrets Manager with `DATABASE_URL` and API keys
+- [ ] **10.7** Deploy + verify health check (`GET /api/v1/health`)
+- [ ] **10.8** Update `NEXT_PUBLIC_API_URL` on Vercel to point to ALB domain
+- [ ] **10.9** GitHub Actions deploy-api.yml pipeline
+
+## Phase 11: Production Readiness (Next)
+
+- [ ] **11.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
+- [ ] **11.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
+- [ ] **11.3** Replace `MockIprsVerifier` with Kenya IPRS API
+- [ ] **11.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
+- [ ] **11.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
+- [ ] **11.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
+- [ ] **11.7** WebSocket/SSE for real-time status updates (replace polling)
+- [ ] **11.8** Rate limiting on guest endpoints
+- [ ] **11.9** WhatsApp channel support
+- [ ] **11.10** Admin dashboard for conversion monitoring
+
 ---
 
 ## Architecture Decisions

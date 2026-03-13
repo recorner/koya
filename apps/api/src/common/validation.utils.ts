@@ -10,7 +10,18 @@ export function normalizeKenyaPhone(phone: string): string {
   if (/^0[17]\d{8}$/.test(digits)) return `+254${digits.slice(1)}`;
   if (/^[17]\d{8}$/.test(digits)) return `+254${digits}`;
 
-  throw new Error(`Invalid Kenya phone number: ${phone}`);
+  throw new InvalidPhoneError(phone);
+}
+
+/**
+ * Typed error for invalid phone numbers — caught by the service layer
+ * and re-thrown as BadRequestException.
+ */
+export class InvalidPhoneError extends Error {
+  constructor(phone: string) {
+    super(`Invalid Kenya phone number: ${phone}`);
+    this.name = 'InvalidPhoneError';
+  }
 }
 
 /**

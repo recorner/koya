@@ -12,6 +12,7 @@ import { QuoteRequestDto } from './dto/quote-request.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { SubmitIdentityDto } from './dto/submit-identity.dto';
 import { SubmitPayoutDto } from './dto/submit-payout.dto';
+import { ConfirmReferenceDto } from './dto/confirm-reference.dto';
 
 @Controller('guest-conversion')
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
@@ -77,6 +78,17 @@ export class ConversionController {
   @Post(':sessionId/initiate-payment')
   async initiatePayment(@Param('sessionId') sessionId: string) {
     return this.conversionService.initiatePayment(sessionId);
+  }
+
+  /**
+   * POST /api/v1/guest-conversion/:sessionId/confirm-reference
+   */
+  @Post(':sessionId/confirm-reference')
+  async confirmReference(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: ConfirmReferenceDto,
+  ) {
+    return this.conversionService.confirmByReference(sessionId, dto.mpesaReference);
   }
 
   /**

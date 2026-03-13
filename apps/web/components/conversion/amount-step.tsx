@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssetIcon } from '@/components/marketing/asset-icons';
+import { useLiveRate } from '@/lib/hooks/use-realtime-rates';
 import { conversionApi, type QuoteResponse } from '@/lib/api/conversion';
 
 export function AmountStep({
   onQuoteReady,
+  initialAmount,
 }: {
   onQuoteReady: (quote: QuoteResponse) => void;
+  initialAmount?: string;
 }) {
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(initialAmount ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,6 +24,13 @@ export function AmountStep({
   }, [amount]);
 
   const isValid = numericAmount >= 100 && numericAmount <= 100_000;
+
+  // Live BTC rate updating every 2 seconds
+  const rate = useLiveRate('KES', 'BTC');
+  const previewBtc = useMemo(() => {
+    if (!numericAmount || !rate) return '';
+    return (numericAmount * rate).toFixed(8);
+  }, [numericAmount, rate]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid) return;
@@ -88,14 +98,22 @@ export function AmountStep({
               BTC
             </span>
           </div>
-          <div className="w-full min-w-0 text-right font-mono text-2xl font-semibold tracking-tight text-white/40">
-            —
+          <div className="w-full min-w-0 text-right font-mono text-2xl font-semibold tracking-tight text-white">
+            {previewBtc || <span className="text-white/20">0.00000000</span>}
           </div>
         </div>
       </div>
 
-      {/* Limits hint */}
-      <p className="mt-3 text-center text-[11px] text-white/30">
+      {/* Rate + limits */}
+      {numericAmount > 0 && rate > 0 && (
+        <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2">
+          <RefreshCw size={10} className="text-white/25" />
+          <span className="font-mono text-[11px] text-white/40">
+            1 KES ≈ {rate.toFixed(10)} BTC
+          </span>
+        </div>
+      )}
+      <p className="mt-2 text-center text-[11px] text-white/30">
         Guest limit: KES 100 – 100,000 per transaction
       </p>
 

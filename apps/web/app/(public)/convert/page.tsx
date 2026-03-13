@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { ConversionWizard } from '@/components/conversion/conversion-wizard';
 
@@ -33,7 +34,9 @@ export default function ConvertPage() {
         </div>
 
         {/* Wizard */}
-        <ConversionWizard />
+        <Suspense>
+          <ConversionWizard />
+        </Suspense>
 
         {/* Trust footer */}
         <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-[10px] uppercase tracking-[0.18em] text-white/25">

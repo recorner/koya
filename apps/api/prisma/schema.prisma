@@ -165,6 +165,7 @@ model PaymentInstruction {
   externalReference    String?                  @map("external_reference")
   merchantRequestId    String?                  @map("merchant_request_id")
   checkoutRequestId    String?                  @unique @map("checkout_request_id")
+  mpesaReceiptNumber   String?                  @map("mpesa_receipt_number")
   status               PaymentInstructionStatus @default(CREATED)
   rawCallbackPayload   Json?                    @map("raw_callback_payload")
   createdAt            DateTime                 @default(now()) @map("created_at")

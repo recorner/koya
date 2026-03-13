@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { AssetIcon } from '@/components/marketing/asset-icons';
-import { TICKER_INSTRUMENTS } from '@/components/marketing/asset-metadata';
+import { useRealtimeTickers } from '@/lib/hooks/use-realtime-rates';
 
 function TickerItem({ pair, baseSymbol, price, change, positive }: {
   pair: string;
@@ -29,18 +29,20 @@ function TickerItem({ pair, baseSymbol, price, change, positive }: {
 }
 
 export function MarketRibbon() {
+  const tickers = useRealtimeTickers();
+
   return (
     <div className="group relative z-40 bg-cell/80 backdrop-blur-sm overflow-hidden">
       <div className="flex animate-ticker-scroll group-hover:[animation-play-state:paused] py-2.5">
         {/* First set */}
         <div className="flex shrink-0 items-center">
-          {TICKER_INSTRUMENTS.map((item) => (
+          {tickers.map((item) => (
             <TickerItem key={`a-${item.pair}`} {...item} />
           ))}
         </div>
         {/* Duplicate for seamless loop */}
         <div className="flex shrink-0 items-center">
-          {TICKER_INSTRUMENTS.map((item) => (
+          {tickers.map((item) => (
             <TickerItem key={`b-${item.pair}`} {...item} />
           ))}
         </div>

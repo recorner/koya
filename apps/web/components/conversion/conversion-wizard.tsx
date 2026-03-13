@@ -1,12 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AmountStep } from './amount-step';
 import { QuoteStep } from './quote-step';
 import { IdentityStep } from './identity-step';
 import { PayoutStep } from './payout-step';
 import { PaymentPendingStep } from './payment-pending-step';
+import { ProcessingStep } from './processing-step';
 import { ResultStep } from './result-step';
 import type { QuoteResponse, StatusResponse } from '@/lib/api/conversion';
 
@@ -16,6 +18,7 @@ export type WizardStep =
   | 'identity'
   | 'payout'
   | 'payment'
+  | 'processing'
   | 'result';
 
 export interface WizardState {
@@ -34,6 +37,9 @@ const stepVariants = {
 };
 
 export function ConversionWizard() {
+  const searchParams = useSearchParams();
+  const initialAmount = searchParams.get('amount') ?? undefined;
+
   const [state, setState] = useState<WizardState>({
     step: 'amount',
     quote: null,
@@ -64,6 +70,7 @@ export function ConversionWizard() {
           >
             {state.step === 'amount' && (
               <AmountStep
+                initialAmount={initialAmount}
                 onQuoteReady={(quote) =>
                   setState((s) => ({ ...s, step: 'quote', quote }))
                 }
@@ -105,6 +112,18 @@ export function ConversionWizard() {
               <PaymentPendingStep
                 sessionId={state.sessionId}
                 referenceCode={state.referenceCode!}
+                onComplete={() =>
+                  setState((s) => ({
+                    ...s,
+                    step: 'processing',
+                  }))
+                }
+              />
+            )}
+            {state.step === 'processing' && state.sessionId && (
+              <ProcessingStep
+                sessionId={state.sessionId}
+                quote={state.quote}
                 onComplete={(status) =>
                   setState((s) => ({
                     ...s,
@@ -144,6 +163,7 @@ const STEPS: WizardStep[] = [
   'identity',
   'payout',
   'payment',
+  'processing',
   'result',
 ];
 
@@ -152,7 +172,8 @@ const STEP_LABELS: Record<WizardStep, string> = {
   quote: 'Quote',
   identity: 'Identity',
   payout: 'Address',
-  payment: 'Payment',
+  payment: 'Pay',
+  processing: 'Process',
   result: 'Done',
 };
 

@@ -17,9 +17,9 @@ import { AssetIcon, MpesaIcon } from '@/components/marketing/asset-icons';
 import {
   ASSETS,
   ASSET_LIST,
-  MOCK_RATES,
   type Asset,
 } from '@/components/marketing/asset-metadata';
+import { useRealtimeRates } from '@/lib/hooks/use-realtime-rates';
 
 /* ─── Swap state hook ──────────────────────────────────────────── */
 
@@ -28,9 +28,11 @@ function useSwapState() {
   const [destSymbol, setDestSymbol] = useState('BTC');
   const [sourceAmount, setSourceAmount] = useState('');
 
+  const liveRates = useRealtimeRates();
+
   const source = ASSETS[sourceSymbol]!;
   const dest = ASSETS[destSymbol]!;
-  const rate = MOCK_RATES[sourceSymbol]?.[destSymbol] ?? 0;
+  const rate = liveRates[sourceSymbol]?.[destSymbol] ?? 0;
 
   const numericSourceAmount = useMemo(() => {
     const val = parseFloat(sourceAmount.replace(/,/g, ''));
@@ -351,7 +353,13 @@ export function GuestSwapWidget() {
           className="mt-3 h-10 w-full text-sm font-medium"
           asChild
         >
-          <Link href="/convert">
+          <Link
+            href={
+              hasAmount
+                ? `/convert?amount=${encodeURIComponent(sourceAmount)}`
+                : '/convert'
+            }
+          >
             {hasAmount ? 'Convert Now — No Account Needed' : 'Start a Conversion'}
           </Link>
         </Button>

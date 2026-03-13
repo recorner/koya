@@ -95,4 +95,52 @@ export class MpesaService {
       alreadyProcessed: false,
     };
   }
+
+  /**
+   * Confirm a payment by M-Pesa reference code entered manually by the user.
+   * In mock mode, any 6+ char reference is accepted.
+   * In production, this would query the M-Pesa API to verify the receipt.
+   */
+  async confirmByReference(
+    conversionSessionId: string,
+    mpesaReference: string,
+  ): Promise<{ confirmed: boolean; reason?: string }> {
+    const instruction = await this.prisma.paymentInstruction.findUnique({
+      where: { conversionSessionId },
+    });
+
+    if (!instruction) {
+      return { confirmed: false, reason: 'No payment instruction found for this session' };
+    }
+
+    if (instruction.status === 'CONFIRMED') {
+      return { confirmed: true };
+    }
+
+    if (instruction.status === 'FAILED') {
+      return { confirmed: false, reason: 'Payment was already marked as failed' };
+    }
+
+    // In mock mode, accept any valid-looking reference
+    // In production: call Safaricom Transaction Status API to verify
+    const isValid = mpesaReference.length >= 6;
+
+    if (!isValid) {
+      return { confirmed: false, reason: 'Invalid M-Pesa reference code' };
+    }
+
+    await this.prisma.paymentInstruction.update({
+      where: { id: instruction.id },
+      data: {
+        status: 'CONFIRMED',
+        mpesaReceiptNumber: mpesaReference,
+      },
+    });
+
+    this.logger.log(
+      `Payment confirmed manually via reference ${mpesaReference} for session ${conversionSessionId}`,
+    );
+
+    return { confirmed: true };
+  }
 }
