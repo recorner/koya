@@ -20,7 +20,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  const port = process.env.PORT || 3333;
+  const port = process.env.API_PORT || process.env.PORT || 3333;
   await app.listen(port);
   Logger.log(
     `Koya API running on http://localhost:${port}/${globalPrefix}`,

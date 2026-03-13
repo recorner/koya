@@ -54,10 +54,8 @@ jobs:
       - name: Build API
         run: pnpm nx build api
 
-      # Tests are not yet configured for any project.
-      # When unit/integration tests are added, uncomment:
-      # - name: Test
-      #   run: pnpm nx run-many -t test
+      - name: Unit tests
+        run: pnpm nx test api --testPathIgnorePatterns="integration"
 
   # ──────────────────────────────────────────────
   # Preview deploy — PRs and develop branch

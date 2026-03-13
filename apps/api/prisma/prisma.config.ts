@@ -4,7 +4,7 @@ import { defineConfig } from 'prisma/config';
 export default defineConfig({
   earlyAccess: true,
   schema: path.join(__dirname, 'schema.prisma'),
-  migrate: {
+  datasource: {
     url: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/koya?schema=public',
   },
 });

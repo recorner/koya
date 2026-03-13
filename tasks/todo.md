@@ -69,6 +69,7 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [x] **4.3** `MockAmlScreener` — simulates AML/sanctions screening
 - [x] **4.4** `MockMpesaAdapter` — simulates STK push + callback generation
 - [x] **4.5** `MockBtcDeliveryProvider` — simulates BTC send to address
+- [x] **4.6** `MockSwapProvider` — simulates swap execution with 0-0.3% slippage
 
 ## Phase 5: Validation & Utilities
 
@@ -100,13 +101,15 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
   - Phone normalization, BTC address validation, amount parsing — `validation.utils.spec.ts`
   - State transition guard — `risk.service.spec.ts`
   - Route policy, limits, TTL — `route-policy.spec.ts`
-- [ ] **7.2** Integration tests (deferred — needs running PostgreSQL):
-  - Full backend flow (quote → session → identity → payout → payment → callback → completion)
+- [x] **7.2** Integration tests (12 tests — `conversion-flow.integration.spec.ts`):
+  - Full backend flow via NestJS TestingModule with real PostgreSQL
+  - Quote creation, session management, identity submission
+  - Payout details, identity dedup, status checks
   - Invalid state transition rejection
-  - Expired quote rejection
-  - Duplicate guest identity dedup
-- [ ] **7.3** E2E test (deferred — needs running backend + database):
-  - Landing page CTA → conversion flow → mock completion
+- [x] **7.3** E2E tests (17 tests — `api.spec.ts` + `conversion.spec.ts`):
+  - HTTP-level tests via axios against running server
+  - Full end-to-end flow (quote → session → identity → payout → payment → status)
+  - Error handling (missing fields, invalid data, wrong state)
 
 ## Phase 8: Configuration & Documentation
 

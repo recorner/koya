@@ -1,7 +1,8 @@
 # Step 05 — Guest Conversion Engine (Vertical Slice)
 
 **Status:** Complete  
-**Date:** 2025-07-19
+**Date:** 2026-03-13 (DB + Testing pass)  
+**Previous:** 2026-03-10 (Initial implementation)
 
 ---
 
@@ -35,6 +36,11 @@ Full vertical slice of the guest KES → BTC conversion flow as specified in `en
 | `RiskModule` | `RiskService` | — | State transition validation, duplicate detection |
 | `PaymentsModule` | `MpesaService` | `PaymentsController` | STK push initiation, M-Pesa callback processing |
 | `ConversionModule` | `QuoteService`, `SessionService`, `ConversionService` | `ConversionController` | Main orchestrator — quotes, sessions, identity, payout, payment, status |
+
+#### Swap Provider
+- `SwapProvider` interface (`swap-provider.interface.ts`) with `executeSwap()` method
+- `MockSwapProvider` — Simulates swap execution with 0-0.3% slippage on quoted rate
+- Injected via NestJS DI token (`SWAP_PROVIDER`) into `ConversionService.processPaymentConfirmation()`
 
 #### API Endpoints (under `/api/v1/guest-conversion/`)
 | Method | Path | Purpose |
@@ -130,11 +136,146 @@ New environment variables added to `.env.example`:
 
 ---
 
+## Database Setup (DigitalOcean Managed PostgreSQL)
+
+- **Provider:** DigitalOcean Managed Database
+- **Connection:** IP-based (`167.71.173.146:25060`), SSL required
+- **Database:** `koya`, user `doadmin`
+- **Migration:** `20260313120547_init` — all 6 tables + 8 enums created
+- **Prisma v7 Driver Adapter:** `@prisma/adapter-pg` + `pg` Pool with SSL config
+- **SSL Fix:** pg v8 treats `sslmode=require` as `verify-full` — stripped from URL, passed `ssl: { rejectUnauthorized: false }` via PoolConfig
+
+---
+
+## Test Suite (62 tests total)
+
+### Unit Tests (33 tests — no DB required, runs in CI)
+- `validation.utils.spec.ts` — Phone normalization, BTC address validation, amount parsing (24 tests)
+- `route-policy.spec.ts` — Supported routes, fees, limits (3 tests)
+- `risk.service.spec.ts` — State transition validation, velocity checks (6 tests)
+
+### Integration Tests (12 tests — needs PostgreSQL)
+- `conversion-flow.integration.spec.ts` — Full NestJS `TestingModule` with real DB connection
+- Quote creation: happy path, unsupported route rejection, below-minimum rejection
+- Session creation: valid quote, already-used quote rejection
+- Identity submission: pass compliance, FAIL-prefix rejection, wrong-state rejection
+- Payout details: valid BTC address acceptance, invalid address rejection
+- Identity dedup: same identity reuses guest profile across sessions
+- Status: returns current session state
+
+### E2E Tests (17 tests — needs running server + DB)
+- `api.spec.ts` — Health check (`GET /api/v1/health`)
+- `conversion.spec.ts` — Full HTTP-level tests via axios:
+  - Quote CRUD (4 tests), Session management (3 tests)
+  - Identity flow (3 tests), Payout details (2 tests)
+  - Payment initiation (1 test), Status checks (2 tests)
+  - **Full end-to-end flow** (1 test): quote → session → identity → payout → payment → status
+
+### Test Infrastructure
+- Jest 30 + ts-jest configured in `apps/api/jest.config.ts`
+- uuid v13 ESM fix: `transformIgnorePatterns: ['node_modules/.pnpm/(?!(uuid)@)']`
+- 30s default timeout for remote DB latency
+- E2E setup: renamed `jest.config.cts` → `.ts`, fixed port to 3333, fixed globalThis typing
+
+### Running Tests
+
+```bash
+# Unit tests only (no DB — runs in CI)
+pnpm nx test api --testPathIgnorePatterns="integration"
+
+# All tests including integration (needs PostgreSQL)
+pnpm nx test api
+
+# E2E tests (start server first: pnpm nx serve api)
+PORT=3333 pnpm nx e2e api-e2e
+```
+
+---
+
+## Deployment Architecture
+
+| Layer | Technology | Status |
+|-------|-----------|--------|
+| Frontend | Vercel (Next.js) | ✅ Deployed |
+| API | AWS ECS Fargate (NestJS) | ⏳ Planned |
+| Database | DigitalOcean Managed PostgreSQL | ✅ Connected |
+| CI/CD | GitHub Actions | ✅ Unit tests in pipeline |
+
+---
+
+## Dependencies Added
+
+```
+prisma @prisma/client @prisma/adapter-pg    # Database ORM + driver adapter
+pg @types/pg                                 # PostgreSQL driver
+class-validator class-transformer            # DTO validation
+@nestjs/config                               # Environment config
+uuid                                         # Idempotency keys
+jest ts-jest @types/jest @nx/jest             # Test infrastructure
+```
+
+---
+
+## Files Created
+
+```
+apps/api/
+├── prisma/
+│   ├── schema.prisma
+│   ├── prisma.config.ts
+│   └── migrations/20260313120547_init/
+├── jest.config.ts
+├── tsconfig.spec.json
+└── src/
+    ├── prisma/
+    │   ├── prisma.module.ts
+    │   └── prisma.service.ts
+    ├── conversion/
+    │   ├── conversion.module.ts
+    │   ├── conversion.controller.ts
+    │   ├── conversion.service.ts
+    │   ├── quote.service.ts
+    │   ├── session.service.ts
+    │   ├── route-policy.ts
+    │   ├── conversion-flow.integration.spec.ts
+    │   └── dto/ (4 DTOs)
+    ├── kyc/ (module + 3 services)
+    ├── payments/ (module + controller + service)
+    ├── risk/ (module + service)
+    ├── providers/ (6 interfaces + 6 mocks)
+    ├── common/ (validation utils + spec)
+
+apps/api-e2e/
+├── jest.config.ts
+└── src/api/
+    ├── api.spec.ts
+    └── conversion.spec.ts
+
+apps/web/
+├── app/(public)/convert/page.tsx
+└── lib/api/conversion.ts
+
+jest.preset.js
+```
+
+## Files Modified
+
+- `.gitignore` — Added `.env`, `.env.local`
+- `.env.example` — Database URL, M-Pesa mock creds, port config
+- `apps/api/project.json` — Added `test` target
+- `apps/api-e2e/project.json` — Fixed jest config path, removed `api:serve` dependency
+- `apps/api-e2e/src/support/*` — Port 3333, globalThis typing fix
+- `libs/types/src/lib/types.ts` — Conversion enums and types
+- `libs/config/src/lib/config.ts` — API_BASE_URL
+- `.github/workflows/ci.yml` — Added unit test step
+
+---
+
 ## Next Steps
 
-- Connect PostgreSQL database and run `prisma migrate dev`
-- Replace mock providers with real integrations (Safaricom M-Pesa API, IPRS, Chainalysis, Bitcoin node)
-- Add E2E tests for the full conversion flow
-- Implement WebSocket/SSE for real-time status updates (replace polling)
-- Add rate limiting and abuse prevention on guest endpoints
-- Build admin dashboard for conversion monitoring
+- Dockerfile for API + AWS ECS Fargate deployment
+- Replace mock providers with real integrations (Safaricom Daraja, IPRS, exchange APIs)
+- WhatsApp channel support (backend already channel-agnostic)
+- WebSocket/SSE for real-time status updates (replace polling)
+- Rate limiting on guest endpoints
+- Admin dashboard for conversion monitoring

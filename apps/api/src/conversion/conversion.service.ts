@@ -14,6 +14,8 @@ import { MpesaService } from '../payments/mpesa.service';
 import { RiskService } from '../risk/risk.service';
 import { BTC_DELIVERY_PROVIDER } from '../providers/btc-delivery.interface';
 import type { BtcDeliveryProvider } from '../providers/btc-delivery.interface';
+import { SWAP_PROVIDER } from '../providers/swap-provider.interface';
+import type { SwapProvider } from '../providers/swap-provider.interface';
 import { getRoutePolicy } from './route-policy';
 import { isValidBtcAddress } from '../common/validation.utils';
 import { ConversionState } from '@koya/types';
@@ -33,6 +35,7 @@ export class ConversionService {
     private readonly mpesaService: MpesaService,
     private readonly riskService: RiskService,
     @Inject(BTC_DELIVERY_PROVIDER) private readonly btcDelivery: BtcDeliveryProvider,
+    @Inject(SWAP_PROVIDER) private readonly swapProvider: SwapProvider,
   ) {}
 
   /**
@@ -291,11 +294,38 @@ export class ConversionService {
       'executing_conversion',
     );
 
-    // Mock execution — in production this would hit a real exchange
+    // Execute swap via provider
+    const quote = await this.prisma.conversionQuote.findUnique({
+      where: { id: session.quoteId! },
+    });
+
+    const swapResult = await this.swapProvider.executeSwap({
+      sourceAsset: session.sourceAsset,
+      targetAsset: session.targetAsset,
+      sourceAmountMinor: session.sourceAmountMinor,
+      rate: quote?.rate?.toString() ?? '0',
+      referenceCode: session.referenceCode,
+    });
+
+    if (!swapResult.success) {
+      await this.sessionService.transitionState(
+        sessionId,
+        ConversionState.FAILED,
+        'swap_execution_failed',
+        { reason: swapResult.reason },
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Swap executed: ${swapResult.executionId} settled at ${swapResult.settledRate}`,
+    );
+
     await this.sessionService.transitionState(
       sessionId,
       ConversionState.DELIVERY_PENDING,
       'conversion_executed',
+      { executionId: swapResult.executionId, settledRate: swapResult.settledRate },
     );
 
     // Mock BTC delivery
