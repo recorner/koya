@@ -1,0 +1,160 @@
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Logger,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { RiskService } from '../risk/risk.service';
+import { ConversionState } from '@koya/types';
+import { v4 as uuidv4 } from 'uuid';
+
+@Injectable()
+export class SessionService {
+  private readonly logger = new Logger(SessionService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly riskService: RiskService,
+  ) {}
+
+  /**
+   * Create a new conversion session from a confirmed quote
+   */
+  async createSession(input: {
+    quoteId: string;
+    channel: string;
+    sourceAsset: string;
+    targetAsset: string;
+    sourceAmountMinor: bigint;
+    quotedTargetAmountMinor: bigint;
+    routePolicyKey: string;
+    payinMethod: string;
+    payoutMethod: string;
+  }) {
+    const referenceCode = `KYA-${uuidv4().slice(0, 8).toUpperCase()}`;
+
+    const session = await this.prisma.conversionSession.create({
+      data: {
+        channel: input.channel as any,
+        currentState: 'QUOTE_CONFIRMED',
+        status: 'ACTIVE',
+        sourceAsset: input.sourceAsset,
+        targetAsset: input.targetAsset,
+        sourceAmountMinor: input.sourceAmountMinor,
+        quotedTargetAmountMinor: input.quotedTargetAmountMinor,
+        quoteId: input.quoteId,
+        routePolicyKey: input.routePolicyKey,
+        payinMethod: input.payinMethod,
+        payoutMethod: input.payoutMethod,
+        referenceCode,
+      },
+    });
+
+    // Record initial state event
+    await this.recordStateEvent(session.id, null, 'QUOTE_CONFIRMED', 'session_created');
+
+    this.logger.log(`Session created: ${session.id} | ref=${referenceCode}`);
+
+    return session;
+  }
+
+  /**
+   * Transition a session to a new state
+   */
+  async transitionState(
+    sessionId: string,
+    targetState: ConversionState,
+    trigger: string,
+    metadata?: Record<string, unknown>,
+  ) {
+    const session = await this.getSession(sessionId);
+
+    // Validate transition
+    this.riskService.validateTransition(
+      session.currentState as ConversionState,
+      targetState,
+    );
+
+    const updated = await this.prisma.conversionSession.update({
+      where: { id: sessionId },
+      data: {
+        currentState: targetState as any,
+        status: this.deriveSessionStatus(targetState),
+      },
+    });
+
+    await this.recordStateEvent(
+      sessionId,
+      session.currentState,
+      targetState as any,
+      trigger,
+      metadata,
+    );
+
+    this.logger.log(
+      `Session ${sessionId}: ${session.currentState} → ${targetState} [${trigger}]`,
+    );
+
+    return updated;
+  }
+
+  async getSession(sessionId: string) {
+    const session = await this.prisma.conversionSession.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+    return session;
+  }
+
+  async getSessionWithRelations(sessionId: string) {
+    const session = await this.prisma.conversionSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        guestProfile: true,
+        quote: true,
+        paymentInstruction: true,
+        payoutInstruction: true,
+      },
+    });
+    if (!session) {
+      throw new NotFoundException(`Session ${sessionId} not found`);
+    }
+    return session;
+  }
+
+  private async recordStateEvent(
+    sessionId: string,
+    fromState: string | null,
+    toState: string,
+    trigger: string,
+    metadata?: Record<string, unknown>,
+  ) {
+    await this.prisma.conversionStateEvent.create({
+      data: {
+        conversionSessionId: sessionId,
+        fromState: fromState as any,
+        toState: toState as any,
+        trigger,
+        ...(metadata ? { metadataJson: metadata as any } : {}),
+      },
+    });
+  }
+
+  private deriveSessionStatus(
+    state: ConversionState,
+  ): 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'EXPIRED' {
+    switch (state) {
+      case ConversionState.COMPLETED:
+        return 'COMPLETED';
+      case ConversionState.FAILED:
+        return 'FAILED';
+      case ConversionState.EXPIRED:
+        return 'EXPIRED';
+      default:
+        return 'ACTIVE';
+    }
+  }
+}

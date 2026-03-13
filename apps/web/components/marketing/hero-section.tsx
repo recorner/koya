@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, ChevronRight, CreditCard, ShieldCheck, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import Link from 'next/link';
 import { KoyaMark } from '@/components/marketing/koya-mark';
 import { BtcIcon, UsdcIcon, UsdtIcon, KesIcon, UsdIcon } from '@/components/marketing/asset-icons';
 import { Button } from '@/components/ui/button';
@@ -138,9 +139,11 @@ export function HeroSection() {
           <div
             className="mt-8 flex flex-wrap items-center gap-3"
           >
-            <Button size="lg" className="group">
-              Join the Waitlist
-              <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+            <Button size="lg" className="group" asChild>
+              <Link href="/convert">
+                Convert KES to BTC
+                <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </Link>
             </Button>
 
             <Button variant="outline" size="lg" className="border-white/12 bg-white/[0.02] text-white hover:bg-white/[0.06]">

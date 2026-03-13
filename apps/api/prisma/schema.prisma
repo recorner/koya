@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────
+
+enum ConversionState {
+  INTENT_CAPTURED
+  QUOTE_PENDING
+  QUOTE_READY
+  QUOTE_CONFIRMED
+  IDENTITY_PENDING
+  COMPLIANCE_PENDING
+  PAYOUT_DETAILS_PENDING
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  EXECUTION_PENDING
+  DELIVERY_PENDING
+  COMPLETED
+  FAILED
+  EXPIRED
+  MANUAL_REVIEW
+}
+
+enum Channel {
+  WEB
+  WHATSAPP
+}
+
+enum GuestStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKED
+}
+
+enum QuoteStatus {
+  PENDING
+  READY
+  CONFIRMED
+  EXPIRED
+  FAILED
+}
+
+enum PaymentInstructionStatus {
+  CREATED
+  PENDING
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+enum PayoutInstructionStatus {
+  CREATED
+  PENDING
+  CONFIRMED
+  FAILED
+}
+
+enum SessionStatus {
+  ACTIVE
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum DocumentType {
+  NATIONAL_ID
+  PASSPORT
+  ALIEN_ID
+  MILITARY_ID
+}
+
+// ─── Models ───────────────────────────────────────────────────────
+
+model GuestProfile {
+  id                       String   @id @default(uuid())
+  guestRef                 String   @unique @map("guest_ref")
+  fullName                 String   @map("full_name")
+  countryCode              String   @map("country_code")
+  documentType             DocumentType @map("document_type")
+  documentNumberNormalized String   @map("document_number_normalized")
+  phoneE164                String   @map("phone_e164")
+  email                    String?
+  status                   GuestStatus @default(ACTIVE)
+  riskLevel                RiskLevel @default(LOW)
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  sessions ConversionSession[]
+
+  @@unique([countryCode, documentType, documentNumberNormalized], name: "identity_dedupe")
+  @@map("guest_profiles")
+}
+
+model ConversionSession {
+  id               String          @id @default(uuid())
+  channel          Channel
+  guestProfileId   String?         @map("guest_profile_id")
+  currentState     ConversionState @default(INTENT_CAPTURED) @map("current_state")
+  status           SessionStatus   @default(ACTIVE)
+  sourceAsset      String          @map("source_asset")
+  targetAsset      String          @map("target_asset")
+  sourceAmountMinor BigInt         @map("source_amount_minor")
+  quotedTargetAmountMinor BigInt?  @map("quoted_target_amount_minor")
+  quoteId          String?         @map("quote_id")
+  routePolicyKey   String          @map("route_policy_key")
+  payinMethod      String          @map("payin_method")
+  payoutMethod     String          @map("payout_method")
+  referenceCode    String          @unique @map("reference_code")
+  expiresAt        DateTime?       @map("expires_at")
+  metadataJson     Json?           @map("metadata_json")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  guestProfile       GuestProfile?       @relation(fields: [guestProfileId], references: [id])
+  quote              ConversionQuote?    @relation(fields: [quoteId], references: [id])
+  paymentInstruction PaymentInstruction?
+  payoutInstruction  PayoutInstruction?
+  stateEvents        ConversionStateEvent[]
+
+  @@index([guestProfileId])
+  @@index([referenceCode])
+  @@map("conversion_sessions")
+}
+
+model ConversionQuote {
+  id              String      @id @default(uuid())
+  sourceAsset     String      @map("source_asset")
+  targetAsset     String      @map("target_asset")
+  sourceAmountMinor BigInt    @map("source_amount_minor")
+  targetAmountMinor BigInt    @map("target_amount_minor")
+  rate            Decimal     @db.Decimal(30, 18)
+  spread          Decimal     @db.Decimal(10, 6)
+  feeMinor        BigInt      @map("fee_minor")
+  feeCurrency     String      @map("fee_currency")
+  status          QuoteStatus @default(PENDING)
+  expiresAt       DateTime    @map("expires_at")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  sessions ConversionSession[]
+
+  @@map("conversion_quotes")
+}
+
+model PaymentInstruction {
+  id                   String                   @id @default(uuid())
+  conversionSessionId  String                   @unique @map("conversion_session_id")
+  provider             String                   @default("MPESA")
+  instructionType      String                   @default("STK_PUSH") @map("instruction_type")
+  phoneE164            String                   @map("phone_e164")
+  amountMinor          BigInt                   @map("amount_minor")
+  currency             String                   @default("KES")
+  externalReference    String?                  @map("external_reference")
+  merchantRequestId    String?                  @map("merchant_request_id")
+  checkoutRequestId    String?                  @unique @map("checkout_request_id")
+  status               PaymentInstructionStatus @default(CREATED)
+  rawCallbackPayload   Json?                    @map("raw_callback_payload")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
+
+  session ConversionSession @relation(fields: [conversionSessionId], references: [id])
+
+  @@map("payment_instructions")
+}
+
+model PayoutInstruction {
+  id                  String                  @id @default(uuid())
+  conversionSessionId String                  @unique @map("conversion_session_id")
+  destinationType     String                  @default("BTC_ADDRESS") @map("destination_type")
+  btcAddress          String                  @map("btc_address")
+  amountMinor         BigInt?                 @map("amount_minor")
+  txHash              String?                 @map("tx_hash")
+  status              PayoutInstructionStatus @default(CREATED)
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  session ConversionSession @relation(fields: [conversionSessionId], references: [id])
+
+  @@map("payout_instructions")
+}
+
+model ConversionStateEvent {
+  id                  String          @id @default(uuid())
+  conversionSessionId String          @map("conversion_session_id")
+  fromState           ConversionState? @map("from_state")
+  toState             ConversionState @map("to_state")
+  trigger             String
+  metadataJson        Json?           @map("metadata_json")
+  createdAt           DateTime        @default(now()) @map("created_at")
+
+  session ConversionSession @relation(fields: [conversionSessionId], references: [id])
+
+  @@index([conversionSessionId])
+  @@map("conversion_state_events")
+}

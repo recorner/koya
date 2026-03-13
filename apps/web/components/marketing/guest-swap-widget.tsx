@@ -10,6 +10,7 @@ import {
   TimerReset,
   Zap,
 } from 'lucide-react';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { AssetIcon, MpesaIcon } from '@/components/marketing/asset-icons';
@@ -348,15 +349,17 @@ export function GuestSwapWidget() {
         <Button
           size="lg"
           className="mt-3 h-10 w-full text-sm font-medium"
-          disabled={!hasAmount}
+          asChild
         >
-          {hasAmount ? 'Create Account to Convert' : 'Enter amount to continue'}
+          <Link href="/convert">
+            {hasAmount ? 'Convert Now — No Account Needed' : 'Start a Conversion'}
+          </Link>
         </Button>
 
         {/* Disclaimer */}
         <p className="mt-2 text-center text-[10px] leading-4 text-white/28">
-          Preview rates are indicative and may move with market conditions. Create
-          an account for live quotes, execution, and wallet settlement.
+          Guest conversions up to KES 100,000/day. No account required —
+          just your phone and a BTC address.
         </p>
       </div>
     </div>
