@@ -247,18 +247,19 @@ function StepProgress({
   const currentIndex = STEPS.indexOf(currentStep);
 
   return (
-    <div className="mb-6 flex items-center gap-2">
+    <div className="mb-6">
       {canGoBack && (
         <button
           type="button"
           onClick={onBack}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+          className="mb-3 flex items-center gap-1.5 text-white/45 transition-colors hover:text-white/70"
           aria-label="Go back"
         >
           <ChevronLeft size={14} />
+          <span className="text-[11px] font-medium">Back</span>
         </button>
       )}
-      <div className="flex flex-1 items-center gap-1">
+      <div className="flex items-center gap-1">
         {STEPS.map((step, i) => (
           <div key={step} className="flex flex-1 flex-col items-center gap-1.5">
             <div

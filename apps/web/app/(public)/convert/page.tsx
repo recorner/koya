@@ -17,17 +17,19 @@ export default function ConvertPage() {
       </div>
 
       <div className="relative mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="mb-6 text-center sm:mb-10 md:mb-14">
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-              Guest Conversion
-            </span>
+        {/* Header — compact on mobile so wizard fits in viewport */}
+        <div className="mb-4 text-center sm:mb-10 md:mb-14">
+          <div className="mb-2 hidden items-center justify-center gap-2 sm:inline-flex">
+            <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                Guest Conversion
+              </span>
+            </div>
           </div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-4xl">
             Send KES, receive BTC
           </h1>
-          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-white/45">
+          <p className="mx-auto mt-1.5 hidden max-w-md text-sm leading-relaxed text-white/45 sm:mt-3 sm:block">
             Convert Kenyan Shillings to Bitcoin using M-Pesa. No account
             required — just your phone and a BTC address.
           </p>
