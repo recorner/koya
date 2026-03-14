@@ -247,7 +247,7 @@ function StepProgress({
   const currentIndex = STEPS.indexOf(currentStep);
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 w-full">
       {canGoBack && (
         <button
           type="button"
@@ -259,9 +259,9 @@ function StepProgress({
           <span className="text-[11px] font-medium">Back</span>
         </button>
       )}
-      <div className="flex items-center gap-1">
+      <div className="flex w-full items-center gap-1">
         {STEPS.map((step, i) => (
-          <div key={step} className="flex flex-1 flex-col items-center gap-1.5">
+          <div key={step} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
             <div
               className={`h-1 w-full rounded-full transition-colors duration-300 ${
                 i <= currentIndex
@@ -270,7 +270,7 @@ function StepProgress({
               }`}
             />
             <span
-              className={`text-[9px] font-semibold uppercase tracking-[0.15em] transition-colors duration-300 ${
+              className={`text-[9px] font-semibold uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-300 ${
                 i <= currentIndex ? 'text-white/70' : 'text-white/25'
               }`}
             >
