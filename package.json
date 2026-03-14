@@ -10,7 +10,8 @@
     "lint": "nx run-many -t lint",
     "typecheck": "tsc --noEmit -p apps/web/tsconfig.json && tsc --noEmit -p apps/api/tsconfig.app.json",
     "format": "nx format:write",
-    "format:check": "nx format:check"
+    "format:check": "nx format:check",
+    "postinstall": "prisma generate --schema=apps/api/prisma/schema.prisma"
   },
   "private": true,
   "packageManager": "pnpm@10.32.0",

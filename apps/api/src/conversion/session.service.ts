@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RiskService } from '../risk/risk.service';
 import { ConversionState } from '@koya/types';
+import { Prisma, ConversionState as PrismaConversionState, Channel as PrismaChannel } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -35,7 +36,7 @@ export class SessionService {
 
     const session = await this.prisma.conversionSession.create({
       data: {
-        channel: input.channel as unknown as import('@prisma/client').Channel,
+        channel: input.channel as PrismaChannel,
         currentState: 'QUOTE_CONFIRMED',
         status: 'ACTIVE',
         sourceAsset: input.sourceAsset,
@@ -78,7 +79,7 @@ export class SessionService {
     const updated = await this.prisma.conversionSession.update({
       where: { id: sessionId },
       data: {
-        currentState: targetState as unknown as import('@prisma/client').ConversionState,
+        currentState: targetState as string as PrismaConversionState,
         status: this.deriveSessionStatus(targetState),
       },
     });
@@ -134,10 +135,10 @@ export class SessionService {
     await this.prisma.conversionStateEvent.create({
       data: {
         conversionSessionId: sessionId,
-        fromState: fromState as unknown as import('@prisma/client').ConversionState,
-        toState: toState as unknown as import('@prisma/client').ConversionState,
+        fromState: fromState as string as PrismaConversionState | null,
+        toState: toState as string as PrismaConversionState,
         trigger,
-        ...(metadata ? { metadataJson: metadata as unknown as import('@prisma/client').Prisma.InputJsonValue } : {}),
+        ...(metadata ? { metadataJson: metadata as Prisma.InputJsonValue } : {}),
       },
     });
   }

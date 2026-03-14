@@ -1,4 +1,5 @@
 import { RiskService } from './risk.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { ConversionState } from '@koya/types';
 
 describe('RiskService', () => {
@@ -6,7 +7,7 @@ describe('RiskService', () => {
 
   beforeEach(() => {
     // Create with a mock PrismaService
-    service = new RiskService({} as unknown as import('../prisma/prisma.service').PrismaService);
+    service = new RiskService({} as unknown as PrismaService);
   });
 
   describe('validateTransition', () => {

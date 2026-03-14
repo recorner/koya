@@ -1,4 +1,5 @@
 import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MPESA_ADAPTER } from '../providers/mpesa-adapter.interface';
 import type { MpesaAdapter } from '../providers/mpesa-adapter.interface';
@@ -81,7 +82,7 @@ export class MpesaService {
       where: { id: instruction.id },
       data: {
         status: newStatus,
-        rawCallbackPayload: rawPayload as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        rawCallbackPayload: rawPayload as Prisma.InputJsonValue,
       },
     });
 
