@@ -11,6 +11,10 @@ COPY libs/types/package.json libs/types/
 COPY libs/config/package.json libs/config/
 COPY libs/ui/package.json libs/ui/
 
+# Copy Prisma schema so postinstall (prisma generate) works during install
+COPY apps/api/prisma/schema.prisma apps/api/prisma/
+COPY apps/api/prisma/prisma.config.ts apps/api/prisma/
+
 RUN pnpm install --frozen-lockfile
 
 # ─── Stage 2: Build ────────────────────────────────────────────

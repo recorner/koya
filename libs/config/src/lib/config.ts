@@ -22,4 +22,4 @@ export const CURRENCY_CONFIG = {
 };
 
 export const API_BASE_URL =
-  process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3333/api/v1';
+  process.env['NEXT_PUBLIC_API_URL'] ?? 'https://koya.olesereni.site/api/v1';

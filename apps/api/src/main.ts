@@ -12,11 +12,20 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true }),
   );
 
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:4200',
+    'https://koya-nu.vercel.app',
+    'https://koya.olesereni.site',
+  ];
+
+  // Allow additional origins from env (comma-separated)
+  if (process.env.CORS_ORIGINS) {
+    allowedOrigins.push(...process.env.CORS_ORIGINS.split(',').map(o => o.trim()));
+  }
+
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:4200',
-    ],
+    origin: allowedOrigins,
     credentials: true,
   });
 
