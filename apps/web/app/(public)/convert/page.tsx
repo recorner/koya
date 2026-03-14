@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ConvertPage() {
   return (
-    <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-16 sm:py-24">
+    <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-6 sm:py-16 md:py-24">
       {/* Background effects */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(212,175,55,0.06),transparent_70%)] blur-3xl" />
@@ -18,7 +18,7 @@ export default function ConvertPage() {
 
       <div className="relative mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-10 text-center sm:mb-14">
+        <div className="mb-6 text-center sm:mb-10 md:mb-14">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
               Guest Conversion

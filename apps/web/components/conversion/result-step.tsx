@@ -54,13 +54,13 @@ export function ResultStep({
         <div className="mt-5 space-y-2 text-left">
           {isSuccess && (
             <DetailRow label="Converted">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 font-mono text-sm text-white">
+              <div className="flex items-center gap-1.5 sm:gap-3">
+                <span className="flex items-center gap-1 font-mono text-xs text-white sm:gap-1.5 sm:text-sm">
                   <AssetIcon symbol="KES" size={14} />
                   {status.sourceAmount} KES
                 </span>
-                <ArrowRight size={12} className="text-white/30" />
-                <span className="flex items-center gap-1.5 font-mono text-sm text-white">
+                <ArrowRight size={10} className="shrink-0 text-white/30 sm:size-3" />
+                <span className="flex items-center gap-1 font-mono text-xs text-white sm:gap-1.5 sm:text-sm">
                   <AssetIcon symbol="BTC" size={14} />
                   {status.targetAmount} BTC
                 </span>
@@ -129,11 +129,11 @@ function DetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+    <div className="flex flex-wrap items-center justify-between gap-y-1.5 rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
+      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
         {label}
       </span>
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

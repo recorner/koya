@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
 import { AmountStep } from './amount-step';
 import { QuoteStep } from './quote-step';
 import { IdentityStep } from './identity-step';
@@ -31,23 +32,81 @@ export interface WizardState {
 }
 
 const stepVariants = {
-  enter: { opacity: 0, y: 24 },
+  enter: (dir: number) => ({ opacity: 0, y: dir * 24 }),
   center: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -16 },
+  exit: (dir: number) => ({ opacity: 0, y: dir * -16 }),
+};
+
+const STORAGE_KEY = 'koya-conversion-wizard';
+const BACK_ALLOWED: WizardStep[] = ['quote', 'identity', 'payout', 'payment'];
+const DEFAULT_STATE: WizardState = {
+  step: 'amount',
+  quote: null,
+  sessionId: null,
+  referenceCode: null,
+  guestRef: null,
+  finalStatus: null,
 };
 
 export function ConversionWizard() {
   const searchParams = useSearchParams();
   const initialAmount = searchParams.get('amount') ?? undefined;
 
-  const [state, setState] = useState<WizardState>({
-    step: 'amount',
-    quote: null,
-    sessionId: null,
-    referenceCode: null,
-    guestRef: null,
-    finalStatus: null,
-  });
+  const [state, setState] = useState<WizardState>(DEFAULT_STATE);
+  const [direction, setDirection] = useState(1);
+  const [isReady, setIsReady] = useState(false);
+
+  // Restore state from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as WizardState;
+        if (STEPS.includes(parsed.step)) {
+          setState(parsed);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    setIsReady(true);
+  }, []);
+
+  // Persist state to sessionStorage on changes
+  useEffect(() => {
+    if (!isReady) return;
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      /* ignore */
+    }
+  }, [state, isReady]);
+
+  const goForward = useCallback(
+    (updater: (s: WizardState) => WizardState) => {
+      setDirection(1);
+      setState(updater);
+    },
+    [],
+  );
+
+  const handleBack = useCallback(() => {
+    const currentIndex = STEPS.indexOf(state.step);
+    if (currentIndex <= 0) return;
+    const prevStep = STEPS[currentIndex - 1] as WizardStep;
+    setDirection(-1);
+    setState((s) => ({ ...s, step: prevStep }));
+  }, [state.step]);
+
+  const canGoBack = BACK_ALLOWED.includes(state.step);
+
+  if (!isReady) {
+    return (
+      <div className="mx-auto w-full max-w-[520px]">
+        <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] sm:rounded-3xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-[520px]">
@@ -57,11 +116,16 @@ export function ConversionWizard() {
         <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
 
         {/* Progress indicator */}
-        <StepProgress currentStep={state.step} />
+        <StepProgress
+          currentStep={state.step}
+          canGoBack={canGoBack}
+          onBack={handleBack}
+        />
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={state.step}
+            custom={direction}
             variants={stepVariants}
             initial="enter"
             animate="center"
@@ -72,7 +136,7 @@ export function ConversionWizard() {
               <AmountStep
                 initialAmount={initialAmount}
                 onQuoteReady={(quote) =>
-                  setState((s) => ({ ...s, step: 'quote', quote }))
+                  goForward((s) => ({ ...s, step: 'quote', quote }))
                 }
               />
             )}
@@ -80,7 +144,7 @@ export function ConversionWizard() {
               <QuoteStep
                 quote={state.quote}
                 onConfirm={(sessionId, referenceCode) =>
-                  setState((s) => ({
+                  goForward((s) => ({
                     ...s,
                     step: 'identity',
                     sessionId,
@@ -88,7 +152,7 @@ export function ConversionWizard() {
                   }))
                 }
                 onExpired={() =>
-                  setState((s) => ({ ...s, step: 'amount', quote: null }))
+                  goForward((s) => ({ ...s, step: 'amount', quote: null }))
                 }
               />
             )}
@@ -96,7 +160,7 @@ export function ConversionWizard() {
               <IdentityStep
                 sessionId={state.sessionId}
                 onComplete={(guestRef) =>
-                  setState((s) => ({ ...s, step: 'payout', guestRef }))
+                  goForward((s) => ({ ...s, step: 'payout', guestRef }))
                 }
               />
             )}
@@ -104,7 +168,7 @@ export function ConversionWizard() {
               <PayoutStep
                 sessionId={state.sessionId}
                 onComplete={() =>
-                  setState((s) => ({ ...s, step: 'payment' }))
+                  goForward((s) => ({ ...s, step: 'payment' }))
                 }
               />
             )}
@@ -113,7 +177,7 @@ export function ConversionWizard() {
                 sessionId={state.sessionId}
                 referenceCode={state.referenceCode ?? ''}
                 onComplete={() =>
-                  setState((s) => ({
+                  goForward((s) => ({
                     ...s,
                     step: 'processing',
                   }))
@@ -125,7 +189,7 @@ export function ConversionWizard() {
                 sessionId={state.sessionId}
                 quote={state.quote}
                 onComplete={(status) =>
-                  setState((s) => ({
+                  goForward((s) => ({
                     ...s,
                     step: 'result',
                     finalStatus: status,
@@ -138,16 +202,10 @@ export function ConversionWizard() {
                 status={state.finalStatus}
                 referenceCode={state.referenceCode}
                 guestRef={state.guestRef}
-                onReset={() =>
-                  setState({
-                    step: 'amount',
-                    quote: null,
-                    sessionId: null,
-                    referenceCode: null,
-                    guestRef: null,
-                    finalStatus: null,
-                  })
-                }
+                onReset={() => {
+                  setDirection(1);
+                  setState(DEFAULT_STATE);
+                }}
               />
             )}
           </motion.div>
@@ -177,29 +235,49 @@ const STEP_LABELS: Record<WizardStep, string> = {
   result: 'Done',
 };
 
-function StepProgress({ currentStep }: { currentStep: WizardStep }) {
+function StepProgress({
+  currentStep,
+  canGoBack,
+  onBack,
+}: {
+  currentStep: WizardStep;
+  canGoBack: boolean;
+  onBack: () => void;
+}) {
   const currentIndex = STEPS.indexOf(currentStep);
 
   return (
-    <div className="mb-6 flex items-center gap-1">
-      {STEPS.map((step, i) => (
-        <div key={step} className="flex flex-1 flex-col items-center gap-1.5">
-          <div
-            className={`h-1 w-full rounded-full transition-colors duration-300 ${
-              i <= currentIndex
-                ? 'bg-gold'
-                : 'bg-white/8'
-            }`}
-          />
-          <span
-            className={`text-[9px] font-semibold uppercase tracking-[0.15em] transition-colors duration-300 ${
-              i <= currentIndex ? 'text-white/70' : 'text-white/25'
-            }`}
-          >
-            {STEP_LABELS[step]}
-          </span>
-        </div>
-      ))}
+    <div className="mb-6 flex items-center gap-2">
+      {canGoBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+          aria-label="Go back"
+        >
+          <ChevronLeft size={14} />
+        </button>
+      )}
+      <div className="flex flex-1 items-center gap-1">
+        {STEPS.map((step, i) => (
+          <div key={step} className="flex flex-1 flex-col items-center gap-1.5">
+            <div
+              className={`h-1 w-full rounded-full transition-colors duration-300 ${
+                i <= currentIndex
+                  ? 'bg-gold'
+                  : 'bg-white/8'
+              }`}
+            />
+            <span
+              className={`text-[9px] font-semibold uppercase tracking-[0.15em] transition-colors duration-300 ${
+                i <= currentIndex ? 'text-white/70' : 'text-white/25'
+              }`}
+            >
+              {STEP_LABELS[step]}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
