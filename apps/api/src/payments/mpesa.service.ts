@@ -81,7 +81,7 @@ export class MpesaService {
       where: { id: instruction.id },
       data: {
         status: newStatus,
-        rawCallbackPayload: rawPayload as any,
+        rawCallbackPayload: rawPayload as unknown as import('@prisma/client').Prisma.InputJsonValue,
       },
     });
 

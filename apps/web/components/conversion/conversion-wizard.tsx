@@ -111,7 +111,7 @@ export function ConversionWizard() {
             {state.step === 'payment' && state.sessionId && (
               <PaymentPendingStep
                 sessionId={state.sessionId}
-                referenceCode={state.referenceCode!}
+                referenceCode={state.referenceCode ?? ''}
                 onComplete={() =>
                   setState((s) => ({
                     ...s,

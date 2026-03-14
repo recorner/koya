@@ -6,7 +6,7 @@ describe('RiskService', () => {
 
   beforeEach(() => {
     // Create with a mock PrismaService
-    service = new RiskService({} as any);
+    service = new RiskService({} as unknown as import('../prisma/prisma.service').PrismaService);
   });
 
   describe('validateTransition', () => {

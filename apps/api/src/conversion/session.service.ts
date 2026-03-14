@@ -1,6 +1,5 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   Logger,
 } from '@nestjs/common';
@@ -36,7 +35,7 @@ export class SessionService {
 
     const session = await this.prisma.conversionSession.create({
       data: {
-        channel: input.channel as any,
+        channel: input.channel as unknown as import('@prisma/client').Channel,
         currentState: 'QUOTE_CONFIRMED',
         status: 'ACTIVE',
         sourceAsset: input.sourceAsset,
@@ -79,7 +78,7 @@ export class SessionService {
     const updated = await this.prisma.conversionSession.update({
       where: { id: sessionId },
       data: {
-        currentState: targetState as any,
+        currentState: targetState as unknown as import('@prisma/client').ConversionState,
         status: this.deriveSessionStatus(targetState),
       },
     });
@@ -87,7 +86,7 @@ export class SessionService {
     await this.recordStateEvent(
       sessionId,
       session.currentState,
-      targetState as any,
+      targetState as string,
       trigger,
       metadata,
     );
@@ -135,10 +134,10 @@ export class SessionService {
     await this.prisma.conversionStateEvent.create({
       data: {
         conversionSessionId: sessionId,
-        fromState: fromState as any,
-        toState: toState as any,
+        fromState: fromState as unknown as import('@prisma/client').ConversionState,
+        toState: toState as unknown as import('@prisma/client').ConversionState,
         trigger,
-        ...(metadata ? { metadataJson: metadata as any } : {}),
+        ...(metadata ? { metadataJson: metadata as unknown as import('@prisma/client').Prisma.InputJsonValue } : {}),
       },
     });
   }

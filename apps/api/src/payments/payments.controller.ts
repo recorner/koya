@@ -20,7 +20,7 @@ export class PaymentsController {
       `M-Pesa callback: ${stkCallback.CheckoutRequestID}, result=${stkCallback.ResultCode}`,
     );
 
-    const result = await this.mpesaService.handleCallback(
+    await this.mpesaService.handleCallback(
       stkCallback.CheckoutRequestID,
       stkCallback.ResultCode,
       payload,

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRightLeft, ChevronRight, CreditCard, ShieldCheck, Sparkles, TrendingUp, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { KoyaMark } from '@/components/marketing/koya-mark';
-import { BtcIcon, UsdcIcon, UsdtIcon, KesIcon, UsdIcon } from '@/components/marketing/asset-icons';
+import { BtcIcon, UsdcIcon, KesIcon, UsdIcon } from '@/components/marketing/asset-icons';
 import { Button } from '@/components/ui/button';
 
 function MastercardLogo({ className }: { className?: string }) {

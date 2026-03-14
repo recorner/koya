@@ -3,8 +3,6 @@
 import { SectionShell } from '@/components/marketing/section-shell';
 import {
   FadeUp,
-  StaggerContainer,
-  StaggerItem,
 } from '@/components/marketing/motion-wrapper';
 import { StockIcon } from '@/components/marketing/asset-icons';
 import { STOCK_TICKERS } from '@/components/marketing/asset-metadata';

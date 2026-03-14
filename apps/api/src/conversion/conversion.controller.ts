@@ -54,7 +54,7 @@ export class ConversionController {
     return this.conversionService.submitIdentity(sessionId, {
       fullName: dto.fullName,
       countryCode: dto.countryCode,
-      documentType: dto.documentType as any,
+      documentType: dto.documentType as 'NATIONAL_ID' | 'PASSPORT' | 'ALIEN_ID' | 'MILITARY_ID',
       documentNumber: dto.documentNumber,
       phone: dto.phone,
       email: dto.email,

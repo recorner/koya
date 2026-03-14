@@ -4,10 +4,10 @@ describe('Route Policy', () => {
   it('returns KES → BTC route', () => {
     const route = getRoutePolicy('KES', 'BTC');
     expect(route).not.toBeNull();
-    expect(route!.key).toBe('KES_BTC_GUEST');
-    expect(route!.payinMethod).toBe('MPESA_STK');
-    expect(route!.payoutMethod).toBe('BTC_ADDRESS');
-    expect(route!.enabled).toBe(true);
+    expect(route?.key).toBe('KES_BTC_GUEST');
+    expect(route?.payinMethod).toBe('MPESA_STK');
+    expect(route?.payoutMethod).toBe('BTC_ADDRESS');
+    expect(route?.enabled).toBe(true);
   });
 
   it('returns null for unsupported routes', () => {

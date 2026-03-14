@@ -296,7 +296,7 @@ export class ConversionService {
 
     // Execute swap via provider
     const quote = await this.prisma.conversionQuote.findUnique({
-      where: { id: session.quoteId! },
+      where: { id: session.quoteId ?? '' },
     });
 
     const swapResult = await this.swapProvider.executeSwap({
@@ -408,6 +408,7 @@ export class ConversionService {
     return this.formatStatus(session);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private formatStatus(session: any) {
     const sourceDecimals = session.sourceAsset === 'BTC' ? 8 : 2;
     const targetDecimals = session.targetAsset === 'BTC' ? 8 : 2;

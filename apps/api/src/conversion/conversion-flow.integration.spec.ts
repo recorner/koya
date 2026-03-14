@@ -71,7 +71,7 @@ describe('Conversion Flow (Integration)', () => {
         where: { id: result.quoteId },
       });
       expect(dbQuote).not.toBeNull();
-      expect(dbQuote!.status).toBe('READY');
+      expect(dbQuote?.status).toBe('READY');
     });
 
     it('should reject unsupported route', async () => {
@@ -120,8 +120,8 @@ describe('Conversion Flow (Integration)', () => {
         where: { id: session.sessionId },
       });
       expect(dbSession).not.toBeNull();
-      expect(dbSession!.currentState).toBe('IDENTITY_PENDING');
-      expect(dbSession!.quoteId).toBe(quote.quoteId);
+      expect(dbSession?.currentState).toBe('IDENTITY_PENDING');
+      expect(dbSession?.quoteId).toBe(quote.quoteId);
     });
 
     it('should reject an already-used quote', async () => {
@@ -177,7 +177,7 @@ describe('Conversion Flow (Integration)', () => {
       const dbSession = await prisma.conversionSession.findUnique({
         where: { id: session.sessionId },
       });
-      expect(dbSession!.guestProfileId).not.toBeNull();
+      expect(dbSession?.guestProfileId).not.toBeNull();
     });
 
     it('should fail compliance for FAIL-prefixed documents', async () => {
@@ -269,7 +269,7 @@ describe('Conversion Flow (Integration)', () => {
         where: { conversionSessionId: session.sessionId },
       });
       expect(payout).not.toBeNull();
-      expect(payout!.btcAddress).toBe('1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2');
+      expect(payout?.btcAddress).toBe('1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2');
     });
 
     it('should reject invalid BTC address', async () => {
@@ -349,7 +349,7 @@ describe('Conversion Flow (Integration)', () => {
       const s2 = await prisma.conversionSession.findUnique({
         where: { id: session2.sessionId },
       });
-      expect(s1!.guestProfileId).toBe(s2!.guestProfileId);
+      expect(s1?.guestProfileId).toBe(s2?.guestProfileId);
     });
   });
 

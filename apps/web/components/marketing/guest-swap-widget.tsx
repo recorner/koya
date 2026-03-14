@@ -7,7 +7,6 @@ import {
   ChevronDown,
   Dot,
   ShieldCheck,
-  TimerReset,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -30,8 +29,8 @@ function useSwapState() {
 
   const liveRates = useRealtimeRates();
 
-  const source = ASSETS[sourceSymbol]!;
-  const dest = ASSETS[destSymbol]!;
+  const source = ASSETS[sourceSymbol] as NonNullable<(typeof ASSETS)[string]>;
+  const dest = ASSETS[destSymbol] as NonNullable<(typeof ASSETS)[string]>;
   const rate = liveRates[sourceSymbol]?.[destSymbol] ?? 0;
 
   const numericSourceAmount = useMemo(() => {

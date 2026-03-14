@@ -8,6 +8,7 @@ import {
 
 @Injectable()
 export class MockBtcDeliveryProvider implements BtcDeliveryProvider {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async send(input: BtcSendInput): Promise<BtcSendResult> {
     // Mock: simulate successful BTC delivery
     const txHash = `mock_${uuidv4().replace(/-/g, '')}`;

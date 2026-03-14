@@ -44,7 +44,7 @@ export function isValidBtcAddress(address: string): boolean {
  * Normalize a document number (uppercase, strip spaces/dashes)
  */
 export function normalizeDocumentNumber(docNumber: string): string {
-  return docNumber.toUpperCase().replace(/[\s\-]/g, '');
+  return docNumber.toUpperCase().replace(/[\s-]/g, '');
 }
 
 /**

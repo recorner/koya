@@ -99,7 +99,7 @@ export function ResultStep({
                 </span>
                 <button
                   type="button"
-                  onClick={() => copyToClipboard(status.txHash!)}
+                  onClick={() => copyToClipboard(status.txHash ?? '')}
                   className="text-white/30 hover:text-white/60"
                 >
                   <Copy size={12} />

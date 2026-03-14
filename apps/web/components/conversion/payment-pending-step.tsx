@@ -50,7 +50,6 @@ export function PaymentPendingStep({
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const startPolling = useCallback(() => {
@@ -128,7 +127,6 @@ export function PaymentPendingStep({
     }, 5000);
 
     return () => clearTimeout(mockTimeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleManualConfirm = async () => {

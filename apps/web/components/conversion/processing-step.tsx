@@ -296,7 +296,7 @@ export function ProcessingStep({
           <Button
             size="lg"
             className="mt-5 h-11 w-full text-sm font-medium"
-            onClick={() => onComplete(finalStatus!)}
+            onClick={() => onComplete(finalStatus as NonNullable<typeof finalStatus>)}
           >
             {isComplete ? 'View Details' : 'View Details'}
           </Button>
