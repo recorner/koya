@@ -141,18 +141,37 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [ ] **10.8** Update `NEXT_PUBLIC_API_URL` on Vercel to point to ALB domain
 - [ ] **10.9** GitHub Actions deploy-api.yml pipeline
 
-## Phase 11: Production Readiness (Next)
+## Phase 11: Directus CMS Integration
 
-- [ ] **11.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
-- [ ] **11.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
-- [ ] **11.3** Replace `MockIprsVerifier` with Kenya IPRS API
-- [ ] **11.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
-- [ ] **11.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
-- [ ] **11.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
-- [ ] **11.7** WebSocket/SSE for real-time status updates (replace polling)
-- [ ] **11.8** Rate limiting on guest endpoints
-- [ ] **11.9** WhatsApp channel support
-- [ ] **11.10** Admin dashboard for conversion monitoring
+- [x] **11.1** Set up Directus Docker container (`directus-koyabank-cms` on port 8055)
+- [x] **11.2** Create CMS collections schema (8 collections: global_settings, seo_defaults, navigation, footer_columns, footer_links, pages, page_sections, faq_items, legal_pages)
+- [x] **11.3** Create schema setup + seed script (`scripts/directus-setup.py`)
+- [x] **11.4** Set public read permissions on all CMS collections
+- [x] **11.5** Install `@directus/sdk`, add Directus env vars to `.env`
+- [x] **11.6** Build Directus client (`apps/web/lib/directus/client.ts`)
+- [x] **11.7** Build CMS TypeScript types (`apps/web/lib/directus/types.ts`)
+- [x] **11.8** Build CMS query utilities (`apps/web/lib/directus/queries.ts`)
+- [x] **11.9** Build section renderer mapping (`apps/web/lib/directus/section-renderer.tsx`)
+- [x] **11.10** Build CMS wrapper components (`cms-swap-section`, `cms-rich-text`, `cms-cta`)
+- [x] **11.11** Refactor homepage to CMS-driven with hardcoded fallback
+- [x] **11.12** Create dynamic catch-all page route (`/[...slug]`)
+- [x] **11.13** Create legal pages route (`/legal/[slug]`)
+- [x] **11.14** Add `images.remotePatterns` for Directus assets in `next.config.js`
+- [x] **11.15** Seed homepage with 10 sections + nav + footer + settings
+- [x] **11.16** Verify production build passes (`npx nx build web`)
+
+## Phase 12: Production Readiness (Next)
+
+- [ ] **12.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
+- [ ] **12.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
+- [ ] **12.3** Replace `MockIprsVerifier` with Kenya IPRS API
+- [ ] **12.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
+- [ ] **12.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
+- [ ] **12.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
+- [ ] **12.7** WebSocket/SSE for real-time status updates (replace polling)
+- [ ] **12.8** Rate limiting on guest endpoints
+- [ ] **12.9** WhatsApp channel support
+- [ ] **12.10** Admin dashboard for conversion monitoring
 
 ---
 

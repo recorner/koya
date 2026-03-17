@@ -1,3 +1,6 @@
+import { getPageBySlug } from '@/lib/directus';
+import type { PageSection } from '@/lib/directus';
+import { SectionRenderer } from '@/lib/directus/section-renderer';
 import { MarketRibbon } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
 import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
@@ -9,7 +12,23 @@ import { CardsSection } from '@/components/marketing/cards-section';
 import { GlobalFinanceSection } from '@/components/marketing/global-finance-section';
 import { FinalCTA } from '@/components/marketing/final-cta';
 
-export default function LandingPage() {
+/** Revalidate homepage every 60 seconds for near-instant CMS updates. */
+export const revalidate = 60;
+
+export default async function LandingPage() {
+  const page = await getPageBySlug('/');
+  const sections = page?.sections as PageSection[] | undefined;
+
+  // CMS-driven: render sections from Directus in the order defined there
+  if (sections?.length) {
+    return (
+      <main className="overflow-x-hidden">
+        <SectionRenderer sections={sections} />
+      </main>
+    );
+  }
+
+  // Fallback: hardcoded layout when CMS is unavailable or page not configured
   return (
     <main className="overflow-x-hidden">
       <MarketRibbon />
