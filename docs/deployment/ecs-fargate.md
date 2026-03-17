@@ -13,7 +13,7 @@ Internet → ALB (443/HTTPS) → ECS Fargate Service → Container (3333)
 1. AWS CLI configured with appropriate IAM permissions
 2. ECR repository created
 3. VPC with public/private subnets
-4. ACM certificate for API domain (e.g. `api.koya.money`)
+4. ACM certificate for API domain (`api.koyabank.com`)
 5. `DATABASE_URL` stored in AWS Secrets Manager
 
 ---

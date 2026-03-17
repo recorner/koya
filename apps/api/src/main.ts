@@ -15,8 +15,9 @@ async function bootstrap() {
   const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:4200',
-    'https://koya-nu.vercel.app',
-    'https://koya.olesereni.site',
+    'https://koyabank.com',
+    'https://www.koyabank.com',
+    'https://api.koyabank.com',
   ];
 
   // Allow additional origins from env (comma-separated)

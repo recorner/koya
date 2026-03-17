@@ -62,7 +62,7 @@ Runs on pushes to `main` only. Requires `validate` to pass.
 
 - Pulls Vercel project config (production environment)
 - Builds via Vercel CLI with `--prod` flag
-- Deploys to `https://koya-nu.vercel.app`
+- Deploys to `https://koyabank.com`
 
 ---
 

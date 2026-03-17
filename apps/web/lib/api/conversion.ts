@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://koya.olesereni.site/api/v1';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.koyabank.com/api/v1';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
