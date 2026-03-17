@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button';
 import { KoyaMark } from '@/components/marketing/koya-mark';
 import { ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
 
-export function FinalCTA() {
+interface FinalCTAProps {
+  badgeText?: string | null;
+  heading?: string | null;
+  subheading?: string | null;
+  ctaLabel?: string | null;
+}
+
+export function FinalCTA({ badgeText, heading, subheading, ctaLabel }: FinalCTAProps = {}) {
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,#070707_0%,#050505_100%)] py-24 md:py-32">
       {/* ambient background */}
@@ -40,21 +47,25 @@ export function FinalCTA() {
               <div className="inline-flex items-center gap-3 rounded-full border border-white/8 bg-white/[0.04] px-4 py-2">
                 <KoyaMark size={20} id="final-cta" />
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/52">
-                  Early access
+                  {badgeText || 'Early access'}
                 </span>
               </div>
 
-              <h2 className="mt-6 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-                Ready to take control
-                <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                  of your money?
-                </span>
-              </h2>
+              {heading ? (
+                <h2 className="mt-6 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+                  {heading}
+                </h2>
+              ) : (
+                <h2 className="mt-6 font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+                  Ready to take control
+                  <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+                    of your money?
+                  </span>
+                </h2>
+              )}
 
               <p className="mt-5 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
-                Join the waitlist for early access to Koya — deposit via M-Pesa,
-                hold multiple currencies, buy Bitcoin, invest globally, and
-                spend with a premium card. All from one account.
+                {subheading || 'Join the waitlist for early access to Koya \u2014 deposit via M-Pesa, hold multiple currencies, buy Bitcoin, invest globally, and spend with a premium card. All from one account.'}
               </p>
 
               <div className="mt-7 flex flex-wrap gap-2">
@@ -87,7 +98,7 @@ export function FinalCTA() {
                   />
 
                   <Button size="lg" className="group h-12 w-full">
-                    Join Waitlist
+                    {ctaLabel || 'Join Waitlist'}
                     <ArrowUpRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                   </Button>
                 </div>

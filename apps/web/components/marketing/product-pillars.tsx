@@ -48,25 +48,47 @@ const pillars = [
   },
 ];
 
-export function ProductPillars() {
+interface ProductPillarsProps {
+  badgeText?: string | null;
+  heading?: string | null;
+  subheading?: string | null;
+  items?: Record<string, unknown>[] | null;
+}
+
+export function ProductPillars({ badgeText, heading, subheading, items }: ProductPillarsProps = {}) {
+  const displayPillars = pillars.map((p, i) => {
+    const cms = items?.[i];
+    if (!cms) return p;
+    return {
+      ...p,
+      title: (cms.title as string) || p.title,
+      description: (cms.description as string) || p.description,
+      points: Array.isArray(cms.points) ? (cms.points as string[]) : p.points,
+    };
+  });
+
   return (
     <SectionShell id="products">
       <div className="mx-auto max-w-3xl text-center">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-          Platform pillars
+          {badgeText || 'Platform pillars'}
         </p>
 
-        <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-          One account for how your money
-          <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-            moves, stays, spends, and grows
-          </span>
-        </h2>
+        {heading ? (
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+            {heading}
+          </h2>
+        ) : (
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+            One account for how your money
+            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+              moves, stays, spends, and grows
+            </span>
+          </h2>
+        )}
 
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
-          Deposit via M-Pesa, hold multiple currencies, convert instantly,
-          spend with a premium card, and invest in global markets — all
-          from one Koya account.
+          {subheading || 'Deposit via M-Pesa, hold multiple currencies, convert instantly, spend with a premium card, and invest in global markets \u2014 all from one Koya account.'}
         </p>
       </div>
 
@@ -74,7 +96,7 @@ export function ProductPillars() {
         stagger={0.1}
         className="mt-14 grid gap-5 md:grid-cols-2"
       >
-        {pillars.map((pillar) => {
+        {displayPillars.map((pillar) => {
           const Icon = pillar.icon;
 
           return (

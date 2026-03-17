@@ -57,6 +57,12 @@ export interface GlobalSettings {
   social_discord_url: string | null;
   social_github_url: string | null;
   contact_email: string | null;
+  footer_cta_badge: string | null;
+  footer_cta_heading: string | null;
+  footer_cta_subheading: string | null;
+  footer_cta_button_label: string | null;
+  footer_bottom_tagline: string | null;
+  footer_bottom_features: string | null;
 }
 
 export interface NavItem {

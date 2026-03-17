@@ -16,50 +16,73 @@ import {
   Wallet,
 } from 'lucide-react';
 
-export function GlobalFinanceSection() {
+interface GlobalFinanceSectionProps {
+  badgeText?: string | null;
+  heading?: string | null;
+  subheading?: string | null;
+  items?: Record<string, unknown>[] | null;
+}
+
+const defaultCapabilities = [
+  {
+    icon: Wallet,
+    title: 'Fund from existing wallets',
+    description:
+      'Use available balances instead of wiring money into disconnected platforms.',
+  },
+  {
+    icon: CircleDollarSign,
+    title: 'Fractional investing access',
+    description:
+      'Enter positions with smaller ticket sizes while keeping exposure to major names and ETFs.',
+  },
+  {
+    icon: Globe2,
+    title: 'Global market participation',
+    description:
+      'Expand beyond local cash storage into international public markets.',
+  },
+];
+
+export function GlobalFinanceSection({ badgeText, heading, subheading, items }: GlobalFinanceSectionProps = {}) {
+  const displayCapabilities = defaultCapabilities.map((c, i) => {
+    const cms = items?.[i];
+    if (!cms) return c;
+    return {
+      ...c,
+      title: (cms.title as string) || c.title,
+      description: (cms.description as string) || c.description,
+    };
+  });
+
   return (
     <SectionShell id="investing" bg="surface">
       <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-10">
         {/* LEFT: narrative */}
         <FadeUp className="lg:col-span-5">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-            Global investing
+            {badgeText || 'Global investing'}
           </p>
 
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Invest in U.S. stocks
-            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-              from your Koya account
-            </span>
-          </h2>
+          {heading ? (
+            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+              {heading}
+            </h2>
+          ) : (
+            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+              Invest in U.S. stocks
+              <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+                from your Koya account
+              </span>
+            </h2>
+          )}
 
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/56 sm:text-base">
-            Buy fractional shares of Apple, Tesla, S&P 500 ETFs, and more —
-            funded directly from your Koya wallets. No separate brokerage
-            account needed.
+            {subheading || 'Buy fractional shares of Apple, Tesla, S&P 500 ETFs, and more \u2014 funded directly from your Koya wallets. No separate brokerage account needed.'}
           </p>
 
           <div className="mt-8 space-y-3">
-            {[
-              {
-                icon: Wallet,
-                title: 'Fund from existing wallets',
-                description:
-                  'Use available balances instead of wiring money into disconnected platforms.',
-              },
-              {
-                icon: CircleDollarSign,
-                title: 'Fractional investing access',
-                description:
-                  'Enter positions with smaller ticket sizes while keeping exposure to major names and ETFs.',
-              },
-              {
-                icon: Globe2,
-                title: 'Global market participation',
-                description:
-                  'Expand beyond local cash storage into international public markets.',
-              },
-            ].map((item) => {
+            {displayCapabilities.map((item) => {
               const Icon = item.icon;
               return (
                 <div
