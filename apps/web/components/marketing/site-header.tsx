@@ -6,16 +6,25 @@ import { KoyaWordmark } from '@/components/marketing/koya-mark';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const navLinks = [
+const defaultNavLinks = [
   { label: 'Products', href: '#products' },
   { label: 'Security', href: '#security' },
   { label: 'Cards', href: '#cards' },
   { label: 'Investing', href: '#investing' },
 ];
 
-export function SiteHeader() {
+interface NavLink {
+  label: string;
+  href: string;
+  is_cta?: boolean;
+}
+
+export function SiteHeader({ navItems }: { navItems?: NavLink[] }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const links = navItems?.length ? navItems.filter((n) => !n.is_cta) : defaultNavLinks;
+  const ctaItem = navItems?.find((n) => n.is_cta);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -40,7 +49,7 @@ export function SiteHeader() {
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-8 md:flex">
-          {navLinks.map((link) => (
+          {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
@@ -53,7 +62,9 @@ export function SiteHeader() {
 
         {/* Desktop actions */}
         <div className="hidden items-center gap-2 md:flex">
-          <Button size="sm">Join Waitlist</Button>
+          <Button size="sm" asChild>
+            <a href={ctaItem?.href ?? '#'}>{ctaItem?.label ?? 'Join Waitlist'}</a>
+          </Button>
         </div>
 
         {/* Mobile hamburger */}
@@ -70,7 +81,7 @@ export function SiteHeader() {
       {mobileOpen && (
         <div className="border-t border-white-5/50 bg-vault-black/95 backdrop-blur-lg md:hidden">
           <nav className="flex flex-col gap-1 px-4 py-3 sm:px-6 sm:py-4">
-            {navLinks.map((link) => (
+            {links.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -81,8 +92,8 @@ export function SiteHeader() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-white-5 pt-4">
-              <Button size="sm" className="justify-center">
-                Join Waitlist
+              <Button size="sm" className="justify-center" asChild>
+                <a href={ctaItem?.href ?? '#'}>{ctaItem?.label ?? 'Join Waitlist'}</a>
               </Button>
             </div>
           </nav>

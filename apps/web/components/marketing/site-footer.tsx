@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const columns = [
+const defaultColumns = [
   {
     title: 'Product',
     links: [
@@ -40,14 +40,40 @@ const columns = [
   },
 ];
 
-const socials = [
-  { label: 'X', href: '#', icon: SiX },
-  { label: 'Discord', href: '#', icon: SiDiscord },
-  { label: 'GitHub', href: '#', icon: SiGithub },
-  { label: 'Email', href: 'mailto:hello@koya.finance', icon: Mail },
-];
+interface FooterLink {
+  label: string;
+  href: string;
+}
+interface FooterCol {
+  title: string;
+  links: FooterLink[];
+}
+interface FooterSettings {
+  social_x_url?: string | null;
+  social_discord_url?: string | null;
+  social_github_url?: string | null;
+  contact_email?: string | null;
+  site_description?: string | null;
+}
 
-export function SiteFooter() {
+function buildSocials(settings?: FooterSettings) {
+  return [
+    { label: 'X', href: settings?.social_x_url || '#', icon: SiX },
+    { label: 'Discord', href: settings?.social_discord_url || '#', icon: SiDiscord },
+    { label: 'GitHub', href: settings?.social_github_url || '#', icon: SiGithub },
+    { label: 'Email', href: settings?.contact_email ? `mailto:${settings.contact_email}` : 'mailto:hello@koya.finance', icon: Mail },
+  ];
+}
+
+export function SiteFooter({
+  footerColumns,
+  settings,
+}: {
+  footerColumns?: FooterCol[];
+  settings?: FooterSettings;
+} = {}) {
+  const columns = footerColumns?.length ? footerColumns : defaultColumns;
+  const socials = buildSocials(settings);
   return (
     <footer className="relative overflow-hidden border-t border-white/6 bg-[linear-gradient(180deg,#090909_0%,#050505_100%)]">
       {/* ambient background */}
@@ -106,9 +132,8 @@ export function SiteFooter() {
             <KoyaWordmark markSize={24} textSize="text-xl" id="footer" />
 
             <p className="mt-5 max-w-md text-sm leading-7 text-white/56">
-              Koya is a premium financial platform built in Kenya —
-              connecting M-Pesa deposits, multi-currency wallets, cards, and
-              investing into one account.
+              {settings?.site_description ||
+                'Koya is a premium financial platform built in Kenya — connecting M-Pesa deposits, multi-currency wallets, cards, and investing into one account.'}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-2">

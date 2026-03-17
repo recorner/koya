@@ -2,8 +2,9 @@ import { createDirectus, rest, staticToken } from '@directus/sdk';
 
 /**
  * Server-side Directus client.
- * Uses internal URL (localhost) for server components and
- * the static admin token for authenticated reads.
+ *
+ * Local dev: DIRECTUS_URL=http://localhost:8055
+ * Vercel:    DIRECTUS_URL=https://cms.koyabank.com
  *
  * NOTE: We intentionally don't pass a schema generic here.
  * The Directus SDK's schema inference causes issues with singleton
