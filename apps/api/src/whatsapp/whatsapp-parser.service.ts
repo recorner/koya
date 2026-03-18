@@ -139,7 +139,7 @@ export class WhatsAppParserService {
     const trimmed = body.trim();
     // At least 2 characters, allows letters, spaces, hyphens, apostrophes
     if (trimmed.length < 2 || trimmed.length > 100) return null;
-    if (!/^[a-zA-Z\s'\-]+$/.test(trimmed)) return null;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return null;
     // Must have at least first and last name
     const parts = trimmed.split(/\s+/).filter(Boolean);
     if (parts.length < 2) return null;

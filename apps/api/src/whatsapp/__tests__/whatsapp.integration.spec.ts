@@ -13,7 +13,6 @@ import { randomUUID } from 'crypto';
 describe('WhatsApp Flow (Integration)', () => {
   let module: TestingModule;
   let whatsappService: WhatsAppService;
-  let sessionSvc: WhatsAppSessionService;
   let prisma: PrismaService;
   let mockTwilio: MockTwilioAdapter;
   const runSeed = String(Date.now()).slice(-4);
@@ -44,7 +43,7 @@ describe('WhatsApp Flow (Integration)', () => {
       .compile();
 
     whatsappService = module.get(WhatsAppService);
-    sessionSvc = module.get(WhatsAppSessionService);
+    module.get(WhatsAppSessionService);
     prisma = module.get(PrismaService);
     mockTwilio = module.get(TWILIO_ADAPTER);
   }, 30000);

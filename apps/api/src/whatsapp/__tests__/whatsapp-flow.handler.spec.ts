@@ -6,7 +6,9 @@ import type { WhatsAppOutboundMessage } from '../../providers/twilio-adapter.int
 
 describe('WhatsAppFlowHandler', () => {
   let handler: WhatsAppFlowHandler;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockConversionService: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSessionSvc: any;
   let parser: WhatsAppParserService;
   let templates: WhatsAppTemplateService;

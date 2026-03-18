@@ -30,6 +30,7 @@ export class WhatsAppCmsCopyService implements OnModuleInit {
   private readonly cache = new Map<string, WhatsAppTemplateDefinition>();
   private readonly enabled: boolean;
   private readonly cacheTtlMs: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly client: any;
 
   private refreshPromise: Promise<void> | null = null;
