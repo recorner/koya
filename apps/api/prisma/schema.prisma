@@ -81,6 +81,33 @@ enum DocumentType {
   MILITARY_ID
 }
 
+enum WhatsAppFlowStep {
+  IDLE
+  MENU
+  WAITING_FOR_AMOUNT
+  WAITING_FOR_QUOTE_CONFIRMATION
+  WAITING_FOR_FULL_NAME
+  WAITING_FOR_DOCUMENT_NUMBER
+  WAITING_FOR_EMAIL
+  WAITING_FOR_BTC_ADDRESS
+  WAITING_FOR_PAYMENT_CONFIRMATION
+  WAITING_FOR_REFERENCE
+  PROCESSING
+  COMPLETED
+}
+
+enum WhatsAppConversationStatus {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+  CANCELLED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
 // ─── Models ───────────────────────────────────────────────────────
 
 model GuestProfile {
@@ -128,6 +155,7 @@ model ConversionSession {
   paymentInstruction PaymentInstruction?
   payoutInstruction  PayoutInstruction?
   stateEvents        ConversionStateEvent[]
+  whatsappConversation WhatsAppConversation?
 
   @@index([guestProfileId])
   @@index([referenceCode])
@@ -205,4 +233,43 @@ model ConversionStateEvent {
 
   @@index([conversionSessionId])
   @@map("conversion_state_events")
+}
+
+// ─── WhatsApp Models ──────────────────────────────────────────────
+
+model WhatsAppConversation {
+  id                  String                     @id @default(uuid())
+  phoneNumber         String                     @map("phone_number")
+  status              WhatsAppConversationStatus  @default(ACTIVE)
+  currentStep         WhatsAppFlowStep            @default(IDLE) @map("current_step")
+  conversionSessionId String?                    @unique @map("conversion_session_id")
+  quoteId             String?                    @map("quote_id")
+  metadata            Json?
+  lastInboundAt       DateTime                   @map("last_inbound_at")
+  lastOutboundAt      DateTime?                  @map("last_outbound_at")
+  expiresAt           DateTime                   @map("expires_at")
+  createdAt           DateTime                   @default(now()) @map("created_at")
+  updatedAt           DateTime                   @updatedAt @map("updated_at")
+
+  conversionSession ConversionSession? @relation(fields: [conversionSessionId], references: [id])
+  messages          WhatsAppMessageEvent[]
+
+  @@index([phoneNumber, status])
+  @@map("whatsapp_conversations")
+}
+
+model WhatsAppMessageEvent {
+  id               String           @id @default(uuid())
+  conversationId   String           @map("conversation_id")
+  direction        MessageDirection
+  twilioMessageSid String           @unique @map("twilio_message_sid")
+  body             String
+  messageType      String           @default("text") @map("message_type")
+  rawPayload       Json?            @map("raw_payload")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  conversation WhatsAppConversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId])
+  @@map("whatsapp_message_events")
 }

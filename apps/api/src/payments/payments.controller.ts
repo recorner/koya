@@ -1,4 +1,5 @@
 import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MpesaService } from './mpesa.service';
 import type { MpesaCallbackPayload } from '../providers/mpesa-adapter.interface';
 
@@ -6,7 +7,10 @@ import type { MpesaCallbackPayload } from '../providers/mpesa-adapter.interface'
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
 
-  constructor(private readonly mpesaService: MpesaService) {}
+  constructor(
+    private readonly mpesaService: MpesaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * POST /api/v1/payments/mpesa/callback
@@ -20,15 +24,18 @@ export class PaymentsController {
       `M-Pesa callback: ${stkCallback.CheckoutRequestID}, result=${stkCallback.ResultCode}`,
     );
 
-    await this.mpesaService.handleCallback(
+    const result = await this.mpesaService.handleCallback(
       stkCallback.CheckoutRequestID,
       stkCallback.ResultCode,
       payload,
     );
 
     // Trigger conversion advancement if payment confirmed
-    // This is handled by the ConversionService via event-driven flow
-    // For now, the status poll endpoint picks up the new state
+    if (result && result.status === 'CONFIRMED' && !result.alreadyProcessed) {
+      this.eventEmitter.emit('payment.confirmed', {
+        sessionId: result.sessionId,
+      });
+    }
 
     return { ResultCode: 0, ResultDesc: 'Accepted' };
   }

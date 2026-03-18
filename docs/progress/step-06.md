@@ -16,7 +16,7 @@ Integrate Directus as the headless CMS for the Koya public marketing site. All m
 ## What Was Built
 
 ### Directus Instance
-- Docker container: `directus-koyabank-cms` (custom build `directus-olesereni:local`)
+- Docker container: `directus-koyabank-cms` (custom build `directus-koyabank:local`)
 - Database: SQLite (embedded, portable)
 - Public URL: `https://cms.koyabank.com`
 - Admin panel: `http://localhost:8055` (proxied via nginx in production)

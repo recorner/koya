@@ -4,6 +4,7 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuoteService } from './quote.service';
 import { SessionService } from './session.service';
@@ -34,6 +35,7 @@ export class ConversionService {
     private readonly guestLimitService: GuestLimitService,
     private readonly mpesaService: MpesaService,
     private readonly riskService: RiskService,
+    private readonly eventEmitter: EventEmitter2,
     @Inject(BTC_DELIVERY_PROVIDER) private readonly btcDelivery: BtcDeliveryProvider,
     @Inject(SWAP_PROVIDER) private readonly swapProvider: SwapProvider,
   ) {}
@@ -356,6 +358,12 @@ export class ConversionService {
           'btc_delivered',
           { txHash: deliveryResult.txHash },
         );
+
+        // Emit completion event for notification bridge
+        this.eventEmitter.emit('conversion.completed', {
+          sessionId,
+          channel: session.channel,
+        });
       } else {
         await this.sessionService.transitionState(
           sessionId,
@@ -364,6 +372,15 @@ export class ConversionService {
         );
       }
     }
+  }
+
+  /**
+   * Handle payment.confirmed event from M-Pesa callback
+   */
+  @OnEvent('payment.confirmed')
+  async onPaymentConfirmed(event: { sessionId: string }): Promise<void> {
+    this.logger.log(`Payment confirmed event for session ${event.sessionId}`);
+    await this.processPaymentConfirmation(event.sessionId);
   }
 
   /**

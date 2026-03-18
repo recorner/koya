@@ -50,6 +50,24 @@ Jest 30 can't parse `.cts` config files without `ts-node` installed. Rename to `
 
 ---
 
+## EventEmitter DI — Update Test Modules When Adding EventEmitter2
+
+When a service gains an `EventEmitter2` dependency, all test modules that provide that service must import `EventEmitterModule.forRoot()`. Otherwise tests fail with "Nest can't resolve dependencies of..." error.
+
+---
+
+## Prisma JSON Fields — Use `undefined` Not `null`
+
+For optional Prisma JSON fields, use `undefined` (not `null`) when you want to omit the value. Prisma treats `null` as "set field to SQL NULL" which can conflict with `JsonValue` typing. Using `undefined` means "don't touch this field".
+
+---
+
+## TypeScript Strict — Regex Capture Groups Are Possibly Undefined
+
+With strict mode, `match[1]` after a regex `.match()` call is `string | undefined`. Always guard with `match && match[1]` or use optional chaining before using capture group values.
+
+---
+
 ## Remote DB Test Timeouts
 
 DigitalOcean managed PostgreSQL adds ~200ms latency per query. Default Jest 5s timeout is too short for integration tests that make 3-5 DB round trips.

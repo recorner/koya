@@ -284,6 +284,28 @@ for f in [
     create_field("seo_defaults", *f)
 
 
+# ─── 9. WHATSAPP MESSAGE TEMPLATES ──────────────────────────────────────────
+
+print("\n9/9 whatsapp_message_templates")
+create_collection("whatsapp_message_templates", {
+    "icon": "chat",
+    "note": "CMS-managed WhatsApp reply copy for guest conversion flows",
+    "sort": 10,
+})
+for f in [
+    ("key", "string", {"interface": "input", "required": True, "width": "half", "note": "Stable template identifier used by the API"}, {"max_length": 120, "is_unique": True}),
+    ("label", "string", {"interface": "input", "required": True, "width": "half"}, {"max_length": 150}),
+    ("description", "text", {"interface": "input-multiline", "note": "Editor guidance for when this message is sent"}, None),
+    ("body", "text", {"interface": "input-rich-text-md", "required": True, "note": "Supports placeholders like {{amount_kes}} or {{reference_code}}"}, None),
+    ("buttons_json", "json", {"interface": "input-code", "options": {"language": "json"}, "note": "Optional quick reply buttons as JSON array, e.g. [{\"id\":\"1\",\"title\":\"Convert\"}]"}, None),
+    ("is_active", "boolean", {"interface": "boolean", "width": "half"}, {"default_value": True}),
+    ("twilio_content_sid", "string", {"interface": "input", "readonly": True, "note": "Cached Twilio Content SID for quick reply templates"}, {"max_length": 64}),
+    ("twilio_content_hash", "string", {"interface": "input", "readonly": True, "note": "Signature of the current body/buttons config used to refresh Twilio content"}, {"max_length": 128}),
+    ("sort", "integer", {"interface": "input", "hidden": True}, None),
+]:
+    create_field("whatsapp_message_templates", *f)
+
+
 # ─── SEED DATA ──────────────────────────────────────────────────────────────
 
 print("\n\n═══ Seeding Data ═══\n")
@@ -301,6 +323,165 @@ api("PATCH", "/items/global_settings", {
     "social_github_url": "https://github.com/koyabank",
     "contact_email": "hello@koya.finance",
 })
+
+print("→ WhatsApp message templates")
+for i, template in enumerate([
+    {
+        "key": "welcome_menu",
+        "label": "Welcome menu",
+        "description": "First branded menu shown when a user greets the bot or restarts the flow.",
+        "body": "*Koya | WhatsApp Desk*\nConvert Kenyan shillings to Bitcoin in a few guided replies.\n\n*Menu*\n1. Convert KES to BTC\n\nReply *1* to begin.\nReply *HELP* to see commands.\nReply *CANCEL* anytime to stop.",
+        "buttons_json": [{"id": "1", "title": "Convert KES to BTC"}, {"id": "HELP", "title": "Help"}],
+    },
+    {
+        "key": "ask_amount",
+        "label": "Ask amount",
+        "description": "Prompt asking for the KES amount.",
+        "body": "*Koya | Quote Request*\nSend the amount you want to convert in Kenyan shillings.\n\nAllowed range: *KES 100* to *KES 100,000*\nExample: `2500`",
+    },
+    {
+        "key": "show_quote",
+        "label": "Show quote",
+        "description": "Quote summary after the user enters a valid amount.",
+        "body": "*Koya | Your Quote*\nSend: *KES {{source_amount}}*\nReceive: *BTC {{target_amount}}*\nRate: *1 KES = {{rate}} BTC*\nFee: *KES {{fee}}*\n\nThis quote expires in about *30 seconds*.\nReply *YES* to continue.",
+        "buttons_json": [{"id": "YES", "title": "Continue"}, {"id": "CANCEL", "title": "Cancel"}],
+    },
+    {
+        "key": "quote_expired",
+        "label": "Quote expired",
+        "description": "Shown when the quote is no longer valid.",
+        "body": "*Koya | Quote Expired*\nThat quote is no longer valid.\n\nNext: send a new amount between *KES 100* and *KES 100,000* to get a fresh quote.",
+    },
+    {
+        "key": "ask_full_name",
+        "label": "Ask full name",
+        "description": "Prompt for the user's legal name.",
+        "body": "*Koya | Identity Check*\nEnter your *full legal name* exactly as it appears on your ID.\nExample: `John Doe`",
+    },
+    {
+        "key": "ask_document_number",
+        "label": "Ask document number",
+        "description": "Prompt for Kenyan National ID number.",
+        "body": "*Koya | Identity Check*\nEnter your *Kenyan National ID number*.\nExample: `12345678`",
+    },
+    {
+        "key": "ask_email",
+        "label": "Ask email",
+        "description": "Prompt for optional email address.",
+        "body": "*Koya | Contact Details*\nEnter your email address for updates, or reply *SKIP* to continue without one.\nExample: `name@example.com`",
+        "buttons_json": [{"id": "SKIP", "title": "Skip Email"}],
+    },
+    {
+        "key": "ask_mpesa_phone",
+        "label": "Ask Kenyan phone",
+        "description": "Prompt shown when the WhatsApp number is not a valid Kenyan M-Pesa number.",
+        "body": "*Koya | Kenyan Number Needed*\nYour WhatsApp number *{{current_phone}}* cannot be used for this KES to BTC flow because M-Pesa requires a valid Kenyan mobile number.\n\nSend a Kenyan number in one of these formats:\n`0712345678`\n`0112345678`\n`254712345678`\n`+254712345678`",
+    },
+    {
+        "key": "invalid_kenya_phone",
+        "label": "Invalid Kenyan phone",
+        "description": "Shown when the replacement Kenyan phone number is still invalid.",
+        "body": "*Koya | Number Not Accepted*\nThe number *{{attempted_phone}}* is not a valid Kenyan mobile line for M-Pesa.\n\nNext: send a Kenyan number like `0712345678` or `+254712345678`.",
+    },
+    {
+        "key": "ask_btc_address",
+        "label": "Ask BTC address",
+        "description": "Prompt for the payout Bitcoin address.",
+        "body": "*Koya | BTC Payout*\nSend the Bitcoin address where you want to receive your BTC.\n\nAccepted formats: `1...`, `3...`, `bc1q...`, `bc1p...`",
+    },
+    {
+        "key": "confirm_payment",
+        "label": "Confirm payment",
+        "description": "Payment summary before sending the STK push.",
+        "body": "*Koya | Payment Check*\nAmount: *KES {{amount_kes}}*\nM-Pesa number: *{{phone}}*\n\nReply *PAY* to receive the M-Pesa STK push on that number.",
+        "buttons_json": [{"id": "PAY", "title": "Send STK Push"}, {"id": "CANCEL", "title": "Cancel"}],
+    },
+    {
+        "key": "payment_initiated",
+        "label": "Payment initiated",
+        "description": "Shown once the STK push has been initiated.",
+        "body": "*Koya | STK Push Sent*\nWe sent an M-Pesa prompt to *{{phone}}*.\nCheck your phone, enter your PIN, and complete the payment.\n\nIf the prompt does not arrive, send the code as `REF XXXXXXXXXX`.",
+        "buttons_json": [{"id": "STATUS", "title": "Check Status"}],
+    },
+    {
+        "key": "payment_success",
+        "label": "Payment success",
+        "description": "Completion message after conversion succeeds.",
+        "body": "*Koya | Conversion Complete*\nReference: *{{reference_code}}*\nGuest ID: *{{guest_ref}}*\n{{btc_line}}\n{{tx_line}}\n\nYour BTC transfer has been queued successfully.\nReply *1* when you want to start another conversion.",
+        "buttons_json": [{"id": "1", "title": "New Conversion"}],
+    },
+    {
+        "key": "conversion_status",
+        "label": "Conversion status",
+        "description": "Status summary for active conversion sessions.",
+        "body": "*Koya | Conversion Status*\nReference: *{{reference_code}}*\nCurrent status: *{{current_state}}*\nSending: *{{source_asset}} {{source_amount}}*\n{{target_line}}",
+    },
+    {
+        "key": "help_message",
+        "label": "Help message",
+        "description": "List of WhatsApp commands.",
+        "body": "*Koya | Available Commands*\n*1* Start a new KES to BTC conversion\n*STATUS* Check the progress of your active conversion\n*CANCEL* Stop the current conversion\n*START OVER* Reset the chat and begin again\n*HELP* Show this command list",
+    },
+    {
+        "key": "cancel_confirmation",
+        "label": "Cancel confirmation",
+        "description": "Shown when the user cancels the current flow.",
+        "body": "*Koya | Conversion Cancelled*\nWe stopped the current flow.\nReply *1* whenever you want to start a new KES to BTC conversion.",
+        "buttons_json": [{"id": "1", "title": "Start Again"}],
+    },
+    {
+        "key": "error_message",
+        "label": "Generic error",
+        "description": "Shared error wrapper with a clear next step.",
+        "body": "*Koya | We Need One More Step*\n{{message}}\n\nNext: {{next_step}}",
+    },
+    {
+        "key": "invalid_input",
+        "label": "Invalid input",
+        "description": "Shared invalid input wrapper with clear next action.",
+        "body": "*Koya | Input Not Accepted*\n{{message}}\n\nNext: {{next_step}}\nReply *HELP* for commands or *CANCEL* to stop.",
+    },
+    {
+        "key": "rate_limited",
+        "label": "Rate limited",
+        "description": "Shown when a user sends too many messages too quickly.",
+        "body": "*Koya | Slow Down A Little*\nWe received too many messages in a short time.\nPlease wait a moment, then send your next reply.",
+    },
+    {
+        "key": "session_expired",
+        "label": "Session expired",
+        "description": "Shown when the conversation times out.",
+        "body": "*Koya | Session Timed Out*\nThis chat expired because there was no activity for a while.\nReply *1* to start a fresh conversion.",
+        "buttons_json": [{"id": "1", "title": "Start Again"}],
+    },
+    {
+        "key": "identity_success",
+        "label": "Identity success",
+        "description": "Shown when identity checks pass.",
+        "body": "*Koya | Identity Verified*\nYour details have been accepted and we can move to BTC payout.",
+    },
+    {
+        "key": "identity_failed",
+        "label": "Identity failed",
+        "description": "Shown when identity checks fail.",
+        "body": "*Koya | Identity Not Approved*\n{{reason}}\n\nNext: reply *START OVER* to try again, or contact support if you need help.",
+        "buttons_json": [{"id": "START OVER", "title": "Start Over"}],
+    },
+    {
+        "key": "reference_accepted",
+        "label": "Reference accepted",
+        "description": "Shown when a manual M-Pesa reference is accepted.",
+        "body": "*Koya | Reference Received*\nWe have your M-Pesa reference and we are processing the payment now.\nReply *STATUS* if you want an update.",
+        "buttons_json": [{"id": "STATUS", "title": "Check Status"}],
+    },
+    {
+        "key": "reference_rejected",
+        "label": "Reference rejected",
+        "description": "Shown when a manual M-Pesa reference cannot be matched yet.",
+        "body": "*Koya | Reference Not Accepted*\n{{reason}}\n\nNext: send the code as `REF XXXXXXXXXX` or reply *STATUS* to check progress.",
+    },
+], 1):
+    create_item("whatsapp_message_templates", {**template, "is_active": True, "sort": i})
 
 # Navigation
 print("→ Navigation")

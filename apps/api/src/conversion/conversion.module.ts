@@ -24,5 +24,6 @@ import { MockSwapProvider } from '../providers/mock-swap.provider';
     { provide: BTC_DELIVERY_PROVIDER, useClass: MockBtcDeliveryProvider },
     { provide: SWAP_PROVIDER, useClass: MockSwapProvider },
   ],
+  exports: [ConversionService],
 })
 export class ConversionModule {}

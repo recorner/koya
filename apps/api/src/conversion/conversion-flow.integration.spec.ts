@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConversionService } from './conversion.service';
 import { QuoteService } from './quote.service';
 import { SessionService } from './session.service';
@@ -24,6 +25,7 @@ describe('Conversion Flow (Integration)', () => {
     module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
+        EventEmitterModule.forRoot(),
         PrismaModule,
         KycModule,
         PaymentsModule,

@@ -61,7 +61,9 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/throttler": "^6.5.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -87,6 +89,7 @@
     "rxjs": "^7.8.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
+    "twilio": "^5.13.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   }

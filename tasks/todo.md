@@ -292,3 +292,23 @@ libs/types/src/lib/
 7. Phase 6: Frontend conversion flow
 8. Phase 7: Tests
 9. Phase 8: Config & docs
+
+---
+
+## Phase 9: WhatsApp Guest Conversion v1
+
+- [x] **9.1** Add WhatsApp Prisma models (WhatsAppConversation, WhatsAppMessageEvent, enums) + migrate
+- [x] **9.2** Install dependencies (twilio@5.13, @nestjs/event-emitter@3.0)
+- [x] **9.3** Add Twilio/WhatsApp env vars to `.env`
+- [x] **9.4** Create Twilio adapter interface + real/mock implementations
+- [x] **9.5** Create WhatsApp core services (parser, template, idempotency, session, flow handler)
+- [x] **9.6** Create WhatsApp service (orchestrator) + controller (webhook endpoint)
+- [x] **9.7** Create notification listener (conversion.completed → WhatsApp message)
+- [x] **9.8** Wire WhatsAppModule into AppModule with EventEmitterModule.forRoot()
+- [x] **9.9** Add EventEmitter bridge: PaymentsController → payment.confirmed → ConversionService → conversion.completed
+- [x] **9.10** Export ConversionService from ConversionModule
+- [x] **9.11** Unit tests (parser, template, flow handler) — 45+ tests
+- [x] **9.12** Integration tests (full WhatsApp flow, idempotency, cancel, help, status) — 8 tests
+- [x] **9.13** Documentation (`docs/progress/step-07.md`)
+
+**Result:** 105 tests, 8 suites, zero regressions. TypeScript zero errors.
