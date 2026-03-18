@@ -349,8 +349,6 @@ function ExpiryCountdown({
 
 /* ── Tracking Flow (reuses ProcessingStep & ResultStep) ─────────── */
 
-const TERMINAL_STATES = ['COMPLETED', 'FAILED', 'EXPIRED'];
-
 function TrackingFlow({ referenceCode }: { referenceCode: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -364,11 +362,6 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
         const res = await conversionApi.getStatusByReference(referenceCode);
         if (cancelled) return;
         setStatus(res);
-        if (TERMINAL_STATES.includes(res.currentState)) {
-          setView('result');
-        } else {
-          setView('processing');
-        }
       } catch {
         if (!cancelled) setError('Order not found or invalid reference code.');
       } finally {
