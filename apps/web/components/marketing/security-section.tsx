@@ -66,48 +66,25 @@ const controls = [
   },
 ];
 
-interface SecuritySectionProps {
-  badgeText?: string | null;
-  heading?: string | null;
-  subheading?: string | null;
-  items?: Record<string, unknown>[] | null;
-}
-
-export function SecuritySection({ badgeText, heading, subheading, items }: SecuritySectionProps = {}) {
-  const displayControls = controls.map((c, i) => {
-    const cms = items?.[i];
-    if (!cms) return c;
-    return {
-      ...c,
-      eyebrow: (cms.eyebrow as string) || c.eyebrow,
-      title: (cms.title as string) || c.title,
-      description: (cms.description as string) || c.description,
-      points: Array.isArray(cms.points) ? (cms.points as string[]) : c.points,
-    };
-  });
-
+export function SecuritySection() {
   return (
     <SectionShell id="security" bg="navy">
       <div className="mx-auto max-w-3xl text-center">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-          {badgeText || 'Security'}
+          Security
         </p>
 
-        {heading ? (
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            {heading}
-          </h2>
-        ) : (
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            How your money
-            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-              is protected
-            </span>
-          </h2>
-        )}
+        <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+          How your money
+          <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+            is protected
+          </span>
+        </h2>
 
         <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
-          {subheading || 'Koya is built with the same security standards used by banks and institutional platforms \u2014 encryption, monitoring, custody controls, and compliance from the ground up.'}
+          Koya is built with the same security standards used by banks and
+          institutional platforms — encryption, monitoring, custody controls,
+          and compliance from the ground up.
         </p>
       </div>
 
@@ -173,7 +150,7 @@ export function SecuritySection({ badgeText, heading, subheading, items }: Secur
             stagger={0.08}
             className="grid gap-4 sm:grid-cols-2"
           >
-            {displayControls.map((control) => {
+            {controls.map((control) => {
               const Icon = control.icon;
 
               return (

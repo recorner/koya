@@ -41,24 +41,7 @@ const features = [
   },
 ];
 
-interface CardsSectionProps {
-  badgeText?: string | null;
-  heading?: string | null;
-  subheading?: string | null;
-  items?: Record<string, unknown>[] | null;
-}
-
-export function CardsSection({ badgeText, heading, subheading, items }: CardsSectionProps = {}) {
-  const displayFeatures = features.map((f, i) => {
-    const cms = items?.[i];
-    if (!cms) return f;
-    return {
-      ...f,
-      title: (cms.title as string) || f.title,
-      description: (cms.description as string) || f.description,
-    };
-  });
-
+export function CardsSection() {
   return (
     <SectionShell id="cards">
       <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-10">
@@ -216,28 +199,25 @@ export function CardsSection({ badgeText, heading, subheading, items }: CardsSec
         {/* RIGHT: narrative + capability rows */}
         <FadeUp delay={0.15} className="lg:col-span-6">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-            {badgeText || 'Koya cards'}
+            Koya cards
           </p>
 
-          {heading ? (
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-              {heading}
-            </h2>
-          ) : (
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-              One card, funded from
-              <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                any of your wallets
-              </span>
-            </h2>
-          )}
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
+            One card, funded from
+            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+              any of your wallets
+            </span>
+          </h2>
 
           <p className="mt-5 max-w-xl text-sm leading-7 text-white/56 sm:text-base">
-            {subheading || 'Koya cards connect directly to your wallets \u2014 spend in KES, USD, or auto-convert from crypto. Freeze instantly, see every transaction in real time, and control exactly how money leaves your account.'}
+            Koya cards connect directly to your wallets — spend in KES, USD,
+            or auto-convert from crypto. Freeze instantly, see every
+            transaction in real time, and control exactly how money leaves
+            your account.
           </p>
 
           <div className="mt-8 space-y-3">
-            {displayFeatures.map((feature) => {
+            {features.map((feature) => {
               const Icon = feature.icon;
 
               return (

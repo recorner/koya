@@ -40,32 +40,17 @@ const pillars = [
   },
 ];
 
-interface TrustStripProps {
-  heading?: string | null;
-  subheading?: string | null;
-  items?: Record<string, unknown>[] | null;
-}
-
-export function TrustStrip({ heading, subheading, items }: TrustStripProps = {}) {
-  const displayPillars = pillars.map((p, i) => {
-    const cms = items?.[i];
-    if (!cms) return p;
-    return {
-      ...p,
-      label: (cms.label as string) || p.label,
-      detail: (cms.detail as string) || p.detail,
-    };
-  });
-
+export function TrustStrip() {
   return (
     <section className="relative border-y border-white/6 bg-[linear-gradient(180deg,#0A0A0A_0%,#0D0D0D_100%)] py-12 md:py-14">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-8 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-            {heading || 'Koya platform'}
+            Koya platform
           </p>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-white/50">
-            {subheading || 'Everything you need to manage money across currencies, borders, and asset classes — in one account.'}
+            Everything you need to manage money across currencies, borders, and
+            asset classes — in one account.
           </p>
         </div>
 
@@ -73,7 +58,7 @@ export function TrustStrip({ heading, subheading, items }: TrustStripProps = {})
           stagger={0.07}
           className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5"
         >
-          {displayPillars.map((item) => {
+          {pillars.map((item) => {
             const Icon = item.icon;
 
             return (

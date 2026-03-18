@@ -80,25 +80,7 @@ function MetricRow({
   );
 }
 
-interface HeroProps {
-  heading?: string | null;
-  subheading?: string | null;
-  badgeText?: string | null;
-  ctaLabel?: string | null;
-  ctaHref?: string | null;
-  ctaSecondaryLabel?: string | null;
-  ctaSecondaryHref?: string | null;
-}
-
-export function HeroSection({
-  heading,
-  subheading,
-  badgeText,
-  ctaLabel,
-  ctaHref,
-  ctaSecondaryLabel,
-  ctaSecondaryHref,
-}: HeroProps = {}) {
+export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
@@ -133,42 +115,39 @@ export function HeroSection({
           <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
             <KoyaMark size={20} id="hero-badge" />
             <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-              {badgeText || 'Built in Kenya. Works globally.'}
+              Built in Kenya. Works globally.
             </span>
           </div>
 
-          {heading ? (
-            <h1 className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
-              {heading}
-            </h1>
-          ) : (
-            <h1 className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl">
-              Your money,
-              <span className="block text-gold">
-                every currency,
-              </span>
-              one platform.
-            </h1>
-          )}
+          <h1
+            className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl"
+          >
+            Your money,
+            <span className="block text-gold">
+              every currency,
+            </span>
+            one platform.
+          </h1>
 
-          <p className="mt-6 max-w-xl text-base leading-7 text-white/64 md:text-lg">
-            {subheading || 'Deposit via M-Pesa. Convert to dollars. Hold stablecoins. Buy Bitcoin. Invest globally. Spend with a premium card. All from one Koya account.'}
+          <p
+            className="mt-6 max-w-xl text-base leading-7 text-white/64 md:text-lg"
+          >
+            Deposit via M-Pesa. Convert to dollars. Hold stablecoins. Buy Bitcoin.
+            Invest globally. Spend with a premium card. All from one Koya account.
           </p>
 
           <div
             className="mt-8 flex flex-wrap items-center gap-3"
           >
             <Button size="lg" className="group" asChild>
-              <Link href={ctaHref || '/convert'}>
-                {ctaLabel || 'Convert KES to BTC'}
+              <Link href="/convert">
+                Convert KES to BTC
                 <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
               </Link>
             </Button>
 
-            <Button variant="outline" size="lg" className="border-white/12 bg-white/[0.02] text-white hover:bg-white/[0.06]" asChild>
-              <Link href={ctaSecondaryHref || '#how-it-works'}>
-                {ctaSecondaryLabel || 'See How It Works'}
-              </Link>
+            <Button variant="outline" size="lg" className="border-white/12 bg-white/[0.02] text-white hover:bg-white/[0.06]">
+              See How It Works
             </Button>
           </div>
 

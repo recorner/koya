@@ -1,10 +1,12 @@
 /**
  * Section Renderer — maps CMS section_type values to React components.
  *
- * Architecture: Each marketing component accepts optional CMS props (heading,
- * subheading, badge_text, items, etc.) with hardcoded fallbacks. The renderer
- * passes CMS data to each component, preserving the premium UI at all times.
- * Icons, animations, and styling always come from code.
+ * Architecture: Each existing marketing component remains unchanged (zero-prop,
+ * hardcoded). The renderer wraps them with CMS-sourced content via lightweight
+ * CMS wrapper components. If a section has no CMS wrapper, it renders the
+ * original component as-is.
+ *
+ * This means the premium UI is NEVER degraded — CMS just overrides text content.
  */
 
 import type { PageSection } from '@/lib/directus/types';
@@ -25,80 +27,23 @@ import { CmsCta } from '@/components/marketing/cms/cms-cta';
 /**
  * Registry mapping section_type → React component.
  *
- * All components receive CMS text overrides via props with hardcoded fallbacks.
- * Icons, styling, and animations always come from code.
+ * Components that don't accept CMS props map directly to existing components.
+ * Components that CAN be driven by CMS content use lightweight wrappers.
  */
 const sectionRegistry: Record<
   string,
   React.ComponentType<{ section: PageSection }>
 > = {
+  // These render the original components as-is (CMS only controls ordering)
   market_ribbon: () => <MarketRibbon />,
-  hero: ({ section }) => (
-    <HeroSection
-      heading={section.heading}
-      subheading={section.subheading}
-      badgeText={section.badge_text}
-      ctaLabel={section.cta_label}
-      ctaHref={section.cta_href}
-      ctaSecondaryLabel={section.cta_secondary_label}
-      ctaSecondaryHref={section.cta_secondary_href}
-    />
-  ),
-  stats: ({ section }) => (
-    <TrustStrip
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  feature_grid: ({ section }) => (
-    <ProductPillars
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  how_it_works: ({ section }) => (
-    <HowItWorks
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  security: ({ section }) => (
-    <SecuritySection
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  cards: ({ section }) => (
-    <CardsSection
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  global_finance: ({ section }) => (
-    <GlobalFinanceSection
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      items={section.items}
-    />
-  ),
-  final_cta: ({ section }) => (
-    <FinalCTA
-      badgeText={section.badge_text}
-      heading={section.heading}
-      subheading={section.subheading}
-      ctaLabel={section.cta_label}
-    />
-  ),
+  hero: () => <HeroSection />,
+  stats: () => <TrustStrip />,
+  feature_grid: () => <ProductPillars />,
+  how_it_works: () => <HowItWorks />,
+  security: () => <SecuritySection />,
+  cards: () => <CardsSection />,
+  global_finance: () => <GlobalFinanceSection />,
+  final_cta: () => <FinalCTA />,
 
   // These have CMS-driven wrappers for editable content
   swap_widget: CmsSwapSection,

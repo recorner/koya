@@ -54,12 +54,6 @@ interface FooterSettings {
   social_github_url?: string | null;
   contact_email?: string | null;
   site_description?: string | null;
-  footer_cta_badge?: string | null;
-  footer_cta_heading?: string | null;
-  footer_cta_subheading?: string | null;
-  footer_cta_button_label?: string | null;
-  footer_bottom_tagline?: string | null;
-  footer_bottom_features?: string | null;
 }
 
 function buildSocials(settings?: FooterSettings) {
@@ -96,32 +90,27 @@ export function SiteFooter({
               <div className="inline-flex items-center gap-2 rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
                 <Sparkles className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                  {settings?.footer_cta_badge || 'Built in Kenya. Built for the world.'}
+                  Built in Kenya. Built for the world.
                 </span>
               </div>
 
-              {settings?.footer_cta_heading ? (
-                <h2 className="mt-5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
-                  {settings.footer_cta_heading}
-                </h2>
-              ) : (
-                <h2 className="mt-5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
-                  Built for people whose money
-                  <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                    should work as hard as they do
-                  </span>
-                </h2>
-              )}
+              <h2 className="mt-5 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl">
+                Built for people whose money
+                <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+                  should work as hard as they do
+                </span>
+              </h2>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">
-                {settings?.footer_cta_subheading || 'Hold multiple currencies, convert instantly, spend with premium cards, and invest globally \u2014 all from one Koya account.'}
+                Hold multiple currencies, convert instantly, spend with premium
+                cards, and invest globally — all from one Koya account.
               </p>
             </div>
 
             <div className="lg:col-span-4">
               <div className="flex flex-col gap-3 lg:items-end">
                 <Button size="lg" className="group min-w-[190px]">
-                  {settings?.footer_cta_button_label || 'Join Waitlist'}
+                  Join Waitlist
                   <ArrowUpRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                 </Button>
 
@@ -214,9 +203,9 @@ export function SiteFooter({
           </p>
 
           <div className="flex flex-col gap-2 text-xs text-white/32 md:flex-row md:items-center md:gap-6">
-            <span>{settings?.footer_bottom_tagline || 'Built in Kenya. Built for the world.'}</span>
+            <span>Built in Kenya. Built for the world.</span>
             <span className="hidden md:inline">•</span>
-            <span>{settings?.footer_bottom_features || 'M-Pesa · Multi-currency · Cards · Investing'}</span>
+            <span>M-Pesa · Multi-currency · Cards · Investing</span>
           </div>
         </div>
       </div>

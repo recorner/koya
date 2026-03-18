@@ -155,41 +155,19 @@ const steps: Step[] = [
   },
 ];
 
-interface HowItWorksProps {
-  badgeText?: string | null;
-  heading?: string | null;
-  subheading?: string | null;
-  items?: Record<string, unknown>[] | null;
-}
-
 const AUTO_ADVANCE_MS = 7500;
 const PAUSE_DURATION_MS = 10000;
 
-export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorksProps = {}) {
-  const displaySteps: Step[] = steps.map((s, i) => {
-    const cms = items?.[i];
-    if (!cms) return s;
-    return {
-      ...s,
-      title: (cms.title as string) || s.title,
-      headline: (cms.headline as string) || s.headline,
-      description: (cms.description as string) || s.description,
-      stat: (cms.stat as string) || s.stat,
-      statLabel: (cms.statLabel as string) || s.statLabel,
-      detailLabel: (cms.detailLabel as string) || s.detailLabel,
-      detailValue: (cms.detailValue as string) || s.detailValue,
-      bullets: Array.isArray(cms.bullets) ? (cms.bullets as string[]) : s.bullets,
-    };
-  });
+export function HowItWorks() {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [visible, setVisible] = useState(false);
   const pauseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  const current = displaySteps[active] as Step;
+  const current = steps[active] as Step;
   const CurrentIcon = current.icon;
-  const nextStep = displaySteps[(active + 1) % displaySteps.length] as Step;
+  const nextStep = steps[(active + 1) % steps.length] as Step;
 
   const clearPause = useCallback(() => {
     if (pauseRef.current) {
@@ -209,8 +187,8 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
   );
 
   const advance = useCallback(() => {
-    setActive((prev) => (prev + 1) % displaySteps.length);
-  }, [displaySteps.length]);
+    setActive((prev) => (prev + 1) % steps.length);
+  }, []);
 
   useEffect(() => {
     if (paused || !visible) return;
@@ -238,10 +216,10 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
         e.preventDefault();
-        selectStep((active + 1) % displaySteps.length);
+        selectStep((active + 1) % steps.length);
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        selectStep((active - 1 + displaySteps.length) % displaySteps.length);
+        selectStep((active - 1 + steps.length) % steps.length);
       }
     },
     [active, selectStep]
@@ -261,24 +239,20 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
         {/* Header */}
         <div className="mx-auto mb-12 max-w-3xl text-center md:mb-16">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgba(212,175,55,0.90)]">
-            {badgeText || 'How Koya works'}
+            How Koya works
           </p>
 
-          {heading ? (
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-              {heading}
-            </h2>
-          ) : (
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-              One operating flow from
-              <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-                funding to deployment
-              </span>
-            </h2>
-          )}
+          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            One operating flow from
+            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
+              funding to deployment
+            </span>
+          </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-white/56 sm:text-base">
-            {subheading || 'Koya is designed as a connected money system: bring value in, move it across currencies, hold it with clarity, and push it outward through spending, transfers, or investing.'}
+            Koya is designed as a connected money system: bring value in, move it
+            across currencies, hold it with clarity, and push it outward through
+            spending, transfers, or investing.
           </p>
         </div>
 
@@ -289,7 +263,7 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
 
             <motion.div
               className="absolute left-0 top-[28px] h-[2px] bg-[linear-gradient(90deg,#A88520,#D4AF37,#F0D060)]"
-              animate={{ width: `${(active / (displaySteps.length - 1)) * 100}%` }}
+              animate={{ width: `${(active / (steps.length - 1)) * 100}%` }}
               transition={{ duration: 0.5, ease }}
             />
 
@@ -299,7 +273,7 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
               aria-label="How it works steps"
               onKeyDown={handleKeyDown}
             >
-              {displaySteps.map((step, index) => {
+              {steps.map((step, index) => {
                 const StepIcon = step.icon;
                 const isActive = index === active;
                 const isPast = index < active;
@@ -377,7 +351,7 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
           role="tablist"
           aria-label="How it works steps"
         >
-          {displaySteps.map((step, index) => {
+          {steps.map((step, index) => {
             const isActive = index === active;
             const MobileIcon = step.icon;
 
@@ -406,7 +380,7 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
         <div className="mb-6 h-[2px] overflow-hidden rounded-full bg-white/6 lg:hidden">
           <motion.div
             className="h-full rounded-full bg-[linear-gradient(90deg,#A88520,#D4AF37,#F0D060)]"
-            animate={{ width: `${((active + 1) / displaySteps.length) * 100}%` }}
+            animate={{ width: `${((active + 1) / steps.length) * 100}%` }}
             transition={{ duration: 0.5, ease }}
           />
         </div>
@@ -552,7 +526,7 @@ export function HowItWorks({ badgeText, heading, subheading, items }: HowItWorks
 
                   <button
                     type="button"
-                    onClick={() => selectStep((active + 1) % displaySteps.length)}
+                    onClick={() => selectStep((active + 1) % steps.length)}
                     className="group flex w-full items-center justify-between rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] p-4 text-left transition-all duration-200 hover:border-[rgba(212,175,55,0.16)] hover:bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.04))]"
                   >
                     <div>
