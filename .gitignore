@@ -44,6 +44,7 @@ Thumbs.db
 # Environment
 .env
 .env.local
+docker/api.env
 
 # Next.js
 .next

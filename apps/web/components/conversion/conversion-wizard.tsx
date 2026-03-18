@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { AmountStep } from './amount-step';
 import { QuoteStep } from './quote-step';
 import { IdentityStep } from './identity-step';
@@ -11,7 +11,7 @@ import { PayoutStep } from './payout-step';
 import { PaymentPendingStep } from './payment-pending-step';
 import { ProcessingStep } from './processing-step';
 import { ResultStep } from './result-step';
-import { TrackingView } from './tracking-view';
+import { conversionApi } from '@/lib/api/conversion';
 import type { QuoteResponse, StatusResponse } from '@/lib/api/conversion';
 
 export type WizardStep =
@@ -30,6 +30,7 @@ export interface WizardState {
   referenceCode: string | null;
   guestRef: string | null;
   finalStatus: StatusResponse | null;
+  expiresAt: string | null;
 }
 
 const stepVariants = {
@@ -47,6 +48,7 @@ const DEFAULT_STATE: WizardState = {
   referenceCode: null,
   guestRef: null,
   finalStatus: null,
+  expiresAt: null,
 };
 
 export function ConversionWizard() {
@@ -110,17 +112,9 @@ export function ConversionWizard() {
     );
   }
 
-  // Tracking mode: show read-only order status by reference code
+  // Tracking mode: fetch status by reference and show ProcessingStep or ResultStep
   if (trackingRef) {
-    return (
-      <div className="mx-auto w-full max-w-[520px]">
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-3xl sm:p-7">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
-          <TrackingView referenceCode={trackingRef} />
-        </div>
-      </div>
-    );
+    return <TrackingFlow referenceCode={trackingRef} />;
   }
 
   return (
@@ -136,6 +130,16 @@ export function ConversionWizard() {
           canGoBack={canGoBack}
           onBack={handleBack}
         />
+
+        {state.expiresAt && ['identity', 'payout', 'payment'].includes(state.step) && (
+          <ExpiryCountdown
+            expiresAt={state.expiresAt}
+            onExpired={() => {
+              setDirection(1);
+              setState(DEFAULT_STATE);
+            }}
+          />
+        )}
 
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
@@ -164,6 +168,7 @@ export function ConversionWizard() {
                     step: 'identity',
                     sessionId,
                     referenceCode,
+                    expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
                   }))
                 }
                 onExpired={() =>
@@ -293,6 +298,156 @@ function StepProgress({
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Expiry Countdown ────────────────────────────────────────── */
+
+function ExpiryCountdown({
+  expiresAt,
+  onExpired,
+}: {
+  expiresAt: string;
+  onExpired: () => void;
+}) {
+  const [remaining, setRemaining] = useState(() => {
+    const ms = new Date(expiresAt).getTime() - Date.now();
+    return Math.max(0, Math.floor(ms / 1000));
+  });
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      const ms = new Date(expiresAt).getTime() - Date.now();
+      const secs = Math.max(0, Math.floor(ms / 1000));
+      setRemaining(secs);
+      if (secs <= 0) {
+        clearInterval(tick);
+        onExpired();
+      }
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [expiresAt, onExpired]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const isUrgent = remaining < 120;
+
+  return (
+    <div className="mb-4 flex items-center justify-center gap-1.5">
+      <span
+        className={`text-xs font-medium tabular-nums ${
+          isUrgent ? 'text-red-400' : 'text-white/40'
+        }`}
+      >
+        Order expires in {mins}:{secs.toString().padStart(2, '0')}
+      </span>
+    </div>
+  );
+}
+
+/* ── Tracking Flow (reuses ProcessingStep & ResultStep) ─────────── */
+
+const TERMINAL_STATES = ['COMPLETED', 'FAILED', 'EXPIRED'];
+
+function TrackingFlow({ referenceCode }: { referenceCode: string }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<StatusResponse | null>(null);
+  const [view, setView] = useState<'processing' | 'result'>('processing');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await conversionApi.getStatusByReference(referenceCode);
+        if (cancelled) return;
+        setStatus(res);
+        if (TERMINAL_STATES.includes(res.currentState)) {
+          setView('result');
+        } else {
+          setView('processing');
+        }
+      } catch {
+        if (!cancelled) setError('Order not found or invalid reference code.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [referenceCode]);
+
+  // Build a minimal QuoteResponse so ProcessingStep can show the conversion summary
+  const syntheticQuote: QuoteResponse | null = status
+    ? {
+        quoteId: '',
+        sourceAsset: status.sourceAsset ?? 'KES',
+        targetAsset: status.targetAsset ?? 'BTC',
+        sourceAmount: status.sourceAmount ?? '0',
+        targetAmount: status.targetAmount ?? '0',
+        rate: '0',
+        fee: '0',
+        spread: '0',
+        expiresAt: '',
+      }
+    : null;
+
+  const content = () => {
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-gold" />
+          <p className="text-sm text-white/50">Looking up your order…</p>
+        </div>
+      );
+    }
+
+    if (error || !status) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+          <p className="text-sm text-red-400">{error ?? 'Order not found.'}</p>
+          <a
+            href="/convert"
+            className="text-sm text-gold underline underline-offset-2 hover:text-gold/80"
+          >
+            Start a new conversion
+          </a>
+        </div>
+      );
+    }
+
+    if (view === 'processing' && status.sessionId) {
+      return (
+        <ProcessingStep
+          sessionId={status.sessionId}
+          quote={syntheticQuote}
+          onComplete={(finalStatus) => {
+            setStatus(finalStatus);
+            setView('result');
+          }}
+        />
+      );
+    }
+
+    return (
+      <ResultStep
+        status={status}
+        referenceCode={status.referenceCode ?? referenceCode}
+        guestRef={status.guestRef ?? null}
+        onReset={() => {
+          window.location.href = '/convert';
+        }}
+      />
+    );
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-[520px]">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-3xl sm:p-7">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
+        {content()}
       </div>
     </div>
   );

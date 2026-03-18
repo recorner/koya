@@ -47,7 +47,7 @@ koya/
 │   │   │   ├── (auth)/     # Login, signup
 │   │   │   └── (dashboard)/# Authenticated app
 │   │   ├── components/
-│   │   │   ├── conversion/ # Conversion wizard, tracking view
+│   │   │   ├── conversion/ # Conversion wizard (7-step flow)
 │   │   │   ├── marketing/  # Landing page sections
 │   │   │   └── ui/         # shadcn/ui components
 │   │   └── lib/
@@ -211,14 +211,18 @@ CORS_ORIGINS=https://yourdomain.com
 # Build API image (from workspace root)
 docker build -f apps/api/Dockerfile -t koya-api .
 
-# Run container
-docker run -p 3333:3333 \
-  -e DATABASE_URL="postgresql://..." \
-  -e NODE_ENV=production \
-  koya-api
+# Run with env file (recommended)
+./docker/run.sh --build
+
+# Or manually
+docker run -d --name koya-api --restart unless-stopped \
+  -p 127.0.0.1:3333:3333 \
+  --env-file docker/api.env \
+  koya-api \
+  sh -c "cd prisma && npx prisma migrate deploy && cd .. && node main.js"
 ```
 
-The container runs migrations on startup, then starts the NestJS server on port 3333.
+Copy `docker/api.env.example` to `docker/api.env` and fill in your values. The container runs migrations on startup, then starts the NestJS server on port 3333.
 
 ## Deployment
 
