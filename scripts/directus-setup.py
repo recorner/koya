@@ -738,6 +738,56 @@ if public_policy_id:
     })
     print("  ✓ Public read: directus_files")
 
+    # Allow reading whatsapp_preview_links
+    api("POST", "/permissions", {
+        "policy": public_policy_id,
+        "collection": "whatsapp_preview_links",
+        "action": "read",
+        "fields": ["*"],
+    })
+    print("  ✓ Public read: whatsapp_preview_links")
+
+
+# ─── WHATSAPP PREVIEW LINKS ─────────────────────────────────────────────────
+
+print("\n── WhatsApp Preview Links ──")
+
+create_collection("whatsapp_preview_links", {
+    "icon": "link",
+    "note": "OG metadata for URLs shared in WhatsApp messages",
+    "singleton": False,
+    "sort_field": None,
+})
+
+create_field("whatsapp_preview_links", "key", "string",
+    meta={"interface": "input", "required": True, "note": "Unique key (e.g. convert_tracking)"},
+    schema={"is_unique": True, "is_nullable": False})
+create_field("whatsapp_preview_links", "og_title", "string",
+    meta={"interface": "input", "required": True, "note": "Open Graph title for link previews"},
+    schema={"is_nullable": False})
+create_field("whatsapp_preview_links", "og_description", "text",
+    meta={"interface": "input-multiline", "required": True, "note": "Open Graph description"},
+    schema={"is_nullable": False})
+create_field("whatsapp_preview_links", "og_image", "uuid",
+    meta={"interface": "file-image", "note": "Open Graph image (uploaded to Directus files)"},
+    schema={"is_nullable": True})
+create_field("whatsapp_preview_links", "url_path", "string",
+    meta={"interface": "input", "required": True, "note": "URL path this preview is for (e.g. /convert)"},
+    schema={"is_nullable": False})
+create_field("whatsapp_preview_links", "is_active", "boolean",
+    meta={"interface": "boolean", "required": True, "note": "Whether this preview link config is active"},
+    schema={"is_nullable": False, "default_value": True})
+
+# Seed default preview link for /convert tracking
+create_item("whatsapp_preview_links", {
+    "key": "convert_tracking",
+    "og_title": "Track Your Koya Conversion",
+    "og_description": "View real-time status of your KES to BTC conversion on Koya. Fast, secure, and transparent.",
+    "og_image": None,
+    "url_path": "/convert",
+    "is_active": True,
+})
+
 
 print("\n\n═══ Setup Complete ═══")
 print(f"\nDirectus admin: http://localhost:8055")

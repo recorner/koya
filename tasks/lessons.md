@@ -182,3 +182,25 @@ docker build -t koya-api apps/api/
 ## Container Architecture — One Service Per Container
 
 Never pack multiple services (API + frontend + workers) into one container. Each service gets its own image and ECS service for independent scaling and deployment. The API monolith is fine initially — split into microservices only when a specific scaling bottleneck emerges.
+
+---
+
+## UX Planning — Reuse the Canonical User View Before Designing a New One
+
+When the user describes "tracking" or "view details", do not assume that means a brand-new route or bespoke screen. First inspect the existing product flow and prefer turning the current canonical detail/progress view into the universal entry point for all channels.
+
+In this project specifically:
+- The existing `/convert` progress/result experience should become the shared order-detail view.
+- WhatsApp should deep-link into that same experience rather than spawning a parallel tracking UI.
+
+---
+
+## State Machine — EXPIRED Must Be Reachable From All Pre-Payment States
+
+When adding expiry enforcement to a state machine, ensure that every state where expiry can be checked has `EXPIRED` in its valid transitions list. Otherwise the `transitionState()` call inside `ensureNotExpired()` throws "Invalid state transition" instead of the intended expiry error. In this project, `IDENTITY_PENDING`, `COMPLIANCE_PENDING`, and `PAYOUT_DETAILS_PENDING` all needed `EXPIRED` added to `VALID_STATE_TRANSITIONS`.
+
+---
+
+## Flow Handler Tests — Mock All Service Calls Added to a Method
+
+When a flow handler method gains a new service call (e.g., `getStatus()` after `initiatePayment()`), every test exercising that code path needs the new mock. Missing mocks cause `TypeError: Cannot read properties of undefined` at runtime rather than a clear assertion failure.

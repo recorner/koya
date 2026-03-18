@@ -11,6 +11,7 @@ import { PayoutStep } from './payout-step';
 import { PaymentPendingStep } from './payment-pending-step';
 import { ProcessingStep } from './processing-step';
 import { ResultStep } from './result-step';
+import { TrackingView } from './tracking-view';
 import type { QuoteResponse, StatusResponse } from '@/lib/api/conversion';
 
 export type WizardStep =
@@ -51,6 +52,7 @@ const DEFAULT_STATE: WizardState = {
 export function ConversionWizard() {
   const searchParams = useSearchParams();
   const initialAmount = searchParams.get('amount') ?? undefined;
+  const trackingRef = searchParams.get('ref') ?? undefined;
 
   const [state, setState] = useState<WizardState>(DEFAULT_STATE);
   const [direction, setDirection] = useState(1);
@@ -104,6 +106,19 @@ export function ConversionWizard() {
     return (
       <div className="mx-auto w-full max-w-[520px]">
         <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] sm:rounded-3xl" />
+      </div>
+    );
+  }
+
+  // Tracking mode: show read-only order status by reference code
+  if (trackingRef) {
+    return (
+      <div className="mx-auto w-full max-w-[520px]">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-3xl sm:p-7">
+          <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
+          <TrackingView referenceCode={trackingRef} />
+        </div>
       </div>
     );
   }

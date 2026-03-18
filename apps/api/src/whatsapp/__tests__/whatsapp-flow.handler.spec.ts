@@ -274,6 +274,7 @@ describe('WhatsAppFlowHandler', () => {
         sessionId: 'sess-1',
         currentState: 'PAYMENT_PENDING',
         sourceAmount: '2500',
+        referenceCode: 'KYA-12345678',
       });
 
       const result = await handler.handle(
@@ -304,6 +305,15 @@ describe('WhatsAppFlowHandler', () => {
         currentState: 'PAYMENT_PENDING',
         checkoutRequestId: 'MOCK-CR-1234',
         phone: '+254712345678',
+      });
+      mockConversionService.getStatus.mockResolvedValue({
+        sessionId: 'sess-1',
+        currentState: 'PAYMENT_PENDING',
+        referenceCode: 'KYA-12345678',
+        sourceAsset: 'KES',
+        sourceAmount: '1000.00',
+        targetAmount: '0.00000881',
+        targetAsset: 'BTC',
       });
 
       const result = await handler.handle(

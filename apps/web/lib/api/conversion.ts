@@ -62,6 +62,7 @@ export interface StatusResponse {
   guestRef: string | null;
   txHash: string | null;
   createdAt: string;
+  expiresAt: string | null;
 }
 
 export const conversionApi = {
@@ -120,4 +121,9 @@ export const conversionApi = {
 
   getStatus: (sessionId: string) =>
     request<StatusResponse>(`/guest-conversion/${sessionId}/status`),
+
+  getStatusByReference: (referenceCode: string) =>
+    request<StatusResponse>(
+      `/guest-conversion/by-reference/${encodeURIComponent(referenceCode)}/status`,
+    ),
 };

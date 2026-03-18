@@ -160,7 +160,7 @@ export class WhatsAppFlowHandler {
       await this.sessionSvc.updateStep(conversation.id, 'WAITING_FOR_FULL_NAME');
       await this.sessionSvc.updateMetadata(conversation.id, {});
 
-      return this.templates.askFullName();
+      return this.templates.askFullName(session.referenceCode);
     } catch (error) {
       this.logger.error(`Session creation failed: ${error}`);
 
@@ -367,6 +367,8 @@ export class WhatsAppFlowHandler {
       );
     } catch (error) {
       this.logger.error(`Identity submission failed: ${error}`);
+      const expiryReply = this.handleOrderExpiry(conversation, error);
+      if (expiryReply) return expiryReply;
       const message = error instanceof Error ? error.message : '';
       if (message.toLowerCase().includes('invalid kenya phone number')) {
         metadata.pendingField = 'MPESA_PHONE';
@@ -436,14 +438,16 @@ export class WhatsAppFlowHandler {
       return this.templates.confirmPayment(
         paymentPhone,
         status.sourceAmount,
+        status.referenceCode,
       );
     } catch (error) {
       this.logger.error(`Payout submission failed: ${error}`);
-      return this.renderError(
-        error,
-        'We could not save that BTC address.',
-        'Send a valid BTC address again to retry.',
-      );
+      return this.handleOrderExpiry(conversation, error) ??
+        this.renderError(
+          error,
+          'We could not save that BTC address.',
+          'Send a valid BTC address again to retry.',
+        );
     }
   }
 
@@ -472,14 +476,20 @@ export class WhatsAppFlowHandler {
 
       await this.sessionSvc.updateStep(conversation.id, 'PROCESSING');
 
-      return this.templates.paymentInitiated(result.phone);
+      // Get referenceCode for the message
+      const status = await this.conversionService.getStatus(
+        conversation.conversionSessionId,
+      );
+
+      return this.templates.paymentInitiated(result.phone, status.referenceCode);
     } catch (error) {
       this.logger.error(`Payment initiation failed: ${error}`);
-      return this.renderError(
-        error,
-        'We could not start the M-Pesa payment.',
-        'Reply *PAY* to try again, or *STATUS* to check the current session.',
-      );
+      return this.handleOrderExpiry(conversation, error) ??
+        this.renderError(
+          error,
+          'We could not start the M-Pesa payment.',
+          'Reply *PAY* to try again, or *STATUS* to check the current session.',
+        );
     }
   }
 
@@ -646,5 +656,24 @@ export class WhatsAppFlowHandler {
       message: rawMessage || fallbackMessage,
       nextStep: defaultNextStep,
     };
+  }
+
+  /**
+   * Check if an error is an order expiry error.
+   * If so, reset the conversation and return the orderExpired message.
+   */
+  private handleOrderExpiry(
+    conversation: WhatsAppConversation,
+    error: unknown,
+  ): WhatsAppOutboundMessage | null {
+    const msg = error instanceof Error ? error.message.toLowerCase() : '';
+    if (msg.includes('order has expired') || msg.includes('order_ttl_expired')) {
+      // Reset conversation async — fire and forget for the reply
+      this.sessionSvc.resetConversation(conversation.id).catch((e) =>
+        this.logger.error(`Failed to reset conversation after expiry: ${e}`),
+      );
+      return this.templates.orderExpired();
+    }
+    return null;
   }
 }

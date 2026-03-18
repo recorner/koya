@@ -377,4 +377,157 @@ describe('Conversion Flow (Integration)', () => {
       expect(status.targetAsset).toBe('BTC');
     });
   });
+
+  describe('Order expiry', () => {
+    it('should reject submitIdentity when order has expired', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+
+      // Manually expire the session
+      await prisma.conversionSession.update({
+        where: { id: session.sessionId },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+
+      await expect(
+        conversionService.submitIdentity(session.sessionId, {
+          fullName: 'Expired User',
+          countryCode: 'KE',
+          documentType: 'NATIONAL_ID',
+          documentNumber: 'EXP12345',
+          phone: '0712555555',
+        }),
+      ).rejects.toThrow('order has expired');
+
+      // Verify session transitioned to EXPIRED
+      const dbSession = await prisma.conversionSession.findUnique({
+        where: { id: session.sessionId },
+      });
+      expect(dbSession?.currentState).toBe('EXPIRED');
+    });
+
+    it('should reject submitPayoutDetails when order has expired', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+      await conversionService.submitIdentity(session.sessionId, {
+        fullName: 'Payout Expire',
+        countryCode: 'KE',
+        documentType: 'NATIONAL_ID',
+        documentNumber: 'PAYEXP123',
+        phone: '0712666666',
+      });
+
+      // Manually expire the session
+      await prisma.conversionSession.update({
+        where: { id: session.sessionId },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+
+      await expect(
+        conversionService.submitPayoutDetails(
+          session.sessionId,
+          '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
+        ),
+      ).rejects.toThrow('order has expired');
+    });
+
+    it('should NOT expire sessions in post-payment states', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+      await conversionService.submitIdentity(session.sessionId, {
+        fullName: 'PostPay User',
+        countryCode: 'KE',
+        documentType: 'NATIONAL_ID',
+        documentNumber: 'POSTPAY123',
+        phone: '0712777777',
+      });
+      await conversionService.submitPayoutDetails(
+        session.sessionId,
+        '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
+      );
+
+      // Session is now PAYMENT_PENDING — set expiresAt to the past
+      await prisma.conversionSession.update({
+        where: { id: session.sessionId },
+        data: { expiresAt: new Date(Date.now() - 60_000) },
+      });
+
+      // getStatus should still work (no expiry enforcement for PAYMENT_PENDING)
+      const status = await conversionService.getStatus(session.sessionId);
+      expect(status.currentState).toBe('PAYMENT_PENDING');
+    });
+
+    it('should include expiresAt in status response', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+
+      const status = await conversionService.getStatus(session.sessionId);
+      expect(status.expiresAt).toBeDefined();
+      expect(new Date(status.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    });
+  });
+
+  describe('Status by reference code', () => {
+    it('should return status when looked up by reference code', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+
+      const status = await conversionService.getStatusByReference(
+        session.referenceCode,
+      );
+
+      expect(status.sessionId).toBe(session.sessionId);
+      expect(status.referenceCode).toBe(session.referenceCode);
+      expect(status.currentState).toBe('IDENTITY_PENDING');
+      expect(status.sourceAsset).toBe('KES');
+      expect(status.targetAsset).toBe('BTC');
+      expect(status.expiresAt).toBeDefined();
+    });
+
+    it('should throw for non-existent reference code', async () => {
+      await expect(
+        conversionService.getStatusByReference('KYA-NOTFOUND'),
+      ).rejects.toThrow('not found');
+    });
+  });
 });

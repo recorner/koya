@@ -1,12 +1,40 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { ConversionWizard } from '@/components/conversion/conversion-wizard';
+import { getWhatsAppPreviewLink } from '@/lib/directus/queries';
+import { assetUrl } from '@/lib/directus/client';
 
-export const metadata: Metadata = {
-  title: 'Convert KES to BTC',
-  description:
-    'Convert Kenyan Shillings to Bitcoin instantly via M-Pesa. No account required.',
-};
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  if (params.ref) {
+    // Try to load CMS-managed preview metadata for WhatsApp link previews
+    const preview = await getWhatsAppPreviewLink('convert_tracking');
+    const title = preview?.og_title ?? 'Track Your Koya Conversion';
+    const description =
+      preview?.og_description ??
+      'View real-time status of your KES → BTC conversion on Koya.';
+    const image = assetUrl(preview?.og_image);
+
+    return {
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        ...(image ? { images: [{ url: image }] } : {}),
+      },
+    };
+  }
+  return {
+    title: 'Convert KES to BTC',
+    description:
+      'Convert Kenyan Shillings to Bitcoin instantly via M-Pesa. No account required.',
+  };
+}
 
 export default function ConvertPage() {
   return (

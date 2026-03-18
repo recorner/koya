@@ -22,6 +22,18 @@ import { isValidBtcAddress } from '../common/validation.utils';
 import { ConversionState } from '@koya/types';
 import { formatMinorToDisplay } from '../common/validation.utils';
 
+/** States at or past payment initiation — expiry no longer enforced */
+const POST_PAYMENT_STATES = new Set<string>([
+  'PAYMENT_PENDING',
+  'PAYMENT_CONFIRMED',
+  'EXECUTION_PENDING',
+  'DELIVERY_PENDING',
+  'COMPLETED',
+  'FAILED',
+  'EXPIRED',
+  'MANUAL_REVIEW',
+]);
+
 @Injectable()
 export class ConversionService {
   private readonly logger = new Logger(ConversionService.name);
@@ -95,6 +107,25 @@ export class ConversionService {
   }
 
   /**
+   * Check if a session has expired. Only enforced for pre-payment states.
+   * Once payment is initiated (PAYMENT_PENDING+), expiry is paused.
+   */
+  private async ensureNotExpired(session: { id: string; expiresAt: Date | null; currentState: string }) {
+    if (!session.expiresAt) return;
+    if (POST_PAYMENT_STATES.has(session.currentState)) return;
+    if (new Date() > session.expiresAt) {
+      await this.sessionService.transitionState(
+        session.id,
+        ConversionState.EXPIRED,
+        'order_ttl_expired',
+      );
+      throw new BadRequestException(
+        'This order has expired. Please start a new conversion.',
+      );
+    }
+  }
+
+  /**
    * Step 3: Submit identity and run compliance
    */
   async submitIdentity(
@@ -109,6 +140,7 @@ export class ConversionService {
     },
   ) {
     const session = await this.sessionService.getSession(sessionId);
+    await this.ensureNotExpired(session);
 
     if (session.currentState !== 'IDENTITY_PENDING') {
       throw new BadRequestException(
@@ -191,6 +223,7 @@ export class ConversionService {
    */
   async submitPayoutDetails(sessionId: string, btcAddress: string) {
     const session = await this.sessionService.getSession(sessionId);
+    await this.ensureNotExpired(session);
 
     if (session.currentState !== 'PAYOUT_DETAILS_PENDING') {
       throw new BadRequestException(
@@ -231,6 +264,7 @@ export class ConversionService {
    */
   async initiatePayment(sessionId: string) {
     const session = await this.sessionService.getSessionWithRelations(sessionId);
+    await this.ensureNotExpired(session);
 
     if (session.currentState !== 'PAYMENT_PENDING') {
       throw new BadRequestException(
@@ -388,6 +422,7 @@ export class ConversionService {
    */
   async confirmByReference(sessionId: string, mpesaReference: string) {
     const session = await this.sessionService.getSession(sessionId);
+    await this.ensureNotExpired(session);
 
     if (session.currentState !== 'PAYMENT_PENDING') {
       throw new BadRequestException(
@@ -425,6 +460,27 @@ export class ConversionService {
     return this.formatStatus(session);
   }
 
+  /**
+   * Look up a session by its user-facing reference code and return status
+   */
+  async getStatusByReference(referenceCode: string) {
+    const session = await this.prisma.conversionSession.findUnique({
+      where: { referenceCode },
+      include: {
+        guestProfile: true,
+        quote: true,
+        paymentInstruction: true,
+        payoutInstruction: true,
+      },
+    });
+
+    if (!session) {
+      throw new BadRequestException(`Order ${referenceCode} not found`);
+    }
+
+    return this.formatStatus(session);
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private formatStatus(session: any) {
     const sourceDecimals = session.sourceAsset === 'BTC' ? 8 : 2;
@@ -443,6 +499,7 @@ export class ConversionService {
       guestRef: session.guestProfile?.guestRef ?? null,
       txHash: session.payoutInstruction?.txHash ?? null,
       createdAt: session.createdAt.toISOString(),
+      expiresAt: session.expiresAt?.toISOString() ?? null,
     };
   }
 }

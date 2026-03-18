@@ -8,6 +8,7 @@ import type {
   SeoDefaults,
   FaqItem,
   LegalPage,
+  WhatsAppPreviewLink,
 } from './types';
 
 // ─── Singleton Queries ──────────────────────────────────────────────────────
@@ -131,5 +132,26 @@ export async function getLegalPages(): Promise<Pick<LegalPage, 'title' | 'slug'>
     return data as unknown as Pick<LegalPage, 'title' | 'slug'>[];
   } catch {
     return [];
+  }
+}
+
+// ─── WhatsApp Preview Link Queries ──────────────────────────────────────────
+
+export async function getWhatsAppPreviewLink(
+  key: string,
+): Promise<WhatsAppPreviewLink | null> {
+  try {
+    const data = await directus.request(
+      readItems('whatsapp_preview_links' as never, {
+        filter: {
+          key: { _eq: key },
+          is_active: { _eq: true },
+        },
+        limit: 1,
+      } as never),
+    ) as unknown as WhatsAppPreviewLink[];
+    return data[0] ?? null;
+  } catch {
+    return null;
   }
 }

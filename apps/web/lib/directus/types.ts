@@ -110,6 +110,16 @@ export interface SeoDefaults {
   robots_txt: string | null;
 }
 
+export interface WhatsAppPreviewLink {
+  id: number;
+  key: string;
+  og_title: string;
+  og_description: string;
+  og_image: string | null;
+  url_path: string;
+  is_active: boolean;
+}
+
 /** Directus SDK schema type map. */
 export interface CmsSchema {
   global_settings: GlobalSettings[];
@@ -121,4 +131,5 @@ export interface CmsSchema {
   faq_items: FaqItem[];
   legal_pages: LegalPage[];
   seo_defaults: SeoDefaults[];
+  whatsapp_preview_links: WhatsAppPreviewLink[];
 }

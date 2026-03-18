@@ -98,4 +98,13 @@ export class ConversionController {
   async getStatus(@Param('sessionId') sessionId: string) {
     return this.conversionService.getStatus(sessionId);
   }
+
+  /**
+   * GET /api/v1/guest-conversion/by-reference/:referenceCode/status
+   * Look up order status by user-facing reference code (KYA-XXXX)
+   */
+  @Get('by-reference/:referenceCode/status')
+  async getStatusByReference(@Param('referenceCode') referenceCode: string) {
+    return this.conversionService.getStatusByReference(referenceCode);
+  }
 }

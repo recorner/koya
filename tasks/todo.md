@@ -173,6 +173,50 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [ ] **12.9** WhatsApp channel support
 - [ ] **12.10** Admin dashboard for conversion monitoring
 
+## Phase 13: Web + WhatsApp Order Sync
+
+- [ ] **13.1** Introduce a shared conversion session expiry window
+  - Add `CONVERSION_SESSION_TTL_MINUTES` config (default `20`)
+  - Start expiry when a quote is confirmed into an order/session
+  - Persist `conversion_sessions.expires_at` on creation
+  - Enforce expiry in web and WhatsApp paths (`submitIdentity`, `submitPayoutDetails`, `initiatePayment`, `confirmReference`, `getStatus`, payment callback handling)
+  - Treat any order past the 20-minute window as definitively `EXPIRED` (no grace continuation)
+  - Transition expired orders to `EXPIRED` with an audit event
+
+- [ ] **13.2** Unify reference tracking between quote, web, and WhatsApp
+  - Generate a stable customer-facing `referenceCode` at quote creation
+  - Persist/carry the same reference code into the eventual conversion session
+  - Show the reference code in the web quote review, WhatsApp quote message, and all later support/status surfaces
+  - Ensure support can search or track from this reference without requiring chat context
+
+- [ ] **13.3** Turn the existing web conversion detail/progress view into the universal order view
+  - Reuse the current `/convert` progress/result experience instead of inventing a separate bespoke tracker surface
+  - Make the final processing/detail view loadable from an existing order reference/session, even in a fresh browser session
+  - Add API lookup endpoint(s) to fetch status by `referenceCode`
+  - Ensure orders created from either web or WhatsApp resolve into the same web detail/progress experience
+  - Include expiry, current state, payout/payment progress, and support-safe identifiers
+
+- [ ] **13.4** Link WhatsApp outcomes back to the web tracker
+  - Add a post-completion WhatsApp action to open the shared web order-detail view
+  - Add the same link to active status messages where helpful
+  - Support both direct URL fallback and richer WhatsApp button/template delivery where channel capabilities allow
+
+- [ ] **13.5** Extend CMS for WhatsApp promotional preview links
+  - Add Directus-managed preview/link entities with URL, title, copy, image/media, button label, and active/sort controls
+  - Let WhatsApp templates reference CMS-managed preview content instead of hardcoding URLs in code
+  - Update Twilio template generation to support CTA/media content types in addition to quick replies
+  - Preserve a safe plain-text fallback when richer message types are unavailable
+
+- [ ] **13.6** Keep web and WhatsApp copy/state models aligned
+  - Centralize shared status wording and reference placement rules
+  - Make expiry and tracking behavior channel-agnostic in backend services
+  - Ensure WhatsApp never exposes less order visibility than web for the same session
+
+- [ ] **13.7** Verification
+  - Unit tests for session expiry enforcement and reference propagation
+  - Integration tests covering expiry before payment, status-by-reference lookup, and WhatsApp tracking link delivery
+  - Manual verification on web + WhatsApp against the live CMS-backed message config
+
 ---
 
 ## Architecture Decisions
@@ -312,3 +356,23 @@ libs/types/src/lib/
 - [x] **9.13** Documentation (`docs/progress/step-07.md`)
 
 **Result:** 105 tests, 8 suites, zero regressions. TypeScript zero errors.
+
+## Phase 10: Order Expiry, Reference Tracking & CMS Preview Links
+
+- [x] **10.1** Set 20-minute `expiresAt` TTL on session creation in `SessionService`
+- [x] **10.2** Add `ensureNotExpired()` guard in `ConversionService` with `POST_PAYMENT_STATES` exception set
+- [x] **10.3** Wire expiry checks into `submitIdentity`, `submitPayoutDetails`, `initiatePayment`, `confirmByReference`
+- [x] **10.4** Add `EXPIRED` to valid state transitions for `IDENTITY_PENDING`, `COMPLIANCE_PENDING`, `PAYOUT_DETAILS_PENDING`
+- [x] **10.5** Add `expiresAt` to `formatStatus()` response
+- [x] **10.6** Add `getStatusByReference(referenceCode)` method + controller endpoint `GET by-reference/:ref/status`
+- [x] **10.7** Add reference code to WhatsApp templates: `askFullName`, `confirmPayment`, `paymentInitiated`
+- [x] **10.8** Add tracking URL to `paymentSuccess` template, `orderExpired` template
+- [x] **10.9** Update flow handler to pass reference codes and handle order expiry errors
+- [x] **10.10** Create `TrackingView` component (polling, 6-stage progress, order details)
+- [x] **10.11** Wire `/convert?ref=KYA-XXXX` to render `TrackingView` in conversion wizard
+- [x] **10.12** Dynamic `generateMetadata()` on convert page for OG tags when `?ref=` present
+- [x] **10.13** Add `WhatsAppPreviewLink` CMS type, query function, Directus collection + seed data
+- [x] **10.14** Integration tests: order expiry (3 tests), reference lookup (2 tests), expiresAt in status (1 test)
+- [x] **10.15** Fix flow handler unit test mocks for new referenceCode usage
+
+**Result:** 119 tests, 8 suites, zero regressions. API + Web builds pass.

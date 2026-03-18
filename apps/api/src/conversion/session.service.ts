@@ -34,6 +34,8 @@ export class SessionService {
   }) {
     const referenceCode = `KYA-${uuidv4().slice(0, 8).toUpperCase()}`;
 
+    const ORDER_TTL_MS = 20 * 60 * 1000; // 20 minutes
+
     const session = await this.prisma.conversionSession.create({
       data: {
         channel: input.channel as PrismaChannel,
@@ -48,6 +50,7 @@ export class SessionService {
         payinMethod: input.payinMethod,
         payoutMethod: input.payoutMethod,
         referenceCode,
+        expiresAt: new Date(Date.now() + ORDER_TTL_MS),
       },
     });
 

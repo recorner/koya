@@ -43,6 +43,9 @@ const DEFAULT_TEMPLATES = {
   ].join('\n'),
   ask_full_name: [
     '*Koya | Identity Check*',
+    'Your order ref: *{{reference_code}}*',
+    'Save this for tracking and support.',
+    '',
     'Enter your *full legal name* exactly as it appears on your ID.',
     'Example: `John Doe`',
   ].join('\n'),
@@ -80,6 +83,7 @@ const DEFAULT_TEMPLATES = {
   ].join('\n'),
   confirm_payment: [
     '*Koya | Payment Check*',
+    'Order: *{{reference_code}}*',
     'Amount: *KES {{amount_kes}}*',
     'M-Pesa number: *{{phone}}*',
     '',
@@ -87,6 +91,7 @@ const DEFAULT_TEMPLATES = {
   ].join('\n'),
   payment_initiated: [
     '*Koya | STK Push Sent*',
+    'Order: *{{reference_code}}*',
     'We sent an M-Pesa prompt to *{{phone}}*.',
     'Check your phone, enter your PIN, and complete the payment.',
     '',
@@ -100,6 +105,8 @@ const DEFAULT_TEMPLATES = {
     '{{tx_line}}',
     '',
     'Your BTC transfer has been queued successfully.',
+    '',
+    'Track your order: {{tracking_url}}',
     'Reply *1* when you want to start another conversion.',
   ].join('\n'),
   conversion_status: [
@@ -145,6 +152,12 @@ const DEFAULT_TEMPLATES = {
     'This chat expired because there was no activity for a while.',
     'Reply *1* to start a fresh conversion.',
   ].join('\n'),
+  order_expired: [
+    '*Koya | Order Expired*',
+    'Your conversion order has expired because payment was not completed within the time limit.',
+    '',
+    'Reply *1* to start a new conversion.',
+  ].join('\n'),
   identity_success: [
     '*Koya | Identity Verified*',
     'Your details have been accepted and we can move to BTC payout.',
@@ -187,6 +200,7 @@ const DEFAULT_BUTTONS: Partial<
   payment_initiated: [{ id: 'STATUS', title: 'Check Status' }],
   payment_success: [{ id: '1', title: 'New Conversion' }],
   session_expired: [{ id: '1', title: 'Start Again' }],
+  order_expired: [{ id: '1', title: 'Start Again' }],
   cancel_confirmation: [{ id: '1', title: 'Start Again' }],
   identity_failed: [{ id: 'START OVER', title: 'Start Over' }],
   reference_accepted: [{ id: 'STATUS', title: 'Check Status' }],
@@ -194,7 +208,11 @@ const DEFAULT_BUTTONS: Partial<
 
 @Injectable()
 export class WhatsAppTemplateService {
-  constructor(private readonly cmsCopy?: WhatsAppCmsCopyService) {}
+  private readonly webBaseUrl: string;
+
+  constructor(private readonly cmsCopy?: WhatsAppCmsCopyService) {
+    this.webBaseUrl = process.env['WHATSAPP_WEB_BASE_URL'] ?? 'https://koyabank.com';
+  }
 
   welcomeMenu(): WhatsAppOutboundMessage {
     return this.buildMessage('welcome_menu');
@@ -217,8 +235,10 @@ export class WhatsAppTemplateService {
     return this.buildMessage('quote_expired');
   }
 
-  askFullName(): WhatsAppOutboundMessage {
-    return this.buildMessage('ask_full_name');
+  askFullName(referenceCode: string): WhatsAppOutboundMessage {
+    return this.buildMessage('ask_full_name', {
+      reference_code: referenceCode,
+    });
   }
 
   askDocumentNumber(): WhatsAppOutboundMessage {
@@ -245,18 +265,20 @@ export class WhatsAppTemplateService {
     return this.buildMessage('ask_btc_address');
   }
 
-  confirmPayment(phone: string, amountKes: string): WhatsAppOutboundMessage {
+  confirmPayment(phone: string, amountKes: string, referenceCode: string): WhatsAppOutboundMessage {
     const maskedPhone = this.maskPhone(phone);
     return this.buildMessage('confirm_payment', {
       amount_kes: amountKes,
       phone: maskedPhone,
+      reference_code: referenceCode,
     });
   }
 
-  paymentInitiated(phone: string): WhatsAppOutboundMessage {
+  paymentInitiated(phone: string, referenceCode: string): WhatsAppOutboundMessage {
     const maskedPhone = this.maskPhone(phone);
     return this.buildMessage('payment_initiated', {
       phone: maskedPhone,
+      reference_code: referenceCode,
     });
   }
 
@@ -271,6 +293,7 @@ export class WhatsAppTemplateService {
       guest_ref: data.guestRef,
       btc_line: data.btcAmount ? `BTC received: *${data.btcAmount}*` : '',
       tx_line: data.txHash ? `Transaction: *${this.maskTxHash(data.txHash)}*` : '',
+      tracking_url: this.getTrackingUrl(data.referenceCode),
     });
   }
 
@@ -328,6 +351,10 @@ export class WhatsAppTemplateService {
     return this.buildMessage('session_expired');
   }
 
+  orderExpired(): WhatsAppOutboundMessage {
+    return this.buildMessage('order_expired');
+  }
+
   identitySubmitted(
     compliancePassed: boolean,
     reason?: string,
@@ -363,6 +390,10 @@ export class WhatsAppTemplateService {
   }
 
   // ─── Masking Helpers ─────────────────────────────────────────────
+
+  getTrackingUrl(referenceCode: string): string {
+    return `${this.webBaseUrl}/convert?ref=${encodeURIComponent(referenceCode)}`;
+  }
 
   maskPhone(phone: string): string {
     if (phone.length <= 4) return phone;
