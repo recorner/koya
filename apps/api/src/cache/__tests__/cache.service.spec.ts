@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CacheService } from '../cache.service';
-import { REDIS_CLIENT } from '../cache.constants';
+import {
+  buildKey,
+  CacheNamespace,
+  DefaultTTL,
+  REDIS_CLIENT,
+} from '../cache.constants';
 import type { LockResult } from '../cache.types';
 
 /**
@@ -259,9 +264,6 @@ describe('CacheService', () => {
 // ── Key Namespace Helpers ───────────────────────────────────────────
 
 describe('cache.constants', () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { buildKey, CacheNamespace, DefaultTTL } = require('../cache.constants');
-
   describe('buildKey', () => {
     it('should build namespaced keys', () => {
       expect(buildKey(CacheNamespace.QUOTE, 'abc-123')).toBe('quote:abc-123');

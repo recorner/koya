@@ -10,7 +10,6 @@ import {
   ALL_PAIRS,
   isDirectPair,
   isDerivedPair,
-  DIRECT_PAIRS,
 } from './rates.constants';
 
 /**

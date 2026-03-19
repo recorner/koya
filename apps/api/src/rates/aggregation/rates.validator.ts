@@ -54,8 +54,9 @@ export class RatesValidator {
     let maxDiv = 0;
     for (let i = 0; i < rates.length; i++) {
       for (let j = i + 1; j < rates.length; j++) {
-        const rateA = rates[i]!;
-        const rateB = rates[j]!;
+        const rateA = rates[i];
+        const rateB = rates[j];
+        if (!rateA || !rateB) continue;
         const avg = (rateA.mid + rateB.mid) / 2;
         if (avg === 0) continue;
         const divergence = Math.abs(rateA.mid - rateB.mid) / avg;
@@ -65,7 +66,7 @@ export class RatesValidator {
 
     if (maxDiv > MAX_DIVERGENCE) {
       this.logger.warn(
-        `Rate divergence ${(maxDiv * 100).toFixed(2)}% exceeds threshold ${(MAX_DIVERGENCE * 100).toFixed(2)}% for ${rates[0]!.pair}`,
+        `Rate divergence ${(maxDiv * 100).toFixed(2)}% exceeds threshold ${(MAX_DIVERGENCE * 100).toFixed(2)}% for ${rates[0]?.pair}`,
       );
     }
 

@@ -37,8 +37,9 @@ export class RatesAggregator {
 
     const rates: NormalizedRate[] = [];
     for (let i = 0; i < results.length; i++) {
-      const result = results[i]!;
-      const provider = supporting[i]!;
+      const result = results[i];
+      const provider = supporting[i];
+      if (!result || !provider) continue;
       if (result.status === 'fulfilled') {
         const rate = result.value;
         if (this.validator.isValid(rate) && !this.validator.isStale(rate)) {
@@ -111,6 +112,6 @@ export class RatesAggregator {
 function median(sorted: number[]): number {
   const n = sorted.length;
   if (n === 0) return 0;
-  if (n % 2 === 1) return sorted[Math.floor(n / 2)]!;
-  return (sorted[n / 2 - 1]! + sorted[n / 2]!) / 2;
+  if (n % 2 === 1) return sorted[Math.floor(n / 2)] ?? 0;
+  return ((sorted[n / 2 - 1] ?? 0) + (sorted[n / 2] ?? 0)) / 2;
 }

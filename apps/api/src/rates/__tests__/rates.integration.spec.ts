@@ -10,7 +10,7 @@ import { RatesRouteBuilder } from '../aggregation/rates.route-builder';
 import { RatesHealth } from '../health/rates.health';
 import { RatesService } from '../rates.service';
 import type { RatesProvider } from '../providers/provider.interface';
-import type { NormalizedRate, RateSnapshot } from '../rates.types';
+import type { NormalizedRate } from '../rates.types';
 
 function makeRate(mid: number, source: string, pair: string): NormalizedRate {
   return {
