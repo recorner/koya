@@ -1,373 +1,378 @@
-You are working inside the Koya monorepo.
+# KOYA — Foundational Redis Caching Layer
+### Infrastructure Module Build Prompt
 
-First, study the existing guest conversion implementation before making any changes. Do not code blindly. Read the current backend, shared types, frontend conversion flow, and docs so you fully understand how the existing guest KES → BTC engine works.
-
-## Goal
-
-Build **WhatsApp Guest Conversion v1** using the existing **Twilio account for testing**.
-
-This must let a user complete the already implemented **guest KES → BTC** conversion flow through WhatsApp, while reusing the current NestJS conversion engine, Prisma models, validation, payment flow, and state machine as much as possible.
-
-This is a **channel extension**, not a rewrite.
+Version: 1.0  
+Target: NestJS Nx Monorepo  
+Purpose: Build the shared caching infrastructure used by all Koya services.
 
 ---
 
-## Study first
+# 1. Context
 
-Before writing code, inspect at minimum:
+Koya Bank is a borderless financial infrastructure platform that includes:
 
-- `apps/api/src/conversion/*`
-- `apps/api/src/payments/*`
-- `apps/api/src/kyc/*`
-- `apps/api/src/risk/*`
-- `apps/api/src/providers/*`
-- `apps/api/src/common/validation.utils.ts`
-- `apps/api/prisma/schema.prisma`
-- `libs/types/src/lib/*`
-- `apps/web/components/conversion/*`
-- any docs for the guest conversion vertical slice
+- multi-currency wallets
+- crypto-fiat conversion
+- M-Pesa payments
+- guest swaps
+- WhatsApp transactions
+
+The backend architecture is a NestJS monorepo where Redis acts as the system-wide caching layer alongside PostgreSQL.
+
+Redis will support:
+
+- rate caching
+- sessions
+- quote TTL storage
+- distributed locks
+- idempotency keys
+- provider health states
+- temporary operational state
+
+Redis NEVER stores financial truth.  
+All financial records remain in the ledger database.
+
+---
+
+# 2. Objective
+
+Build a production-grade Redis caching layer that:
+
+- runs as a dedicated container
+- is shared across all services
+- provides typed caching utilities
+- enforces TTL policies
+- supports locks and idempotency
+- enables resilient system behaviour
+
+This layer will power upcoming modules such as:
+
+- rates provider
+- quote engine
+- session management
+- conversion engine
+
+---
+
+# 3. First Step — Study the Repository
+
+Before writing any code:
+
+1. Inspect the current monorepo structure.
+
+Expected layout:
+
+apps/  
+&nbsp;&nbsp;api/  
+&nbsp;&nbsp;web/  
+&nbsp;&nbsp;whatsapp/  
+
+libs/  
+&nbsp;&nbsp;shared/  
+&nbsp;&nbsp;ledger/  
+&nbsp;&nbsp;crypto/  
+
+Focus especially on:
+
+apps/api/src
 
 Understand:
-- quote creation
-- session creation
-- identity submission
-- payout submission
-- payment initiation
-- M-Pesa callback handling
-- manual reference confirmation
-- state transition enforcement
-- mock provider DI setup
 
-Only after this analysis should you implement WhatsApp support.
+- module structure
+- dependency injection patterns
+- environment config system
+- logging strategy
+
+Do not introduce architecture that conflicts with existing patterns.
 
 ---
 
-## Core architecture rule
+# 4. Infrastructure Requirement
 
-Do not build a separate conversion engine for WhatsApp.
-Do not duplicate quote, session, KYC, payout, payment, or processing logic.
+Redis must run as a dedicated container accessible by all services.
 
-WhatsApp must be a **thin conversation/orchestration layer** on top of the existing backend services.
+Update docker-compose.yml.
 
-Reuse:
-- existing conversion services
-- existing payment services
-- existing KYC/compliance services
-- existing validation utilities
-- existing route policy
-- existing state machine
+Example:
 
----
+```yaml
+redis:
+  image: redis:7-alpine
+  container_name: koya-redis
+  ports:
+    - "6379:6379"
+  volumes:
+    - redis_data:/data
+  command: redis-server --appendonly yes
+  healthcheck:
+    test: ["CMD", "redis-cli", "ping"]
+    interval: 5s
+    timeout: 3s
+    retries: 5
+```
 
-## Scope
+Add persistent volume:
 
-Support only this v1 flow:
-- channel: WhatsApp
-- user type: guest
-- route: KES → BTC
-- payment source: M-Pesa
-- payout: BTC
-- one active conversion per WhatsApp phone number
+```yaml
+volumes:
+  redis_data:
+```
 
-Do not add:
-- authenticated account flows
-- other conversion routes
-- balances
-- withdrawals
-- full WhatsApp banking features
+Goals:
 
----
-
-## Twilio
-
-Use the existing Twilio account for testing.
-
-Implement WhatsApp using Twilio inbound webhooks and outbound message sending.
-
-Assume sandbox or existing test setup is acceptable for development.
-
-Keep Twilio integration encapsulated in the WhatsApp module. Do not scatter Twilio calls across the codebase.
+- persistence enabled
+- stable service name
+- healthcheck
+- minimal configuration
 
 ---
 
-## What to build
+# 5. Cache Module
 
-Create a new backend module, for example:
+Create a new module inside the API.
 
-- `apps/api/src/whatsapp/whatsapp.module.ts`
-- `apps/api/src/whatsapp/whatsapp.controller.ts`
-- `apps/api/src/whatsapp/whatsapp.service.ts`
-- `apps/api/src/whatsapp/whatsapp-session.service.ts`
-- `apps/api/src/whatsapp/whatsapp-parser.service.ts`
-- `apps/api/src/whatsapp/whatsapp-template.service.ts`
-- `apps/api/src/whatsapp/whatsapp-idempotency.service.ts`
+Location:
 
-Naming can vary slightly if justified, but keep the module clean and explicit.
+apps/api/src/cache
 
----
+Structure:
 
-## New endpoint
-
-Add:
-
-- `POST /api/v1/whatsapp/webhook`
-
-This endpoint should:
-- accept inbound Twilio WhatsApp messages
-- validate or verify Twilio requests if feasible in current setup
-- normalize incoming payloads
-- deduplicate inbound messages using Twilio message SID
-- load or create a WhatsApp conversation
-- route the message according to current step
-- send reply via Twilio
+cache/  
+├── cache.module.ts  
+├── cache.service.ts  
+├── redis.provider.ts  
+├── cache.constants.ts  
+├── cache.types.ts  
 
 ---
 
-## Database additions
+# 6. Redis Client
 
-Add Prisma models for conversational state and logging.
+Use an async Redis client such as:
 
-### `WhatsAppConversation`
-Include fields like:
-- id
-- phoneNumber
-- status
-- currentIntent
-- currentStep
-- conversionSessionId
-- guestProfileId if useful
-- lastInboundAt
-- lastOutboundAt
-- expiresAt
-- metadata JSON
-- createdAt
-- updatedAt
+ioredis
 
-### `WhatsAppMessageEvent`
-Include fields like:
-- id
-- conversationId
-- direction
-- twilioMessageSid
-- body
-- messageType
-- payload/rawPayload JSON
-- createdAt
+Connection should support:
 
-Requirements:
-- conversation lookup by phone number must be efficient
-- Twilio message SID should support idempotency
-- design indexes well
+- auto reconnect
+- TLS option
+- password authentication
+- graceful shutdown
+
+The client must be injected using NestJS dependency injection.
 
 ---
 
-## WhatsApp-specific flow state
+# 7. Cache Service Capabilities
 
-Do not reuse the existing conversion state enum for chat UX.
+The cache service must expose safe helpers.
 
-Create a separate WhatsApp flow step enum, for example:
-- `IDLE`
-- `MENU`
-- `WAITING_FOR_AMOUNT`
-- `WAITING_FOR_QUOTE_CONFIRMATION`
-- `WAITING_FOR_FULL_NAME`
-- `WAITING_FOR_DOCUMENT_NUMBER`
-- `WAITING_FOR_EMAIL`
-- `WAITING_FOR_BTC_ADDRESS`
-- `WAITING_FOR_PAYMENT_CONFIRMATION`
-- `WAITING_FOR_REFERENCE`
-- `COMPLETED`
+## Basic Operations
 
-This should map onto the existing conversion session lifecycle without replacing it.
+- get(key)
+- set(key, value, ttl?)
+- delete(key)
+- exists(key)
 
----
+## JSON Helpers
 
-## User flow to implement
+- getJSON(key)
+- setJSON(key, object, ttl?)
 
-### Entry
-If user sends:
-- `hi`
-- `hello`
-- `start`
+## Atomic Operations
 
-Reply with a short welcome menu:
-- Welcome to Koya
-- Reply `1` to convert KES to BTC
-- Reply `HELP` for commands
-- Reply `CANCEL` anytime to stop
+- setIfNotExists(key, value, ttl)
+- increment(key)
 
-### Start conversion
-If user replies `1`:
-- set conversion intent
-- ask for amount in KES
+## Distributed Locks
 
-### Amount
-User sends KES amount like `500`, `2500`, `50000`
-- validate using existing rules
-- create quote using existing quote logic
+- acquireLock(resource, ttl)
+- releaseLock(resource)
 
-Reply with:
-- KES amount
-- BTC amount
-- fee
-- rate
-- quote expiry
-- prompt to reply `YES`
+Used for:
 
-### Quote confirmation
-If user replies `YES` before expiry:
-- create session using existing session logic
-- ask for full name
-
-If quote expired:
-- handle cleanly, either regenerate or request amount again
-
-### Identity
-Collect one message at a time:
-1. full name
-2. national ID number
-3. optional email, allow `SKIP`
-
-Then submit identity using existing identity/KYC flow.
-
-### BTC payout
-Ask for BTC address.
-Validate using existing BTC validation utility.
-If valid, save payout details through existing services.
-
-### Payment
-Use WhatsApp sender phone as default M-Pesa phone if appropriate, or ask for confirmation/change if needed.
-Require user to reply `PAY`.
-
-On `PAY`:
-- call existing payment initiation logic
-- initiate STK push
-- move to pending step
-
-### Payment pending
-Reply telling the user that M-Pesa STK push was sent and they should enter their PIN.
-
-If payment callback confirms:
-- send completion message with:
-  - guest reference
-  - tx hash
-  - BTC amount
-  - success confirmation
-
-### Manual fallback
-If no automatic update arrives, allow:
-- `REF <mpesa_reference>`
-
-Use the existing manual reference confirmation flow where possible.
-Only allow this while the linked session is actually payment-pending.
+- quote locking
+- transaction safety
+- idempotent execution
 
 ---
 
-## Commands
+# 8. Key Namespace Design
 
-Support globally:
-- `HELP`
-- `CANCEL`
-- `START OVER`
-- `STATUS`
+All Redis keys must follow a strict naming structure.
 
-Expected behavior:
-- `HELP` explains available commands
-- `CANCEL` safely ends current flow
-- `START OVER` resets chat state and abandons unfinished conversation flow
-- `STATUS` returns current conversion/session state when available
+Examples:
+
+session:<session_id>
+
+rates:spot:<pair>  
+rates:derived:<pair>  
+rates:lastgood:<pair>  
+
+quote:<quote_id>  
+
+quote_lock:<quote_id>  
+
+idempotency:<key>  
+
+provider_health:<provider>  
+
+lock:<resource>
 
 ---
 
-## Safeguards
+# 9. TTL Strategy
+
+Implement TTL defaults.
+
+| Use Case | TTL |
+|----------|-----|
+Crypto spot price | 2–5 seconds |
+FX fiat rate | 30–120 seconds |
+Derived conversion rates | same as underlying |
+Quotes | 30 seconds |
+Provider health flags | 60 seconds |
+Locks | 5–10 seconds |
+
+TTL must be configurable through environment variables.
+
+---
+
+# 10. Configuration
+
+Add environment variables:
+
+REDIS_HOST  
+REDIS_PORT  
+REDIS_PASSWORD  
+REDIS_DB  
+REDIS_TLS  
+
+Config validation should run at startup.
+
+If Redis cannot connect:
+
+- log error
+- retry with exponential backoff
+
+---
+
+# 11. Health Checks
 
 Implement:
-- one active conversion per phone number
-- inbound idempotency using Twilio message SID
-- inactivity timeout, e.g. 10 minutes
-- no duplicate payment initiation
-- no manual reference confirmation unless payment is pending
-- mask sensitive values when replying
-- lightweight rate limiting if consistent with current stack
-- useful structured logs
 
-Do not build a fragile happy-path-only bot.
+/health/cache
 
----
+Health indicator must check:
 
-## Notification bridge
+- redis ping
+- latency threshold
 
-Important:
-when the existing M-Pesa callback confirms payment for a conversion session created through WhatsApp, the system should automatically send a WhatsApp update through Twilio to the linked user.
-
-Wire this cleanly. Do not hack it in.
+Expose status to readiness probes.
 
 ---
 
-## Config
+# 12. Failure Behaviour
 
-Add/update env vars such as:
-- `TWILIO_ACCOUNT_SID`
-- `TWILIO_AUTH_TOKEN`
-- `TWILIO_WHATSAPP_NUMBER`
-- `WHATSAPP_SESSION_TTL_MINUTES`
-- `WHATSAPP_RATE_LIMIT_PER_MINUTE`
+If Redis becomes unavailable:
 
-Update `.env.example`.
+- system should not crash
+- critical operations must fallback gracefully
 
----
+Examples:
 
-## Testing
-
-Add proper tests.
-
-### Unit tests
-- parser behavior
-- command handling
-- flow-step routing
-- amount/address/reference parsing and validation behavior
-
-### Integration tests
-- inbound webhook creates/resumes conversation
-- amount → quote → yes → identity → payout → pay flow
-- duplicate inbound message is ignored
-- manual reference flow works
-- payment callback triggers WhatsApp success notification
-
-### Persistence checks
-- conversation state persists correctly
-- message events are stored
-- expired conversations reset correctly
-
-Do not rely on live Twilio network calls in tests.
+- rate cache miss → fetch fresh price
+- session cache miss → validate DB
+- quote lock failure → retry
 
 ---
 
-## Documentation
+# 13. Logging
 
-Create a concise markdown doc covering:
-- architecture overview
-- how WhatsApp maps to the existing guest conversion engine
-- Twilio test setup
-- webhook behavior
-- supported commands
-- v1 limitations
+All cache errors must be logged with:
+
+- operation
+- key
+- error message
+- timestamp
+
+Avoid logging sensitive values.
 
 ---
 
-## Deliverables
+# 14. Testing
 
-Deliver:
-- backend implementation
-- Prisma schema updates + migration
-- env updates
+Provide tests.
+
+## Unit Tests
+
+Verify:
+
+- set/get
+- TTL expiry
+- key namespace
+- JSON helpers
+
+## Integration Tests
+
+Verify:
+
+- Redis connectivity
+- lock correctness
+- concurrent writes
+- expiration behaviour
+
+---
+
+# 15. Documentation
+
+Produce short internal documentation covering:
+
+- how cache keys are structured
+- recommended TTL policies
+- how other modules use the cache
+- examples of usage
+
+---
+
+# 16. Constraints
+
+Do NOT:
+
+- store ledger balances in Redis
+- store irreversible financial state
+- introduce Redis clustering yet
+- overengineer the solution
+
+This is foundational infrastructure only.
+
+---
+
+# 17. Deliverables
+
+Expected outputs:
+
+- docker-compose Redis service
+- cache module inside API
+- typed cache service
+- Redis provider
+- key namespace helpers
+- environment config
+- health indicator
 - tests
-- concise docs
+- documentation
 
-Before finalizing, verify:
-- TypeScript compiles
-- Prisma generates cleanly
-- tests pass
-- architecture remains clean
-- no unnecessary duplication of core business logic
-- WhatsApp is implemented as a reusable channel layer over the existing engine
+---
+
+# 18. Success Criteria
+
+The system is complete when:
+
+- Redis container starts with stack
+- API connects successfully
+- cache set/get works
+- TTL expiration works
+- locks work correctly
+- other modules can inject CacheService
+
+This prepares the system for the Rates Provider module that will rely on this caching layer.

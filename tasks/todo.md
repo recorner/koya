@@ -160,14 +160,31 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [x] **11.15** Seed homepage with 10 sections + nav + footer + settings
 - [x] **11.16** Verify production build passes (`npx nx build web`)
 
-## Phase 12: Production Readiness (Next)
+## Phase 12: Redis Caching Layer
 
-- [ ] **12.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
-- [ ] **12.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
-- [ ] **12.3** Replace `MockIprsVerifier` with Kenya IPRS API
-- [ ] **12.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
-- [ ] **12.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
-- [ ] **12.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
+- [x] **12.1** Install `ioredis` dependency
+- [x] **12.2** Create `docker-compose.yml` with Redis service (redis:7-alpine, AOF persistence, healthcheck)
+- [x] **12.3** Add Redis environment variables (`REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_DB`, `REDIS_TLS`)
+- [x] **12.4** Create `CacheModule` (@Global) with:
+  - `cache.types.ts` — `CacheConfig`, `LockResult` interfaces
+  - `cache.constants.ts` — `REDIS_CLIENT` DI token, `CacheNamespace` prefixes, `DefaultTTL` values, `buildKey()` helper
+  - `redis.provider.ts` — ioredis factory provider with auto-reconnect, TLS, ConfigService injection
+  - `cache.service.ts` — typed service: get/set/delete/exists, getJSON/setJSON, setIfNotExists/increment, acquireLock/releaseLock, ping
+  - `cache.module.ts` — @Global module with graceful shutdown
+- [x] **12.5** Register `CacheModule` in `AppModule`
+- [x] **12.6** Add health check endpoints (`GET /health` includes cache status, `GET /health/cache` dedicated)
+- [x] **12.7** Unit tests (30 tests — mocked Redis): all cache operations, error handling, key namespace helpers
+- [x] **12.8** Integration tests (11 tests — real Redis): connectivity, TTL expiry, distributed locks, concurrent access
+- [x] **12.9** Documentation: `docs/progress/step-08.md`
+
+## Phase 13: Production Readiness (Next)
+
+- [ ] **13.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
+- [ ] **13.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
+- [ ] **13.3** Replace `MockIprsVerifier` with Kenya IPRS API
+- [ ] **13.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
+- [ ] **13.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
+- [ ] **13.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
 - [ ] **12.7** WebSocket/SSE for real-time status updates (replace polling)
 - [ ] **12.8** Rate limiting on guest endpoints
 - [ ] **12.9** WhatsApp channel support

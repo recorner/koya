@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from '../prisma/prisma.module';
+import { CacheModule } from '../cache/cache.module';
 import { ConversionModule } from '../conversion/conversion.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
@@ -12,6 +13,7 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
     ConfigModule.forRoot({ isGlobal: true }),
     EventEmitterModule.forRoot(),
     PrismaModule,
+    CacheModule,
     ConversionModule,
     WhatsAppModule,
   ],

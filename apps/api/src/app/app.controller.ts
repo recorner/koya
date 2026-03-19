@@ -9,4 +9,9 @@ export class AppController {
   health() {
     return this.appService.getHealth();
   }
+
+  @Get('health/cache')
+  cacheHealth() {
+    return this.appService.getCacheHealth();
+  }
 }
