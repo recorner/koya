@@ -107,7 +107,7 @@ export function QuoteStep({
           <div className="flex justify-between text-xs">
             <span className="text-white/40">Rate</span>
             <span className="font-mono text-white/70">
-              1 {quote.sourceAsset} = {quote.rate} {quote.targetAsset}
+              1 BTC = {parseFloat(quote.rate) > 0 ? Math.round(1 / parseFloat(quote.rate)).toLocaleString('en-US') : '—'} KES
             </span>
           </div>
           <div className="mt-1.5 flex justify-between text-xs">

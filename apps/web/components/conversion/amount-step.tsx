@@ -109,7 +109,7 @@ export function AmountStep({
         <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2">
           <RefreshCw size={10} className="text-white/25" />
           <span className="font-mono text-[11px] text-white/40">
-            1 KES ≈ {rate.toFixed(10)} BTC
+            1 BTC ≈ {Math.round(1 / rate).toLocaleString('en-US')} KES
           </span>
         </div>
       )}

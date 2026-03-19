@@ -44,6 +44,8 @@ describe('WhatsAppTemplateService', () => {
       });
       expect(bodyOf(msg)).toContain('KES 1000');
       expect(bodyOf(msg)).toContain('0.00000881');
+      expect(bodyOf(msg)).toContain('1 BTC =');
+      expect(bodyOf(msg)).toContain('KES');
       expect(bodyOf(msg)).toContain('YES');
       expect(msg.interactive?.buttons).toEqual([
         { id: 'YES', title: 'Continue' },

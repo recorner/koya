@@ -7,6 +7,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CacheModule } from '../cache/cache.module';
 import { ConversionModule } from '../conversion/conversion.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { RatesModule } from '../rates/rates.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
     CacheModule,
     ConversionModule,
     WhatsAppModule,
+    RatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

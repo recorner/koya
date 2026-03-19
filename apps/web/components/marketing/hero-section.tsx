@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { KoyaMark } from '@/components/marketing/koya-mark';
 import { BtcIcon, UsdcIcon, KesIcon, UsdIcon } from '@/components/marketing/asset-icons';
 import { Button } from '@/components/ui/button';
+import { useLiveRate } from '@/lib/hooks/use-realtime-rates';
 
 function MastercardLogo({ className }: { className?: string }) {
   return (
@@ -81,6 +82,11 @@ function MetricRow({
 }
 
 export function HeroSection() {
+  const btcKesRate = useLiveRate('BTC', 'KES', 10000);
+  const btcKesDisplay = btcKesRate
+    ? Math.round(btcKesRate).toLocaleString('en-US')
+    : '—';
+
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
@@ -302,7 +308,7 @@ export function HeroSection() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between text-[11px] text-white/48">
-                  <span>Rate 1 BTC = KES 7,261,410</span>
+                  <span>Rate 1 BTC = KES {btcKesDisplay}</span>
                   <span>27s</span>
                 </div>
               </GlassCard>

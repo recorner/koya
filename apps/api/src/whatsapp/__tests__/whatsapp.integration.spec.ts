@@ -3,11 +3,14 @@ import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheModule } from '../../cache/cache.module';
 import { WhatsAppModule } from '../whatsapp.module';
 import { WhatsAppService } from '../whatsapp.service';
 import { WhatsAppSessionService } from '../whatsapp-session.service';
 import { TWILIO_ADAPTER } from '../../providers/twilio-adapter.interface';
 import { MockTwilioAdapter } from '../../providers/mock-twilio.adapter';
+import { RATE_PROVIDER } from '../../providers/rate-provider.interface';
+import { MockRateProvider } from '../../providers/mock-rate.provider';
 import { randomUUID } from 'crypto';
 
 describe('WhatsApp Flow (Integration)', () => {
@@ -35,11 +38,14 @@ describe('WhatsApp Flow (Integration)', () => {
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
         PrismaModule,
+        CacheModule,
         WhatsAppModule,
       ],
     })
       .overrideProvider(TWILIO_ADAPTER)
       .useClass(MockTwilioAdapter)
+      .overrideProvider(RATE_PROVIDER)
+      .useClass(MockRateProvider)
       .compile();
 
     whatsappService = module.get(WhatsAppService);

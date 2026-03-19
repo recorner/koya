@@ -177,9 +177,42 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [x] **12.8** Integration tests (11 tests — real Redis): connectivity, TTL expiry, distributed locks, concurrent access
 - [x] **12.9** Documentation: `docs/progress/step-08.md`
 
+## Phase 12b: Bank-Grade Rates Provider (Step 09)
+
+- [x] **12b.1** Core types (`rates.types.ts`) — `NormalizedRate`, `RateSnapshot`, `ProviderHealthState`, `DerivedRoute`, `RatesHealthResponse`
+- [x] **12b.2** Constants & config (`rates.constants.ts`) — 6 direct pairs, 7 derived pairs, derivation routes, staleness thresholds, MAX_DIVERGENCE(2%), symbol maps, helpers
+- [x] **12b.3** Provider interface (`provider.interface.ts`) — `RatesProvider` with `getTicker`, `getMany`, `getHealth`
+- [x] **12b.4** Binance adapter (`binance.provider.ts`) — `/api/v3/ticker/bookTicker`, 3 pairs, 5s timeout
+- [x] **12b.5** Kraken adapter (`kraken.provider.ts`) — `/0/public/Ticker`, 3 pairs, 5s timeout
+- [x] **12b.6** FX provider (`fx.provider.ts`) — mock KES/USD with jitter, swappable to real API
+- [x] **12b.7** Validator (`rates.validator.ts`) — `isValid`, `isStale`, `checkDivergence`, `isSnapshotStale`
+- [x] **12b.8** Route builder (`rates.route-builder.ts`) — `getRoute`, `getRequiredDirectPairs`, `derive` with inversion
+- [x] **12b.9** Aggregator (`rates.aggregator.ts`) — parallel fetch, validate, reject stale, divergence check, median consensus
+- [x] **12b.10** Cache layer (`rates.cache.ts`) — spot/derived/lastGood/providerHealth via CacheService, 600s last-good TTL
+- [x] **12b.11** Health check (`rates.health.ts`) — provider states, core pair freshness, cache status
+- [x] **12b.12** Service (`rates.service.ts`) — `getRate`, `getAllRates`, `getHealthReport`, cache-through with last-good fallback
+- [x] **12b.13** Controller (`rates.controller.ts`) — `GET /rates`, `GET /rates/health`, `GET /rates/:pair`
+- [x] **12b.14** Module (`rates.module.ts`) — provider DI, useFactory for service with provider array
+- [x] **12b.15** Wire into AppModule, AppService health, AppController `/health/rates`
+- [x] **12b.16** Unit tests (5 files, ~60 tests) — constants, validator, route-builder, aggregator, service
+- [x] **12b.17** Integration tests (8 tests with real Redis) — fetch+cache, derived rates, last-good fallback, health
+- [x] **12b.18** TypeScript strict mode — zero errors
+- [x] **12b.19** All 241 tests passing (16 suites)
+- [x] **12b.20** Documentation: `docs/progress/step-09.md`
+
+## Phase 12c: Wire Live Rates into Conversion Flow
+
+- [x] **12c.1** Make Binance/Kraken provider URLs env-configurable (`BINANCE_API_URL`, `KRAKEN_API_URL`) via ConfigService
+- [x] **12c.2** Create `LiveRateProvider` adapter bridging `RatesService` → legacy `RateProvider` interface
+- [x] **12c.3** Replace `MockRateProvider` with `LiveRateProvider` in `ConversionModule` (import `RatesModule`)
+- [x] **12c.4** Fix WhatsApp integration test: add `CacheModule` import (transitive dependency via RatesModule)
+- [x] **12c.5** Silence expected test log noise: `setLogger(no-op)` on TestingModule, `Logger.overrideLogger(false)` for plain tests
+- [x] **12c.6** Update env files: `docker/api.env.example` and `docker/api.env` with `BINANCE_API_URL`, `KRAKEN_API_URL`
+- [x] **12c.7** All 241 tests passing, zero `[Nest]` log noise in test output
+
 ## Phase 13: Production Readiness (Next)
 
-- [ ] **13.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance)
+- [x] **13.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance) — **Done via Step 09**: Binance + Kraken live adapters, FX mock swappable
 - [ ] **13.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
 - [ ] **13.3** Replace `MockIprsVerifier` with Kenya IPRS API
 - [ ] **13.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage

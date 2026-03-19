@@ -652,8 +652,9 @@ export class WhatsAppFlowHandler {
       };
     }
 
+    // Never leak internal errors (BigInt, DB, network) to the user
     return {
-      message: rawMessage || fallbackMessage,
+      message: fallbackMessage,
       nextStep: defaultNextStep,
     };
   }

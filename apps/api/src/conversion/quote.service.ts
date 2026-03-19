@@ -62,13 +62,9 @@ export class QuoteService {
     const feeMinor = (sourceAmountMinor * feeRate) / BigInt(10_000);
     const netSourceMinor = sourceAmountMinor - feeMinor;
 
-    // Calculate target amount
-    // rate is expressed as "1 source = X target"
-    // target_minor = net_source_minor * rate * (10^targetDecimals / 10^sourceDecimals)
-    const rateParts = rateResult.rate.split('.');
-    const rateIntStr = rateParts[0] ?? '0';
-    const rateFracStr = (rateParts[1] ?? '').padEnd(18, '0');
-    const rateScaled = BigInt(rateIntStr) * BigInt(10 ** 18) + BigInt(rateFracStr.slice(0, 18));
+    // Scale rate to fixed-point BigInt (18 decimal places)
+    // rate string must be plain decimal (e.g. "0.00000011") — never scientific notation
+    const rateScaled = this.parseRateToScaled(rateResult.rate);
 
     // target_minor = netSource * rateScaled / 10^18 * 10^(targetDecimals-sourceDecimals)
     let targetAmountMinor: bigint;
@@ -114,6 +110,24 @@ export class QuoteService {
       spread: rateResult.spread,
       expiresAt: expiresAt.toISOString(),
     };
+  }
+
+  /**
+   * Parse a plain-decimal rate string into an 18-decimal-place BigInt.
+   * "0.00000011" → 110000000000n   (0.00000011 × 10^18)
+   * "8977126.89" → 8977126890000000000000000n
+   * Rejects scientific notation to fail fast instead of producing garbage.
+   */
+  private parseRateToScaled(rateStr: string): bigint {
+    if (/[eE]/.test(rateStr)) {
+      throw new Error(
+        `Rate contains scientific notation ("${rateStr}") — provider must return plain decimals`,
+      );
+    }
+    const parts = rateStr.split('.');
+    const intPart = parts[0] ?? '0';
+    const fracPart = (parts[1] ?? '').padEnd(18, '0').slice(0, 18);
+    return BigInt(intPart) * BigInt(10 ** 18) + BigInt(fracPart);
   }
 
   /**

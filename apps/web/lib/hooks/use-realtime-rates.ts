@@ -1,34 +1,26 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { MOCK_RATES, TICKER_INSTRUMENTS, type TickerInstrument } from '@/components/marketing/asset-metadata';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { TICKER_INSTRUMENTS, type TickerInstrument } from '@/components/marketing/asset-metadata';
+import { fetchRates, type RateSnapshot } from '@/lib/api/rates';
 
 /**
- * Simulated real-time rate feed.
- * Fluctuates around MOCK_RATES every `intervalMs` with ±spread%.
- *
- * In production, replace the setInterval with a WebSocket connection
- * to the rate-provider service — the consumer API stays identical.
+ * Realtime rate feed powered by the backend /api/v1/rates endpoint.
+ * Polls every `intervalMs` (default 5 s). Shows empty/zero state
+ * until the first successful API response.
  */
 
 type RateMap = Record<string, Record<string, number>>;
 
-const DEFAULT_SPREAD = 0.002; // ±0.2% jitter each tick
-
-function jitter(base: number, spread: number): number {
-  const factor = 1 + (Math.random() * 2 - 1) * spread;
-  return base * factor;
-}
-
-function generateLiveRates(spread = DEFAULT_SPREAD): RateMap {
-  const live: RateMap = {};
-  for (const [src, dests] of Object.entries(MOCK_RATES)) {
-    live[src] = {};
-    for (const [dst, rate] of Object.entries(dests)) {
-      live[src][dst] = jitter(rate, spread);
-    }
+/** Convert the flat array from the API into the nested RateMap the UI expects. */
+function snapshotsToRateMap(snapshots: RateSnapshot[]): RateMap {
+  const map: RateMap = {};
+  for (const s of snapshots) {
+    const [base, quote] = s.pair.split('/');
+    if (!base || !quote) continue;
+    (map[base] ??= {})[quote] = s.mid;
   }
-  return live;
+  return map;
 }
 
 function formatTickerPrice(value: number, pair: string): string {
@@ -49,18 +41,25 @@ function computeChange(current: number, base: number): { change: string; positiv
 }
 
 /**
- * React hook: provides live-updating rate map.
- * @param intervalMs - tick interval in ms (default 2000)
+ * React hook: provides live-updating rate map from the backend.
+ * @param intervalMs - poll interval in ms (default 5000)
  */
-export function useRealtimeRates(intervalMs = 2000) {
-  const [rates, setRates] = useState<RateMap>(() => generateLiveRates());
+export function useRealtimeRates(intervalMs = 5000) {
+  const [rates, setRates] = useState<RateMap>({});
+
+  const refresh = useCallback(async () => {
+    const snapshots = await fetchRates();
+    if (snapshots.length > 0) {
+      setRates(snapshotsToRateMap(snapshots));
+    }
+  }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setRates(generateLiveRates());
-    }, intervalMs);
+    // Fetch immediately on mount
+    refresh();
+    const id = setInterval(refresh, intervalMs);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, [intervalMs, refresh]);
 
   return rates;
 }
@@ -68,33 +67,41 @@ export function useRealtimeRates(intervalMs = 2000) {
 /**
  * React hook: provides live-updating ticker instruments for the market ribbon.
  */
-export function useRealtimeTickers(intervalMs = 2000) {
+export function useRealtimeTickers(intervalMs = 5000) {
   const [tickers, setTickers] = useState<TickerInstrument[]>(TICKER_INSTRUMENTS);
-  const ratesRef = useRef<RateMap>(MOCK_RATES);
+  // Track the first snapshot as baseline for % change computation
+  const baselineRef = useRef<RateMap | null>(null);
+
+  const refresh = useCallback(async () => {
+    const snapshots = await fetchRates();
+    if (snapshots.length === 0) return;
+
+    const live = snapshotsToRateMap(snapshots);
+    if (!baselineRef.current) baselineRef.current = live;
+    const baseline = baselineRef.current;
+
+    const updated = TICKER_INSTRUMENTS.map((t) => {
+      const liveRate = live[t.baseSymbol]?.[t.quoteSymbol];
+      const baseRate = baseline[t.baseSymbol]?.[t.quoteSymbol];
+      if (liveRate == null || baseRate == null) return t;
+
+      const { change, positive } = computeChange(liveRate, baseRate);
+      return {
+        ...t,
+        price: formatTickerPrice(liveRate, t.pair),
+        change,
+        positive,
+      };
+    });
+
+    setTickers(updated);
+  }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      const live = generateLiveRates();
-      ratesRef.current = live;
-
-      const updated = TICKER_INSTRUMENTS.map((t) => {
-        const liveRate = live[t.baseSymbol]?.[t.quoteSymbol];
-        const baseRate = MOCK_RATES[t.baseSymbol]?.[t.quoteSymbol];
-        if (liveRate == null || baseRate == null) return t;
-
-        const { change, positive } = computeChange(liveRate, baseRate);
-        return {
-          ...t,
-          price: formatTickerPrice(liveRate, t.pair),
-          change,
-          positive,
-        };
-      });
-
-      setTickers(updated);
-    }, intervalMs);
+    refresh();
+    const id = setInterval(refresh, intervalMs);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, [intervalMs, refresh]);
 
   return tickers;
 }
@@ -102,7 +109,7 @@ export function useRealtimeTickers(intervalMs = 2000) {
 /**
  * Get a single live rate between two assets.
  */
-export function useLiveRate(source: string, dest: string, intervalMs = 2000) {
+export function useLiveRate(source: string, dest: string, intervalMs = 5000) {
   const rates = useRealtimeRates(intervalMs);
   return useMemo(() => rates[source]?.[dest] ?? 0, [rates, source, dest]);
 }

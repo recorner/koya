@@ -31,7 +31,9 @@ describe('CacheService', () => {
         CacheService,
         { provide: REDIS_CLIENT, useValue: redis },
       ],
-    }).compile();
+    })
+      .setLogger({ log() {}, error() {}, warn() {}, debug() {}, verbose() {}, fatal() {} })
+      .compile();
 
     service = module.get<CacheService>(CacheService);
   });

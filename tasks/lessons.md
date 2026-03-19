@@ -204,3 +204,66 @@ When adding expiry enforcement to a state machine, ensure that every state where
 ## Flow Handler Tests — Mock All Service Calls Added to a Method
 
 When a flow handler method gains a new service call (e.g., `getStatus()` after `initiatePayment()`), every test exercising that code path needs the new mock. Missing mocks cause `TypeError: Cannot read properties of undefined` at runtime rather than a clear assertion failure.
+
+---
+
+## TypeScript Strict — Array Indexing Returns `T | undefined`
+
+With `noUncheckedIndexedAccess` (part of strict), `arr[i]` returns `T | undefined` even inside a bounded `for` loop. Same for `Record<string, T>` lookups.
+
+**Patterns that work:**
+```ts
+// Non-null assertion when bounds are guaranteed
+for (let i = 0; i < arr.length; i++) {
+  const val = arr[i]!; // safe — i is bounded
+}
+
+// Fallback for Record lookups
+const confidence = CONFIDENCE_MAP[provider] ?? 0.5;
+
+// Destructuring alternative for known-length results
+const [base, quote] = pair.split('/');
+// becomes:
+const parts = pair.split('/');
+const base = parts[0] ?? '';
+const quote = parts[1] ?? '';
+```
+
+**Why this matters:** ~20 errors appeared in the rates module on first compile, all from array/record indexing. One pass with `!` assertions (bounded loops) and `?? fallback` (record lookups) fixed them all.
+
+---
+
+## NestJS Provider Array Pattern — useFactory for Multi-Provider Injection
+
+When a service needs an array of providers (e.g., multiple rate adapters), use `useFactory` in the module to inject each provider individually and pass them as an array:
+
+```ts
+{
+  provide: RatesService,
+  useFactory: (binance, kraken, fx, ...deps) =>
+    new RatesService([binance, kraken, fx], ...deps),
+  inject: [BinanceProvider, KrakenProvider, FxProvider, ...DepTokens],
+}
+```
+
+This avoids a custom multi-inject token and keeps each provider independently testable.
+
+---
+
+## NestJS Test Logger — `.setLogger(false)` Requires LoggerService in v11
+
+`TestingModuleBuilder.setLogger(false)` doesn't accept `boolean` in NestJS 11. Use a no-op object:
+
+```ts
+Test.createTestingModule({ ... })
+  .setLogger({ log() {}, error() {}, warn() {}, debug() {}, verbose() {}, fatal() {} })
+  .compile();
+```
+
+For non-TestingModule tests (plain class instantiation), `Logger.overrideLogger(false)` still works but only affects Logger instances created AFTER the call. Use the `beforeAll` hook to set it before any test code runs.
+
+---
+
+## Replacing Mock Providers — Import the New Module's Dependencies
+
+When swapping a mock provider (e.g., `MockRateProvider`) with a live adapter that depends on another module (e.g., `LiveRateProvider → RatesService → CacheModule`), ALL integration tests that transitively import the changed module MUST include the new dependency. In this project, `WhatsAppModule → ConversionModule → RatesModule → CacheModule`, so the WhatsApp integration test needed `CacheModule` added to its imports.

@@ -29,7 +29,7 @@ const DEFAULT_TEMPLATES = {
     '*Koya | Your Quote*',
     'Send: *KES {{source_amount}}*',
     'Receive: *BTC {{target_amount}}*',
-    'Rate: *1 KES = {{rate}} BTC*',
+    'Rate: *1 BTC = {{rate_display}} KES*',
     'Fee: *KES {{fee}}*',
     '',
     'This quote expires in about *30 seconds*.',
@@ -223,10 +223,18 @@ export class WhatsAppTemplateService {
   }
 
   showQuote(quote: ConversionQuoteResponse): WhatsAppOutboundMessage {
+    // Invert KES/BTC rate to BTC/KES for readability
+    // e.g. 0.000000111 → "8,977,127"
+    const rateNum = parseFloat(quote.rate);
+    const inverseRate = rateNum > 0 ? (1 / rateNum) : 0;
+    const rateDisplay = inverseRate.toLocaleString('en-US', {
+      maximumFractionDigits: 2,
+    });
+
     return this.buildMessage('show_quote', {
       source_amount: quote.sourceAmount,
       target_amount: quote.targetAmount,
-      rate: quote.rate,
+      rate_display: rateDisplay,
       fee: quote.fee,
     });
   }
