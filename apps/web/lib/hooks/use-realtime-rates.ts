@@ -94,7 +94,10 @@ export function useRealtimeTickers(intervalMs = 5000) {
       };
     });
 
-    setTickers(updated);
+    setTickers((prev) => {
+      const changed = updated.some((t, i) => t.price !== prev[i]?.price || t.change !== prev[i]?.change);
+      return changed ? updated : prev;
+    });
   }, []);
 
   useEffect(() => {

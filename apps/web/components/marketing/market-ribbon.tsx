@@ -1,10 +1,11 @@
 'use client';
 
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { AssetIcon } from '@/components/marketing/asset-icons';
 import { useRealtimeTickers } from '@/lib/hooks/use-realtime-rates';
 
-function TickerItem({ pair, baseSymbol, price, change, positive }: {
+const TickerItem = memo(function TickerItem({ pair, baseSymbol, price, change, positive }: {
   pair: string;
   baseSymbol: string;
   price: string;
@@ -26,14 +27,14 @@ function TickerItem({ pair, baseSymbol, price, change, positive }: {
       </span>
     </div>
   );
-}
+});
 
 export function MarketRibbon() {
   const tickers = useRealtimeTickers();
 
   return (
     <div className="group relative z-40 bg-cell/80 backdrop-blur-sm overflow-hidden">
-      <div className="flex animate-ticker-scroll group-hover:[animation-play-state:paused] py-2.5">
+      <div className="flex will-change-transform animate-ticker-scroll group-hover:[animation-play-state:paused] py-2.5">
         {/* First set */}
         <div className="flex shrink-0 items-center">
           {tickers.map((item) => (

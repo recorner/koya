@@ -52,11 +52,13 @@ function useSwapState() {
 
   const rateDisplay = useMemo(() => {
     if (!rate) return '';
-    const formatted =
-      rate < 0.001
-        ? rate.toFixed(8)
-        : rate.toLocaleString('en-US', { maximumFractionDigits: 2 });
-
+    // Show human-friendly direction: "1 BTC ≈ 8,970,000 KES" not "1 KES ≈ 0.00000011 BTC"
+    if (rate < 0.01) {
+      const inverted = 1 / rate;
+      const formatted = inverted.toLocaleString('en-US', { maximumFractionDigits: 2 });
+      return `1 ${destSymbol} ≈ ${formatted} ${sourceSymbol}`;
+    }
+    const formatted = rate.toLocaleString('en-US', { maximumFractionDigits: 2 });
     return `1 ${sourceSymbol} ≈ ${formatted} ${destSymbol}`;
   }, [rate, sourceSymbol, destSymbol]);
 
