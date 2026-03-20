@@ -43,8 +43,9 @@ export function MarketRibbon() {
 
     const frame = (t: number) => {
       if (prevRef.current && !pausedRef.current && widthRef.current > 0) {
-        const dt = (t - prevRef.current) / 1000;
-        xRef.current = (xRef.current + SPEED * dt) % widthRef.current;
+        const dt = Math.min((t - prevRef.current) / 1000, 0.1);
+        xRef.current += SPEED * dt;
+        if (xRef.current >= widthRef.current) xRef.current -= widthRef.current;
         track.style.transform = `translate3d(${-xRef.current}px,0,0)`;
       }
       prevRef.current = t;
@@ -87,16 +88,13 @@ export function MarketRibbon() {
         className="flex will-change-transform py-2.5"
         style={{ transform: 'translate3d(0,0,0)' }}
       >
-        <div className="flex shrink-0 items-center">
-          {TICKER_INSTRUMENTS.map((item) => (
-            <TickerItem key={`a-${item.pair}`} pair={item.pair} baseSymbol={item.baseSymbol} />
-          ))}
-        </div>
-        <div className="flex shrink-0 items-center">
-          {TICKER_INSTRUMENTS.map((item) => (
-            <TickerItem key={`b-${item.pair}`} pair={item.pair} baseSymbol={item.baseSymbol} />
-          ))}
-        </div>
+        {['a', 'b', 'c'].map((key) => (
+          <div key={key} className="flex shrink-0 items-center">
+            {TICKER_INSTRUMENTS.map((item) => (
+              <TickerItem key={`${key}-${item.pair}`} pair={item.pair} baseSymbol={item.baseSymbol} />
+            ))}
+          </div>
+        ))}
       </div>
     </div>
   );

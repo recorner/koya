@@ -16,6 +16,8 @@ function snapshotsToRateMap(snapshots: RateSnapshot[]): RateMap {
     const [base, quote] = s.pair.split('/');
     if (!base || !quote) continue;
     (map[base] ??= {})[quote] = s.mid;
+    // Also store the inverse so e.g. USD/KES is available from KES/USD
+    if (s.mid !== 0) (map[quote] ??= {})[base] ??= 1 / s.mid;
   }
   return map;
 }
