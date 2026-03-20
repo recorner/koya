@@ -6,7 +6,7 @@ import { fetchRates, type RateSnapshot } from '@/lib/api/rates';
 
 /**
  * Realtime rate feed powered by the backend /api/v1/rates endpoint.
- * Polls every `intervalMs` (default 5 s). Shows empty/zero state
+ * Polls every `intervalMs` (default 2 s). Shows empty/zero state
  * until the first successful API response.
  */
 
@@ -42,9 +42,9 @@ function computeChange(current: number, base: number): { change: string; positiv
 
 /**
  * React hook: provides live-updating rate map from the backend.
- * @param intervalMs - poll interval in ms (default 5000)
+ * @param intervalMs - poll interval in ms (default 2000)
  */
-export function useRealtimeRates(intervalMs = 5000) {
+export function useRealtimeRates(intervalMs = 2000) {
   const [rates, setRates] = useState<RateMap>({});
 
   const refresh = useCallback(async () => {
@@ -55,7 +55,6 @@ export function useRealtimeRates(intervalMs = 5000) {
   }, []);
 
   useEffect(() => {
-    // Fetch immediately on mount
     refresh();
     const id = setInterval(refresh, intervalMs);
     return () => clearInterval(id);
@@ -65,54 +64,54 @@ export function useRealtimeRates(intervalMs = 5000) {
 }
 
 /**
- * React hook: provides live-updating ticker instruments for the market ribbon.
+ * Callback-based ticker hook for the market ribbon.
+ * Pushes updates via a callback ref — zero React re-renders.
+ * The caller patches the DOM directly.
  */
-export function useRealtimeTickers(intervalMs = 5000) {
-  const [tickers, setTickers] = useState<TickerInstrument[]>(TICKER_INSTRUMENTS);
-  // Track the first snapshot as baseline for % change computation
+export function useTickerUpdates(onUpdate: (tickers: TickerInstrument[]) => void, intervalMs = 2000) {
+  const callbackRef = useRef(onUpdate);
+  callbackRef.current = onUpdate;
+
   const baselineRef = useRef<RateMap | null>(null);
 
-  const refresh = useCallback(async () => {
-    const snapshots = await fetchRates();
-    if (snapshots.length === 0) return;
-
-    const live = snapshotsToRateMap(snapshots);
-    if (!baselineRef.current) baselineRef.current = live;
-    const baseline = baselineRef.current;
-
-    const updated = TICKER_INSTRUMENTS.map((t) => {
-      const liveRate = live[t.baseSymbol]?.[t.quoteSymbol];
-      const baseRate = baseline[t.baseSymbol]?.[t.quoteSymbol];
-      if (liveRate == null || baseRate == null) return t;
-
-      const { change, positive } = computeChange(liveRate, baseRate);
-      return {
-        ...t,
-        price: formatTickerPrice(liveRate, t.pair),
-        change,
-        positive,
-      };
-    });
-
-    setTickers((prev) => {
-      const changed = updated.some((t, i) => t.price !== prev[i]?.price || t.change !== prev[i]?.change);
-      return changed ? updated : prev;
-    });
-  }, []);
-
   useEffect(() => {
+    let active = true;
+
+    const refresh = async () => {
+      const snapshots = await fetchRates();
+      if (!active || snapshots.length === 0) return;
+
+      const live = snapshotsToRateMap(snapshots);
+      if (!baselineRef.current) baselineRef.current = live;
+      const baseline = baselineRef.current;
+
+      const updated = TICKER_INSTRUMENTS.map((t) => {
+        const liveRate = live[t.baseSymbol]?.[t.quoteSymbol];
+        const baseRate = baseline[t.baseSymbol]?.[t.quoteSymbol];
+        if (liveRate == null || baseRate == null) return t;
+
+        const { change, positive } = computeChange(liveRate, baseRate);
+        return {
+          ...t,
+          price: formatTickerPrice(liveRate, t.pair),
+          change,
+          positive,
+        };
+      });
+
+      callbackRef.current(updated);
+    };
+
     refresh();
     const id = setInterval(refresh, intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs, refresh]);
-
-  return tickers;
+    return () => { active = false; clearInterval(id); };
+  }, [intervalMs]);
 }
 
 /**
  * Get a single live rate between two assets.
  */
-export function useLiveRate(source: string, dest: string, intervalMs = 5000) {
+export function useLiveRate(source: string, dest: string, intervalMs = 2000) {
   const rates = useRealtimeRates(intervalMs);
   return useMemo(() => rates[source]?.[dest] ?? 0, [rates, source, dest]);
 }
