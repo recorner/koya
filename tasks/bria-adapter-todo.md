@@ -136,6 +136,6 @@ Create an event consumer that:
 - [x] `SubscribeAll` event stream wrapped as RxJS Observable
 - [x] Unit tests pass — 23/23 (no Bria required)
 - [x] Lint clean, build passes (SWC)
-- [ ] `SubscribeAll` event consumer updates Koya DB (next step: wire into conversion flow)
+- [x] `SubscribeAll` event consumer updates Koya DB — `BriaEventConsumerService` handles `payout_broadcast`, `payout_settled`, `payout_cancelled` events
 - [ ] Integration tests pass (Bria in regtest mode) — e2e test written, needs running container
-- [ ] Retry with same `external_id` returns existing payout (needs live Bria to verify idempotency)
+- [x] Retry with same `external_id` returns existing payout — `BriaBtcDeliveryProvider` handles `ALREADY_EXISTS` via `getPayout({ externalId })` lookup

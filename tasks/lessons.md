@@ -210,6 +210,67 @@ Never pack multiple services (API + frontend + workers) into one container. Each
 
 ---
 
+## useFactory for Driver-Selectable Providers
+
+When a provider has multiple implementations (mock, bria, future dfns), use NestJS `useFactory` with `ConfigService` to select at startup:
+
+```ts
+{
+  provide: 'BTC_DELIVERY_PROVIDER',
+  useFactory: (config, mock, bria) =>
+    config.get('BTC_DELIVERY_DRIVER', 'mock') === 'bria' ? bria : mock,
+  inject: [ConfigService, MockBtcDeliveryProvider, BriaBtcDeliveryProvider],
+}
+```
+
+All concrete providers must be in the module's `providers` array so DI can inject them into the factory. The env var controls which one is used at runtime — mock stays default.
+
+---
+
+## Two-Phase Delivery Requires Behavioral Branching
+
+When swapping a synchronous mock (instant result) for an async real provider (result arrives later via events), the calling service must branch behavior:
+
+- **Mock path:** `send()` returns txHash → immediately transition to COMPLETED
+- **Async path:** `send()` returns provider ID → persist IDs, stay in PENDING → event consumer completes later
+
+Don't try to make both paths look identical — the async nature fundamentally changes the state machine flow.
+
+---
+
+## Prisma Migrate Deploy Requires `--config` Flag (v7)
+
+`prisma migrate deploy` in Prisma v7 doesn't auto-discover `prisma.config.ts` from the schema location. You must pass it explicitly:
+
+```bash
+npx prisma migrate deploy --config prisma/prisma.config.ts
+```
+
+Without `--config`, it falls back to looking for a `datasource.url` in the schema file (which v7 doesn't allow).
+
+---
+
+## Pre-Existing DB Columns Cause Migration Failures
+
+If DB columns already exist (from a prior manual apply or debug session) but the migration wasn't recorded in `_prisma_migrations`, `prisma migrate deploy` will fail with "column already exists".
+
+**Fix:** Mark the migration as already applied:
+```bash
+npx prisma migrate resolve --applied "20260320100000_migration_name" --config prisma/prisma.config.ts
+```
+
+Then verify with `prisma migrate status`. Don't drop and recreate — the data might matter.
+
+---
+
+## SWC Build — rootDir Must Be Set for Library Builds
+
+When using `@nx/js:swc` executor for a library, TypeScript may complain about `TS6059: File is not under 'rootDir'` if rootDir isn't explicitly set in `tsconfig.lib.json`. This happens when the project has files outside the default rootDir inference.
+
+**Fix:** Add `"rootDir": "./src"` to `compilerOptions` in the library's `tsconfig.lib.json`.
+
+---
+
 ## UX Planning — Reuse the Canonical User View Before Designing a New One
 
 When the user describes "tracking" or "view details", do not assume that means a brand-new route or bespoke screen. First inspect the existing product flow and prefer turning the current canonical detail/progress view into the universal entry point for all channels.

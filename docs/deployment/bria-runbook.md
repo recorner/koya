@@ -198,3 +198,72 @@ For production, consider:
 - Self-hosted Fulcrum backed by a synced bitcoind node
 - Dedicated Electrum infrastructure from your Bitcoin node provider
 - Update `blockchain.electrum_url` in `config/bria.yml` to switch
+
+---
+
+## Bootstrap Koya Account & Wallet
+
+After Bria is running and the admin key is saved, provision the Koya account, profile, and wallet. This can be done via the dev setup endpoint or manually via the Bria CLI.
+
+### Via API Setup Endpoint (dev only)
+
+The `BriaSetupController` exposes a one-shot endpoint that runs the full provisioning flow:
+
+```bash
+curl -X POST http://localhost:3000/api/v1/admin/bria/setup \
+  -H "x-admin-api-key: <your-admin-key>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "xpub": "tpub...",
+    "derivation": "m/84h/1h/0h"
+  }'
+```
+
+This endpoint is only registered when `NODE_ENV !== 'production'`. It performs:
+1. Bootstrap admin (idempotent — skips if already done)
+2. Create `koya` account
+3. Create `default` service profile + generate API key
+4. Import xpub and create `koya-wallet`
+5. Verify setup
+
+### Via Bria CLI (manual)
+
+```bash
+# 1. Bootstrap admin (first run only)
+docker exec koya-bria bria admin bootstrap
+
+# 2. Create account
+docker exec koya-bria bria admin create-account --name koya
+
+# 3. Create profile (save the API key!)
+docker exec koya-bria bria profile create --name default
+# → Returns profile_api_key
+
+# 4. Import xpub (testnet4 example)
+docker exec koya-bria bria import-xpub \
+  --name koya-xpub \
+  --xpub "tpub..." \
+  --derivation "m/84h/1h/0h"
+
+# 5. Create wallet
+docker exec koya-bria bria create-wallet \
+  --name koya-wallet \
+  --xpub koya-xpub
+
+# 6. Verify
+docker exec koya-bria bria wallet-balance --name koya-wallet
+```
+
+### Required API Env Vars (after setup)
+
+Once the wallet is provisioned, the API needs these env vars to use the bria driver:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `BTC_DELIVERY_DRIVER` | Delivery provider selection | `bria` (default: `mock`) |
+| `BRIA_API_URL` | Bria gRPC API endpoint | `localhost:2742` |
+| `BRIA_API_KEY` | Profile API key from step 3 | `bria_...` |
+| `BRIA_ADMIN_URL` | Bria admin gRPC endpoint | `localhost:2743` |
+| `BRIA_ADMIN_API_KEY` | Admin API key from bootstrap | `bria_admin_...` |
+| `BRIA_WALLET_NAME` | Wallet name for payouts | `koya-wallet` |
+| `BRIA_PAYOUT_QUEUE` | Payout queue name (optional) | `default` |

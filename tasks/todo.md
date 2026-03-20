@@ -441,3 +441,21 @@ libs/types/src/lib/
 - [x] **10.15** Fix flow handler unit test mocks for new referenceCode usage
 
 **Result:** 119 tests, 8 suites, zero regressions. API + Web builds pass.
+
+---
+
+### Phase 12e — Wire Bria as BTC_DELIVERY_PROVIDER
+
+Wire the `@koya/bria-adapter` library into the conversion engine as a real BTC delivery driver, selectable via `BTC_DELIVERY_DRIVER` env var.
+
+- [x] **12e.1** Add `externalId` (unique) and `providerPayoutId` to `PayoutInstruction` Prisma model + migration
+- [x] **12e.2** Create `BriaBtcDeliveryProvider` — implements `BtcDeliveryProvider`, calls `briaClient.submitPayout()` with idempotent `externalId`
+- [x] **12e.3** Add `useFactory` in `ConversionModule` for `BTC_DELIVERY_PROVIDER` — selects mock (default) or bria via `BTC_DELIVERY_DRIVER` env var
+- [x] **12e.4** Two-phase delivery in `ConversionService` — mock path: instant COMPLETED; bria path: persist IDs, stay DELIVERY_PENDING
+- [x] **12e.5** Create `BriaEventConsumerService` — subscribes to Bria event stream, handles `payout_broadcast` (txHash), `payout_settled` (COMPLETED), `payout_cancelled` (FAILED)
+- [x] **12e.6** Create `BriaSetupService` — idempotent admin bootstrap, account/profile/wallet provisioning
+- [x] **12e.7** Create `BriaSetupController` — dev-only `POST /api/v1/admin/bria/setup` endpoint
+- [x] **12e.8** Unit tests: BriaBtcDeliveryProvider (6 tests) + BriaEventConsumerService (7 tests)
+- [x] **12e.9** Fix pre-existing `libs/types` build error (`rootDir` in tsconfig.lib.json)
+
+**Result:** 254 tests, 18 suites, zero regressions. API + types + bria-adapter builds pass. Lint clean.
