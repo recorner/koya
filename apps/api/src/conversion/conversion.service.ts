@@ -4,6 +4,7 @@ import {
   Logger,
   Inject,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuoteService } from './quote.service';
@@ -37,6 +38,7 @@ const POST_PAYMENT_STATES = new Set<string>([
 @Injectable()
 export class ConversionService {
   private readonly logger = new Logger(ConversionService.name);
+  private readonly btcDeliveryDriver: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -48,9 +50,12 @@ export class ConversionService {
     private readonly mpesaService: MpesaService,
     private readonly riskService: RiskService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly config: ConfigService,
     @Inject(BTC_DELIVERY_PROVIDER) private readonly btcDelivery: BtcDeliveryProvider,
     @Inject(SWAP_PROVIDER) private readonly swapProvider: SwapProvider,
-  ) {}
+  ) {
+    this.btcDeliveryDriver = this.config.get<string>('BTC_DELIVERY_DRIVER', 'mock');
+  }
 
   /**
    * Step 1: Generate a quote
@@ -364,28 +369,61 @@ export class ConversionService {
       { executionId: swapResult.executionId, settledRate: swapResult.settledRate },
     );
 
-    // Mock BTC delivery
+    // BTC delivery via configured provider (mock or bria)
     const payout = await this.prisma.payoutInstruction.findUnique({
       where: { conversionSessionId: sessionId },
     });
 
     if (payout) {
+      const externalId = `koya:conversion:${session.referenceCode}`;
       const deliveryResult = await this.btcDelivery.send({
         address: payout.btcAddress,
         amountSatoshis: session.quotedTargetAmountMinor ?? BigInt(0),
         referenceCode: session.referenceCode,
       });
 
-      await this.prisma.payoutInstruction.update({
-        where: { id: payout.id },
-        data: {
-          status: deliveryResult.success ? 'CONFIRMED' : 'FAILED',
-          txHash: deliveryResult.txHash,
-          amountMinor: session.quotedTargetAmountMinor,
-        },
-      });
+      if (!deliveryResult.success) {
+        await this.prisma.payoutInstruction.update({
+          where: { id: payout.id },
+          data: { externalId, status: 'FAILED', amountMinor: session.quotedTargetAmountMinor },
+        });
+        await this.sessionService.transitionState(
+          sessionId,
+          ConversionState.FAILED,
+          'btc_delivery_failed',
+        );
+        return;
+      }
 
-      if (deliveryResult.success) {
+      if (this.btcDeliveryDriver === 'bria') {
+        // Async path: payout submitted but not yet on-chain.
+        // Store Bria payout ID, stay in DELIVERY_PENDING.
+        // BriaEventConsumerService will advance to COMPLETED on payout_settled.
+        await this.prisma.payoutInstruction.update({
+          where: { id: payout.id },
+          data: {
+            externalId,
+            providerPayoutId: deliveryResult.txHash || null,
+            amountMinor: session.quotedTargetAmountMinor,
+            status: 'PENDING',
+          },
+        });
+
+        this.logger.log(
+          `Payout submitted for ${sessionId}, awaiting on-chain confirmation via event consumer`,
+        );
+      } else {
+        // Mock / instant-complete path
+        await this.prisma.payoutInstruction.update({
+          where: { id: payout.id },
+          data: {
+            externalId,
+            txHash: deliveryResult.txHash,
+            amountMinor: session.quotedTargetAmountMinor,
+            status: 'CONFIRMED',
+          },
+        });
+
         await this.sessionService.transitionState(
           sessionId,
           ConversionState.COMPLETED,
@@ -393,17 +431,10 @@ export class ConversionService {
           { txHash: deliveryResult.txHash },
         );
 
-        // Emit completion event for notification bridge
         this.eventEmitter.emit('conversion.completed', {
           sessionId,
           channel: session.channel,
         });
-      } else {
-        await this.sessionService.transitionState(
-          sessionId,
-          ConversionState.FAILED,
-          'btc_delivery_failed',
-        );
       }
     }
   }

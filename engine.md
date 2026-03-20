@@ -1,199 +1,83 @@
-Goal: Add Bria as a first-class service in the Koya repo so it can be started with the existing Docker compose, and prepare a clean, secure, tested integration path for the Koya → Bria adapter and DFNS custody flow. Produce a PR with artifacts, tests, run instructions and a short runbook.
+Goal: Bootstrap Bria admin, create a Koya Bria profile & API key, import a testnet xpub and create an HD wallet, and wire the existing libs/bria-adapter into the ConversionService as BTC_DELIVERY_PROVIDER for the DFNS-managed custody flow. Deliver runnable code, tests, and a short runbook.
 
-Important: do this incrementally and safely. Make small commits and open a single PR that groups related changes. Every step must include a sanity check and acceptance criteria before continuing.
+Steps:
 
-1) study this project and especially  (first step)
+Prereqs (local/staging)
 
+Ensure Bria container is running and healthy (127.0.0.1:2742 API, 2743 Admin).
 
+Ensure docker/bria.env contains BRIA_ADMIN_API_KEY if bootstrap already performed, or be prepared to call bootstrap().
 
-Inspect the repo to find these canonical files/places (already present in Koya):
+Bootstrap Admin & create Koya profile
 
-apps/api/Dockerfile — to mirror container conventions.
+Call BriaAdminService.bootstrap() to create admin credentials if not already present. Save admin admin key to secrets (Secrets Manager).
 
-docker/run.sh — run helper UX to mirror.
+With admin key, call BriaAdminService.createAccount({ name: 'koya' }) → receive admin/account key(s). Store admin account key in secrets.
 
-the repo root docker-compose.yml (the compose fragment provided by the user). Use that as the merge target.
+Create a service profile: BriaClientService.createProfile('koya-service') and createProfileApiKey() → obtain a profile API key for the adapter. Save as BRIA_API_KEY_KOYA in secrets.
 
-Confirm CI credentials and the branch naming convention (use feature branch feature/bria-integration).
+Acceptance check: BriaClientService.createProfileApiKey returns a usable key; calls to createWallet with the key succeed.
 
-Acceptance: Agent lists the above files and returns their paths.
+Import testnet xpub & create HD wallet
 
-2) Create Bria Dockerfile (multi-stage) — add Dockerfile.bria
+Use BriaClientService.importXpub(profileKey, name, xpub, derivation?) or createWallet with keychain config. For test, use a known testnet xpub (documented in runbook), not production keys.
 
-Task: Add a Bria multi-stage Dockerfile that:
+Verify wallet creation and that newAddress() returns valid testnet addresses.
 
-Builds release Rust binary (cargo build --release --bin bria).
+Broadcast a tiny testnet tx (via QuickNode or faucet) to one of the addresses and validate Bria emits UTXO_DETECTED in journal_events.
 
-Produces a small runtime image (Debian or slim) with ca-certificates and netcat for health checks.
+Acceptance check: journal_events stream emits UTXO_DETECTED for the tx (or a PAYOUT_SUBMITTED if using Bria payouts).
 
-Runs the binary as a non-root user and sets a safe default CMD that runs bria daemon --config /etc/bria/bria.yml ${BRIA_DATABASE_URL} prod.
+Wire adapter into ConversionService as BTC_DELIVERY_PROVIDER
 
-Expose port 2742 for development (compose will bind 127.0.0.1:2742:2742).
+Add a provider binding in NestJS that implements existing BtcDeliveryProvider interface (or create one) that delegates to BriaClientService. Implement methods:
 
-Checks:
+reserveAndSubmit(conversion) → create external_id, call DFNS.requestCustodyMove(external_id,…), or call Bria.submitPayout(...) if Bria-managed.
 
-Image must be smaller than 200MB after build (sanity).
+onDfnConfirmed(externalId, dfnsTx) → call Bria’s relevant call (submitSignedPsbt or post settlement utxo_detected) and finalize conversion ledger entries.
 
-Binary present at /usr/local/bin/bria in the runtime image.
+subscribeToEvents() → subscribe to BriaClientService.subscribeAll() and map events (PAYOUT_SUBMITTED, UTXO_SETTLED) to Koya conversion states.
 
-USER set to non-root.
+Idempotency requirement: Use unique external_id = "koya:conversion:<conversionId>" everywhere; enforce unique constraint in Koya DB (dfns_requests.external_id unique).
 
-Acceptance: Build succeeds locally with docker build -t koyabank/bria -f Dockerfile.bria . and docker run --rm koyabank/bria bria --version prints version.
+Acceptance check: Simulate a full flow:
 
-3) Merge Bria service into the Koya compose file
+Reserve funds in Koya ledger.
 
-Task: Update the repo’s docker-compose.yml (the fragment you were given) by adding a bria service that matches Koya conventions:
+Call the provider to request custody.
 
-image: koyabank/bria:latest, container_name: koya-bria.
+Simulate DFNS confirmation (or have DFNS sandbox reply).
 
-env_file: docker/bria.env and recommended env names: BRIA_DATABASE_URL, QUICKNODE_RPC_URL, SIGNER_ENCRYPTION_KEY, BRIA_NETWORK, BRIA_API_LISTEN_PORT, RUST_LOG.
+Adapter posts Bria settlement and ConversionService completes conversion.
 
-volumes: ./config/bria.yml:/etc/bria/bria.yml:ro (config is mounted read-only).
+Verify both Koya ledger and Bria journal show consistent entries.
 
-healthcheck uses nc -z localhost ${BRIA_API_LISTEN_PORT}.
+Tests
 
-restart: unless-stopped.
+Unit tests for the provider with mocked BriaClientService.
 
-depends_on uses redis with condition: service_healthy (to reuse existing redis health dependency).
+Integration smoke: using the running Bria container and a DFNS mock, run a conversion and assert completion and event stream mapping.
 
-Checks:
+Documentation & runbook
 
-Compose parse (docker compose config) succeeds.
+Update tasks/bria-adapter-todo.md with exact method mappings and the idempotency contract.
 
-docker compose up -d bria successfully creates the container.
+Add a short runbook entry describing how to bootstrap admin, create keys, and run the smoke test.
 
-Container health becomes healthy within a minute.
+Deliverables:
 
-Acceptance: docker compose up -d brings up redis, api, and bria (if built), and docker compose ps shows all running.
+Working libs/bria-adapter usage in apps/api ConversionService.
 
-4) Add run helper & config templates
+New provider that implements BTC_DELIVERY_PROVIDER.
 
-Task: Add docker/run-bria.sh (Koya run helper style) that:
+Unit & e2e smoke tests.
 
-Accepts --build to rebuild, reads docker/bria.env, mounts config and runs bria daemon ....
+Secrets creation steps and short runbook.
 
-Mirrors the behavior/UX of docker/run.sh (same error handling and output pattern).
+Acceptance criteria:
 
-Add config/bria.yml.example and docker/bria.env.example with placeholder values and comments:
+Successful e2e smoke test against Bria container and DFNS mock within staging.
 
-BRIA_DATABASE_URL=postgres://user:pass@host:5432/bria_db
+No production secrets committed; per-service API key stored in Secrets Manager.
 
-QUICKNODE_RPC_URL=...
-
-SIGNER_ENCRYPTION_KEY=...
-
-BRIA_NETWORK=testnet
-
-BRIA_API_LISTEN_PORT=2742
-
-Checks:
-
-chmod +x docker/run-bria.sh and ./docker/run-bria.sh --build succeed locally (given proper env).
-
-Example files are non-sensitive and include clear instructions to copy to real docker/bria.env.
-
-Acceptance: The run helper builds and starts the container as described and logs show bria daemon started.
-
-5) Add small docs and runbook
-
-Task: Add docs/deployment/bria-runbook.md with:
-
-Which envs are required and descriptions (DB URL, QuickNode key, signer key).
-
-Health checks and how to rotate SIGNER_ENCRYPTION_KEY.
-
-How to run locally (docker/run-bria.sh --build), how to start via docker compose up -d, how to tail logs and check health.
-
-Security notes: TLS, secrets store usage, do not expose gRPC publicly. Mention using Koya conventions for secrets (Secrets Manager / KMS).
-
-Acceptance: Runbook added and referenced by PR description.
-
-6) Safety checks and CI gating
-
-Task: Before merging, ensure:
-
-Compose update does not alter api or redis behavior. Run docker compose config and docker compose -f docker-compose.yml up -d in a clean dev environment.
-
-Lint the Dockerfile with hadolint or similar, and run docker scan for high-severity vulnerabilities.
-
-Add a small GitHub Actions workflow job in PR (or ensure existing CI) that builds the Bria image and runs docker compose config, and runs a lightweight health check nc -z localhost 2742 in a service container job (optional for PR to avoid heavy integration).
-
-Acceptance: CI job passes or the PR is explicitly marked to allow manual check for heavy tasks.
-
-7) Prepare the Koya → Bria adapter task (instructions for later)
-
-(Agent should not implement now, but create an issue or note in PR)
-
-Add a TODO in the PR: extract Bria proto files (from src/api/server/proto or proto/), generate TS gRPC client, implement BriaClientService in NestJS as a module libs/bria-adapter with methods:
-
-createProfileIfNotExists(), createWallet(), submitPayout() / submit_signed_psbt(), journalEventsStream(), and estimateFee().
-
-Document the idempotency strategy: every conversion must have external_id used across DFNS, Bria and Koya DB; store processed external IDs and enforce unique constraint.
-
-Acceptance: PR includes TODO/issue ID for adapter work and mapping notes.
-
-8) Security hardening (must be documented before merge)
-
-Ensure docker/bria.env.example is not committed with real secrets. Add .gitignore or .dockerignore guidance (Koya already uses .dockerignore pattern).
-
-Recommend production deploy flow: secrets in Secrets Manager, TLS termination (ALB) or mTLS for gRPC, private network. Document these in the runbook.
-
-Acceptance: Security checklist included in runbook and PR description.
-
-9) PR description & acceptance criteria (what to include in PR)
-
-Files added: Dockerfile.bria, docker/run-bria.sh, config/bria.yml.example, docker/bria.env.example, updated docker-compose.yml.
-
-Runbook: docs/deployment/bria-runbook.md.
-
-CI check: docker build success and docker compose config success.
-
-Runtime test: logs show bria daemon started; healthcheck becomes healthy.
-
-A created issue for the adapter work and DFNS execution flow with linked acceptance tests.
-
-A short security mitigation note (how to inject secrets and enable TLS).
-
-Merge criteria: PR approved by one backend owner and passes CI build. Optionally, a staging deploy must run smoke tests.
-
-10) Smooth implementation tips for the agent (operational)
-
-Do small commits: Dockerfile + run helper + compose + examples + runbook in separate commits. Reference each commit in PR.
-
-Test locally with a remote Postgres (or add a temporary Postgres dev container in compose) and QuickNode testnet. If remote Postgres unreachable, spin a local Postgres for dev and document it.
-
-Keep Bria read-only config mount and example env files separate from real secrets.
-
-Log & monitor: enable RUST_LOG=info and confirm bria logs contain ledger template initialization messages; record at least one UTXO_DETECTED or PAYOUT_SUBMITTED sample in logs.
-
-Reconciliation: after POC, subscribe to journal_events and push to a Koya test consumer.
-
-Copy-paste agent prompt (single block)
-
-Use this exact block for the agent that will run in Koya (or paste into a ticket):
-
-Agent task: integrate Bria container into Koya and prepare for adapter
-
-Create Dockerfile.bria (multi-stage Rust build → slim runtime), run Bria as non-root, default CMD: bria daemon --config /etc/bria/bria.yml ${BRIA_DATABASE_URL} prod. Validate binary present in runtime image.
-
-Add bria service to docker-compose.yml (use existing file fragment). Service must: use env_file: docker/bria.env, mount config/bria.yml read-only, expose 127.0.0.1:2742:2742, have restart: unless-stopped, and a healthcheck using nc. depends_on must reference redis service with condition: service_healthy.
-
-Add docker/run-bria.sh (Koya-style), config/bria.yml.example, docker/bria.env.example. Ensure run helper supports --build.
-
-Add docs/deployment/bria-runbook.md that lists required envs, run commands, health checks, and security guidance (secrets manager, TLS, do not expose gRPC publicly).
-
-Local checks: docker build -f Dockerfile.bria, docker compose up -d bria, container turns healthy and logs show bria daemon start. Add docker compose config CI step.
-
-Create an issue (or TODO) in the PR for the NestJS BriaClientService adapter: list required gRPC calls and idempotency strategy.
-
-Security: do not commit secrets, use secrets manager in runbook, ensure config/bria.yml is read-only mount.
-
-Make small commits, open feature/bria-integration PR with the files and runbook, request review from backend owner, and include the adapter issue.
-
-Provide acceptance evidence: CI build log, docker compose ps output, docker logs snippet showing daemon started and template init.
-
-here are credentials to use in the env files 
-quicknode endpoint https://frosty-little-arrow.btc-testnet4.quiknode.pro/68fad6450fe072a38164588e2eac5340f1d90781
-
-postgress data
-DATABASE_URL=postgresql://doadmin:AVNS_al4Rig0Cj2G6VuAz5Lu@167.71.173.146:25060/koya?sslmode=require&sslaccept=accept_invalid_certs&connect_timeout=30
+PR includes tests, docs, and a note about running the smoke test locally (env needed).

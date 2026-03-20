@@ -211,6 +211,8 @@ model PayoutInstruction {
   btcAddress          String                  @map("btc_address")
   amountMinor         BigInt?                 @map("amount_minor")
   txHash              String?                 @map("tx_hash")
+  externalId          String?                 @unique @map("external_id")
+  providerPayoutId    String?                 @map("provider_payout_id")
   status              PayoutInstructionStatus @default(CREATED)
   createdAt           DateTime                @default(now()) @map("created_at")
   updatedAt           DateTime                @updatedAt @map("updated_at")
