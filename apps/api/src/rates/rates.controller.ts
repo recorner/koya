@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Param, Query, Sse, NotFoundException, MessageEvent } from '@nestjs/common';
+import { Observable, interval, switchMap, from, map, distinctUntilChanged } from 'rxjs';
 import { RatesService } from './rates.service';
 
 /**
@@ -7,6 +8,7 @@ import { RatesService } from './rates.service';
  * Routes:
  *   GET /api/v1/rates           — All supported pairs
  *   GET /api/v1/rates/health    — Module health report
+ *   GET /api/v1/rates/stream    — SSE stream of live rates
  *   GET /api/v1/rates/:pair     — Single pair (use dash: BTC-USD)
  */
 @Controller('rates')
@@ -30,6 +32,33 @@ export class RatesController {
   @Get('health')
   async health() {
     return this.ratesService.getHealthReport();
+  }
+
+  /**
+   * SSE stream: pushes fresh rates every 2 s.
+   * Only emits when data actually changes (distinctUntilChanged on mid values).
+   */
+  @Sse('stream')
+  stream(): Observable<MessageEvent> {
+    return interval(2000).pipe(
+      switchMap(() => from(this.ratesService.getAllRates())),
+      map((rates) => rates.filter((r) => !r.stale)),
+      distinctUntilChanged(
+        (prev, curr) =>
+          prev.length === curr.length &&
+          prev.every((p, i) => p.mid === curr[i]?.mid),
+      ),
+      map(
+        (rates) =>
+          ({
+            data: {
+              data: rates,
+              count: rates.length,
+              timestamp: new Date().toISOString(),
+            },
+          }) as MessageEvent,
+      ),
+    );
   }
 
   @Get(':pair')

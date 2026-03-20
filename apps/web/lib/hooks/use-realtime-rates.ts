@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { TICKER_INSTRUMENTS, type TickerInstrument } from '@/components/marketing/asset-metadata';
-import { fetchRates, type RateSnapshot } from '@/lib/api/rates';
+import { streamRates, fetchRates, type RateSnapshot } from '@/lib/api/rates';
 
 /**
- * Realtime rate feed powered by the backend /api/v1/rates endpoint.
- * Polls every `intervalMs` (default 2 s). Shows empty/zero state
- * until the first successful API response.
+ * Realtime rate feed powered by SSE from /api/v1/rates/stream.
+ * Falls back to a single REST fetch if SSE isn't available (e.g. SSR).
  */
 
 type RateMap = Record<string, Record<string, number>>;
@@ -25,10 +24,11 @@ function snapshotsToRateMap(snapshots: RateSnapshot[]): RateMap {
 
 function formatTickerPrice(value: number, pair: string): string {
   if (pair.includes('BTC / KES')) return Math.round(value).toLocaleString('en-US');
-  if (pair.includes('BTC / USD')) return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // All USD-quoted pairs: 2 decimal places
+  if (pair.endsWith('USD')) return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (value < 0.01) return value.toFixed(5);
   if (value < 1) return value.toFixed(4);
-  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function computeChange(current: number, base: number): { change: string; positive: boolean } {
@@ -41,46 +41,43 @@ function computeChange(current: number, base: number): { change: string; positiv
 }
 
 /**
- * React hook: provides live-updating rate map from the backend.
- * @param intervalMs - poll interval in ms (default 2000)
+ * React hook: provides live-updating rate map via SSE.
+ * Falls back to a one-shot REST fetch for initial paint.
  */
-export function useRealtimeRates(intervalMs = 2000) {
+export function useRealtimeRates() {
   const [rates, setRates] = useState<RateMap>({});
 
-  const refresh = useCallback(async () => {
-    const snapshots = await fetchRates();
-    if (snapshots.length > 0) {
-      setRates(snapshotsToRateMap(snapshots));
-    }
-  }, []);
-
   useEffect(() => {
-    refresh();
-    const id = setInterval(refresh, intervalMs);
-    return () => clearInterval(id);
-  }, [intervalMs, refresh]);
+    // SSE not available during SSR — one-shot fetch as seed
+    if (typeof EventSource === 'undefined') {
+      fetchRates().then((s) => { if (s.length) setRates(snapshotsToRateMap(s)); });
+      return;
+    }
+
+    // Open persistent SSE connection
+    const close = streamRates((snapshots) => {
+      setRates(snapshotsToRateMap(snapshots));
+    });
+
+    return close;
+  }, []);
 
   return rates;
 }
 
 /**
  * Callback-based ticker hook for the market ribbon.
- * Pushes updates via a callback ref — zero React re-renders.
+ * Uses SSE stream — pushes updates via callback ref (zero React re-renders).
  * The caller patches the DOM directly.
  */
-export function useTickerUpdates(onUpdate: (tickers: TickerInstrument[]) => void, intervalMs = 2000) {
+export function useTickerUpdates(onUpdate: (tickers: TickerInstrument[]) => void) {
   const callbackRef = useRef(onUpdate);
   callbackRef.current = onUpdate;
 
   const baselineRef = useRef<RateMap | null>(null);
 
   useEffect(() => {
-    let active = true;
-
-    const refresh = async () => {
-      const snapshots = await fetchRates();
-      if (!active || snapshots.length === 0) return;
-
+    const handleSnapshots = (snapshots: RateSnapshot[]) => {
       const live = snapshotsToRateMap(snapshots);
       if (!baselineRef.current) baselineRef.current = live;
       const baseline = baselineRef.current;
@@ -102,16 +99,20 @@ export function useTickerUpdates(onUpdate: (tickers: TickerInstrument[]) => void
       callbackRef.current(updated);
     };
 
-    refresh();
-    const id = setInterval(refresh, intervalMs);
-    return () => { active = false; clearInterval(id); };
-  }, [intervalMs]);
+    // SSR fallback
+    if (typeof EventSource === 'undefined') {
+      fetchRates().then((s) => { if (s.length) handleSnapshots(s); });
+      return;
+    }
+
+    return streamRates(handleSnapshots);
+  }, []);
 }
 
 /**
- * Get a single live rate between two assets.
+ * Get a single live rate between two assets (SSE-backed).
  */
-export function useLiveRate(source: string, dest: string, intervalMs = 2000) {
-  const rates = useRealtimeRates(intervalMs);
+export function useLiveRate(source: string, dest: string) {
+  const rates = useRealtimeRates();
   return useMemo(() => rates[source]?.[dest] ?? 0, [rates, source, dest]);
 }

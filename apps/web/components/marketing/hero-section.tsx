@@ -82,7 +82,7 @@ function MetricRow({
 }
 
 export function HeroSection() {
-  const btcKesRate = useLiveRate('BTC', 'KES', 10000);
+  const btcKesRate = useLiveRate('BTC', 'KES');
   const btcKesDisplay = btcKesRate
     ? Math.round(btcKesRate).toLocaleString('en-US')
     : '—';
