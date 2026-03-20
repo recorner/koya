@@ -110,6 +110,31 @@ When writing E2E tests, check actual status codes from the API rather than assum
 
 ---
 
+## PostgreSQL 18 — uuid-ossp Inlining Bug Breaks Bria Migrations
+
+DigitalOcean managed Postgres upgraded to PG 18.3. Bria's sqlx migrations use `uuid_nil()` from the `uuid-ossp` extension inside SQL functions (e.g., `mq_uuid_exists()`). PG 18 tries to inline these functions during index creation and fails to resolve `uuid_nil()` — even though the function exists and works when called directly.
+
+**Error:** `function uuid_nil() does not exist` — `CONTEXT: SQL function "mq_uuid_exists" during inlining`
+
+**Fix:** Use a local Postgres 16 container (`bria-pg` service in docker-compose) for Bria instead of the managed PG 18 instance. Bria requires PG ≤16 until upstream migrations are updated.
+
+**Rule:** Always check target Postgres version compatibility before using managed DB instances for third-party tools with their own migrations.
+
+---
+
+## Bria CLI — Actual Daemon Syntax
+
+engine.md spec had `bria daemon --config /etc/bria/bria.yml ${BRIA_DATABASE_URL} prod` — this is wrong.
+
+**Actual syntax:** `bria daemon [--config <file>] <db_con> <subcommand>`
+- Subcommands: `run <signer_encryption_key>` (production) or `dev` (development)
+- All args can be provided via env vars: `BRIA_CONFIG`, `PG_CON`, `SIGNER_ENCRYPTION_KEY`
+- Docker CMD: `["bria", "daemon", "run"]` — env vars handle the rest
+
+**Rule:** Always read the actual CLI source (`src/cli/mod.rs`) rather than trusting external specs for command syntax.
+
+---
+
 ## Phone Validation — Throw Proper HTTP Errors, Not Generic Errors
 
 `normalizeKenyaPhone()` originally threw a generic `Error`, which NestJS turned into a 500. Client-facing validation errors must return 400.

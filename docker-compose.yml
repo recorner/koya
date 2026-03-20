@@ -32,5 +32,52 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── Bria Infrastructure ────────────────────────────────────
+  bria-pg:
+    image: postgres:16-alpine
+    container_name: koya-bria-pg
+    environment:
+      POSTGRES_DB: bria
+      POSTGRES_USER: bria
+      POSTGRES_PASSWORD: bria_dev_password
+    volumes:
+      - bria_pg_data:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bria']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ── Bria — Bitcoin Custody & Payout ────────────────────────
+  bria:
+    build:
+      context: .
+      dockerfile: Dockerfile.bria
+    image: koyabank/bria:latest
+    container_name: koya-bria
+    ports:
+      - '127.0.0.1:2742:2742'
+      - '127.0.0.1:2743:2743'
+    env_file:
+      - docker/bria.env
+    volumes:
+      - ./config/bria.yml:/etc/bria/bria.yml:ro
+    healthcheck:
+      test: ['CMD', 'nc', '-z', 'localhost', '2742']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      bria-pg:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   redis_data:
+  bria_pg_data:

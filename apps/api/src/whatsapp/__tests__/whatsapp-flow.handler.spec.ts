@@ -9,6 +9,8 @@ describe('WhatsAppFlowHandler', () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockConversionService: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let mockRatesService: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let mockSessionSvc: any;
   let parser: WhatsAppParserService;
   let templates: WhatsAppTemplateService;
@@ -43,6 +45,12 @@ describe('WhatsAppFlowHandler', () => {
       getStatus: jest.fn(),
     };
 
+    mockRatesService = {
+      getAllRates: jest.fn().mockResolvedValue([]),
+      getRate: jest.fn(),
+      getHealthReport: jest.fn(),
+    };
+
     mockSessionSvc = {
       updateStep: jest.fn(),
       linkQuote: jest.fn(),
@@ -55,6 +63,7 @@ describe('WhatsAppFlowHandler', () => {
 
     handler = new WhatsAppFlowHandler(
       mockConversionService,
+      mockRatesService,
       mockSessionSvc,
       parser,
       templates,

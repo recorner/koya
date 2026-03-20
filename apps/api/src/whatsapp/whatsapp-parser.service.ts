@@ -13,6 +13,7 @@ export type ParsedCommand =
   | { type: 'CANCEL' }
   | { type: 'START_OVER' }
   | { type: 'STATUS' }
+  | { type: 'RATES' }
   | { type: 'YES' }
   | { type: 'PAY' }
   | { type: 'SKIP' }
@@ -64,6 +65,7 @@ export class WhatsAppParserService {
     if (upper === 'CANCEL') return { type: 'CANCEL' };
     if (upper === 'START OVER') return { type: 'START_OVER' };
     if (upper === 'STATUS') return { type: 'STATUS' };
+    if (upper === 'RATES' || upper === 'RATE' || upper === 'PRICES') return { type: 'RATES' };
     if (upper === 'YES') return { type: 'YES' };
     if (upper === 'PAY') return { type: 'PAY' };
     if (upper === 'SKIP') return { type: 'SKIP' };

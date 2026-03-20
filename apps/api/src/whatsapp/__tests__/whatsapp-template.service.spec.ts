@@ -18,6 +18,7 @@ describe('WhatsAppTemplateService', () => {
       expect(bodyOf(msg)).toContain('CANCEL');
       expect(msg.interactive?.buttons).toEqual([
         { id: '1', title: 'Convert KES to BTC' },
+        { id: '2', title: 'Live Rates' },
         { id: 'HELP', title: 'Help' },
       ]);
     });

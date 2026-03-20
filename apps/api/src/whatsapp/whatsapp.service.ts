@@ -11,6 +11,7 @@ import type {
   WhatsAppOutboundMessage,
 } from '../providers/twilio-adapter.interface';
 import { ConversionService } from '../conversion/conversion.service';
+import { RatesService } from '../rates/rates.service';
 
 @Injectable()
 export class WhatsAppService {
@@ -28,6 +29,7 @@ export class WhatsAppService {
     private readonly idempotency: WhatsAppIdempotencyService,
     private readonly flowHandler: WhatsAppFlowHandler,
     private readonly conversionService: ConversionService,
+    private readonly ratesService: RatesService,
     @Inject(TWILIO_ADAPTER) private readonly twilio: TwilioAdapter,
   ) {
     this.rateLimitPerMinute = parseInt(
@@ -164,6 +166,15 @@ export class WhatsAppService {
     switch (command.type) {
       case 'HELP':
         return this.templates.helpMessage();
+
+      case 'RATES': {
+        try {
+          const rates = await this.ratesService.getAllRates();
+          return this.templates.showRates(rates);
+        } catch {
+          return this.templates.errorMessage('Could not fetch live rates right now.');
+        }
+      }
 
       case 'CANCEL':
         if (conv.currentStep !== 'IDLE' && conv.currentStep !== 'COMPLETED') {

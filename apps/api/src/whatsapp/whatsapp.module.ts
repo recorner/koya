@@ -10,12 +10,13 @@ import { WhatsAppFlowHandler } from './whatsapp-flow.handler';
 import { WhatsAppNotificationListener } from './whatsapp-notification.listener';
 import { WhatsAppCmsCopyService } from './whatsapp-cms-copy.service';
 import { ConversionModule } from '../conversion/conversion.module';
+import { RatesModule } from '../rates/rates.module';
 import { TWILIO_ADAPTER } from '../providers/twilio-adapter.interface';
 import { MockTwilioAdapter } from '../providers/mock-twilio.adapter';
 import { RealTwilioAdapter } from '../providers/twilio.adapter';
 
 @Module({
-  imports: [ConversionModule],
+  imports: [ConversionModule, RatesModule],
   controllers: [WhatsAppController],
   providers: [
     WhatsAppService,

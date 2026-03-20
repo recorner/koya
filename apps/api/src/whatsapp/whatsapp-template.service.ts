@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { ConversionQuoteResponse } from '@koya/types';
+import type { RateSnapshot } from '../rates/rates.types';
 import type {
   WhatsAppOutboundMessage,
   WhatsAppQuickReplyButton,
@@ -13,8 +14,9 @@ const DEFAULT_TEMPLATES = {
     '',
     '*Menu*',
     '1. Convert KES to BTC',
+    '2. Live Rates',
     '',
-    'Reply *1* to begin.',
+    'Reply *1* or *2* to choose.',
     'Reply *HELP* to see commands.',
     'Reply *CANCEL* anytime to stop.',
   ].join('\n'),
@@ -119,6 +121,7 @@ const DEFAULT_TEMPLATES = {
   help_message: [
     '*Koya | Available Commands*',
     '*1* Start a new KES to BTC conversion',
+    '*2* or *RATES* View live exchange rates',
     '*STATUS* Check the progress of your active conversion',
     '*CANCEL* Stop the current conversion',
     '*START OVER* Reset the chat and begin again',
@@ -186,6 +189,7 @@ const DEFAULT_BUTTONS: Partial<
 > = {
   welcome_menu: [
     { id: '1', title: 'Convert KES to BTC' },
+    { id: '2', title: 'Live Rates' },
     { id: 'HELP', title: 'Help' },
   ],
   show_quote: [
@@ -326,6 +330,29 @@ export class WhatsAppTemplateService {
 
   helpMessage(): WhatsAppOutboundMessage {
     return this.buildMessage('help_message');
+  }
+
+  showRates(rates: RateSnapshot[]): WhatsAppOutboundMessage {
+    const DISPLAY_PAIRS: Record<string, (mid: number) => string> = {
+      'BTC/KES': (m) => `1 BTC = *KES ${Math.round(m).toLocaleString('en-US')}*`,
+      'BTC/USD': (m) => `1 BTC = *$${m.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}*`,
+      'USDT/KES': (m) => `1 USDT = *KES ${m.toFixed(2)}*`,
+      'USDC/KES': (m) => `1 USDC = *KES ${m.toFixed(2)}*`,
+      'KES/USD': (m) => `1 USD = *KES ${(1 / m).toFixed(2)}*`,
+    };
+
+    const lines: string[] = ['*Koya | Live Rates*', ''];
+    for (const [pair, formatter] of Object.entries(DISPLAY_PAIRS)) {
+      const snapshot = rates.find((r) => r.pair === pair);
+      if (snapshot) {
+        const staleTag = snapshot.stale ? ' ⚠️' : '';
+        lines.push(`${formatter(snapshot.mid)}${staleTag}`);
+      }
+    }
+    lines.push('', 'Rates update every few seconds.');
+    lines.push('Reply *1* to convert KES to BTC.');
+
+    return { body: lines.join('\n') };
   }
 
   cancelConfirmation(): WhatsAppOutboundMessage {

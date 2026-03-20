@@ -1,0 +1,38 @@
+# Bria — Bitcoin Custody/Payout Service
+# Multi-stage build: Rust release binary → Alpine runtime
+# Convention: mirrors apps/api/Dockerfile security patterns (non-root user)
+
+# ─── Stage 1: Build ───────────────────────────────────────────
+FROM clux/muslrust:stable AS build
+
+COPY bria/ /src
+WORKDIR /src
+
+# SQLX_OFFLINE uses cached query metadata from .sqlx/ directory (no DB at build time)
+RUN SQLX_OFFLINE=true cargo build --release --locked
+
+# ─── Stage 2: Runtime ─────────────────────────────────────────
+FROM alpine:3.19 AS runtime
+
+RUN apk add --no-cache ca-certificates netcat-openbsd \
+    && addgroup -g 1001 bria \
+    && adduser -u 1001 -G bria -D -h /bria bria
+
+COPY --from=build /src/target/x86_64-unknown-linux-musl/release/bria /usr/local/bin/bria
+
+RUN chmod +x /usr/local/bin/bria \
+    && mkdir -p /bria \
+    && chown -R bria:bria /bria
+
+ENV BRIA_HOME=/bria
+ENV BRIA_CONFIG=/etc/bria/bria.yml
+ENV RUST_LOG=info
+
+EXPOSE 2742 2743
+
+USER bria
+WORKDIR /bria
+
+# PG_CON, SIGNER_ENCRYPTION_KEY, and BRIA_CONFIG are read from env vars automatically.
+# The Bria CLI resolves: bria daemon [--config $BRIA_CONFIG] $PG_CON run $SIGNER_ENCRYPTION_KEY
+CMD ["bria", "daemon", "run"]

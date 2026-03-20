@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConversionService } from '../conversion/conversion.service';
+import { RatesService } from '../rates/rates.service';
 import { WhatsAppSessionService } from './whatsapp-session.service';
 import { WhatsAppParserService, type ParsedCommand } from './whatsapp-parser.service';
 import { WhatsAppTemplateService } from './whatsapp-template.service';
@@ -20,6 +21,7 @@ export class WhatsAppFlowHandler {
 
   constructor(
     private readonly conversionService: ConversionService,
+    private readonly ratesService: RatesService,
     private readonly sessionSvc: WhatsAppSessionService,
     private readonly parser: WhatsAppParserService,
     private readonly templates: WhatsAppTemplateService,
@@ -78,10 +80,15 @@ export class WhatsAppFlowHandler {
       return this.templates.askAmount();
     }
 
-    if (command.type === 'MENU_SELECT' && command.option !== '1') {
+    if (command.type === 'MENU_SELECT' && command.option === '2') {
+      const rates = await this.ratesService.getAllRates();
+      return this.templates.showRates(rates);
+    }
+
+    if (command.type === 'MENU_SELECT' && command.option !== '1' && command.option !== '2') {
       return this.templates.invalidInput(
         'That menu option is not available yet.',
-        'Reply *1* to start a KES to BTC conversion.',
+        'Reply *1* to convert or *2* for live rates.',
       );
     }
 

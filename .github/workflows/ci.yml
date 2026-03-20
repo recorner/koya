@@ -61,6 +61,25 @@ jobs:
         run: pnpm nx test api --testPathIgnorePatterns="integration"
 
   # ──────────────────────────────────────────────
+  # Bria Docker build validation
+  # ──────────────────────────────────────────────
+  bria-build:
+    name: Bria Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose config
+        run: docker compose config --quiet
+
+      - name: Build Bria image
+        run: docker build -t koyabank/bria -f Dockerfile.bria .
+
+      - name: Verify binary exists in image
+        run: docker run --rm koyabank/bria ls -la /usr/local/bin/bria
+
+  # ──────────────────────────────────────────────
   # Preview deploy — PRs and develop branch
   # ──────────────────────────────────────────────
   deploy-preview:

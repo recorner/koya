@@ -1,456 +1,199 @@
-# Step 09 — Bank-Grade Rates Provider
+Goal: Add Bria as a first-class service in the Koya repo so it can be started with the existing Docker compose, and prepare a clean, secure, tested integration path for the Koya → Bria adapter and DFNS custody flow. Produce a PR with artifacts, tests, run instructions and a short runbook.
 
-**Status:** Ready to Build  
-**Depends On:** Step 08 — Foundational Redis Caching Layer  
-**Target:** `apps/api/src/rates`
+Important: do this incrementally and safely. Make small commits and open a single PR that groups related changes. Every step must include a sanity check and acceptance criteria before continuing.
 
----
+1) study this project and especially  (first step)
 
-## Objective
 
-Build Koya’s **Rates Provider** as a production-minded pricing layer for the conversion engine.
 
-This is **not** just a wrapper around one exchange API.
+Inspect the repo to find these canonical files/places (already present in Koya):
 
-It must act as a **resilient rate intelligence module** that:
+apps/api/Dockerfile — to mirror container conventions.
 
-- fetches rates from multiple providers
-- normalizes provider responses into one internal format
-- derives Koya trading pairs from core market pairs
-- caches live results in Redis
-- tracks provider health
-- falls back to last-good prices safely
-- exposes quote-safe pricing to the rest of the platform
+docker/run.sh — run helper UX to mirror.
 
-This module will power:
+the repo root docker-compose.yml (the compose fragment provided by the user). Use that as the merge target.
 
-- conversion quotes
-- guest swap flows
-- WhatsApp `RATES`
-- dashboard market data
-- future execution routing
+Confirm CI credentials and the branch naming convention (use feature branch feature/bria-integration).
 
----
+Acceptance: Agent lists the above files and returns their paths.
 
-## First Step — Study Existing Structure
+2) Create Bria Dockerfile (multi-stage) — add Dockerfile.bria
 
-Before writing code:
+Task: Add a Bria multi-stage Dockerfile that:
 
-1. Inspect the current API structure and conventions.
-2. Study the completed CacheModule and reuse it directly.
-3. Follow existing NestJS DI, config, logging, and health-check patterns.
-4. Do not invent a parallel architecture.
+Builds release Rust binary (cargo build --release --bin bria).
 
-This module must integrate cleanly into the monorepo and use the already completed Redis layer.
+Produces a small runtime image (Debian or slim) with ca-certificates and netcat for health checks.
 
----
+Runs the binary as a non-root user and sets a safe default CMD that runs bria daemon --config /etc/bria/bria.yml ${BRIA_DATABASE_URL} prod.
 
-## Architectural Intent
+Expose port 2742 for development (compose will bind 127.0.0.1:2742:2742).
 
-Koya’s conversion engine already assumes:
+Checks:
 
-- prices come from multiple sources
-- volatile pairs use Redis-backed short TTL caching
-- quotes are valid for a short window
-- most KES routes should go through USD as intermediary
+Image must be smaller than 200MB after build (sanity).
 
-Do **not** try to maintain separate direct pricing engines for every pair.
+Binary present at /usr/local/bin/bria in the runtime image.
 
-Use the core routing model:
+USER set to non-root.
 
-- BTC ↔ USD
-- BTC ↔ USDT
-- BTC ↔ USDC
-- USDT ↔ USD
-- USDC ↔ USD
-- KES ↔ USD
+Acceptance: Build succeeds locally with docker build -t koyabank/bria -f Dockerfile.bria . and docker run --rm koyabank/bria bria --version prints version.
 
-Then derive:
+3) Merge Bria service into the Koya compose file
 
-- KES/BTC
-- KES/USDT
-- KES/USDC
-- BTC/KES
-- USDT/KES
-- USDC/KES
+Task: Update the repo’s docker-compose.yml (the fragment you were given) by adding a bria service that matches Koya conventions:
 
----
+image: koyabank/bria:latest, container_name: koya-bria.
 
-## Supported Pairs
+env_file: docker/bria.env and recommended env names: BRIA_DATABASE_URL, QUICKNODE_RPC_URL, SIGNER_ENCRYPTION_KEY, BRIA_NETWORK, BRIA_API_LISTEN_PORT, RUST_LOG.
 
-### Direct / source-fed pairs
-- BTC/USD
-- BTC/USDT
-- BTC/USDC
-- USDT/USD
-- USDC/USD
-- KES/USD
+volumes: ./config/bria.yml:/etc/bria/bria.yml:ro (config is mounted read-only).
 
-### Derived pairs
-- KES/BTC
-- KES/USDT
-- KES/USDC
-- BTC/KES
-- USDT/KES
-- USDC/KES
-- USDT/USDC
+healthcheck uses nc -z localhost ${BRIA_API_LISTEN_PORT}.
 
-Do not hardcode only one route.  
-The module should be able to derive pairs through known intermediaries safely.
+restart: unless-stopped.
 
----
+depends_on uses redis with condition: service_healthy (to reuse existing redis health dependency).
 
-## Provider Strategy
+Checks:
 
-Implement provider adapters, not provider-specific logic scattered everywhere.
+Compose parse (docker compose config) succeeds.
 
-### Initial providers
+docker compose up -d bria successfully creates the container.
 
-#### Crypto providers
-- Binance (primary)
-- Kraken (backup / validation)
+Container health becomes healthy within a minute.
 
-#### Fiat / KES provider
-- configurable FX provider adapter
-- for now support a placeholder/mock adapter interface if final provider credentials are not yet available
+Acceptance: docker compose up -d brings up redis, api, and bria (if built), and docker compose ps shows all running.
 
-### Requirements
-Each provider must have its own adapter class implementing a shared interface.
+4) Add run helper & config templates
 
-Each adapter should expose methods like:
+Task: Add docker/run-bria.sh (Koya run helper style) that:
 
-- `getTicker(pair)`
-- `getMany(pairs)`
-- `getHealth()`
+Accepts --build to rebuild, reads docker/bria.env, mounts config and runs bria daemon ....
 
-Provider responses must be normalized into one internal structure.
+Mirrors the behavior/UX of docker/run.sh (same error handling and output pattern).
 
----
+Add config/bria.yml.example and docker/bria.env.example with placeholder values and comments:
 
-## Internal Rate Model
+BRIA_DATABASE_URL=postgres://user:pass@host:5432/bria_db
 
-Use a normalized internal rate object such as:
+QUICKNODE_RPC_URL=...
 
-```ts
-type NormalizedRate = {
-  pair: string;
-  base: string;
-  quote: string;
-  bid: number | null;
-  ask: number | null;
-  mid: number;
-  source: string;
-  sourceTimestamp: string;
-  receivedAt: string;
-  latencyMs: number;
-  confidence: number;
-};
-```
+SIGNER_ENCRYPTION_KEY=...
 
-Also define a derived/aggregated snapshot model such as:
+BRIA_NETWORK=testnet
 
-```ts
-type RateSnapshot = {
-  pair: string;
-  mid: number;
-  bid: number | null;
-  ask: number | null;
-  sourceCount: number;
-  sources: string[];
-  calculatedAt: string;
-  stale: boolean;
-  derived: boolean;
-  route?: string[];
-};
-```
+BRIA_API_LISTEN_PORT=2742
 
----
+Checks:
 
-## Redis Integration
+chmod +x docker/run-bria.sh and ./docker/run-bria.sh --build succeed locally (given proper env).
 
-Reuse the existing CacheService.
+Example files are non-sensitive and include clear instructions to copy to real docker/bria.env.
 
-Use the cache namespaces already established:
-
-- `rates:spot:<pair>`
-- `rates:derived:<pair>`
-- `rates:lastgood:<pair>`
-- `provider_health:<provider>`
-
-### TTL policy
-Follow the existing Redis strategy:
-
-- crypto spot rates: 5 seconds
-- fiat FX rates: 60 seconds
-- derived rates: 60 seconds or tighter if based on volatile components
-- provider health flags: 60 seconds
+Acceptance: The run helper builds and starts the container as described and logs show bria daemon started.
 
-### Required behaviour
-- fresh rate → cache under appropriate namespace
-- derived rate → cache separately from direct spot
-- validated last-good snapshot → persist in Redis for safe fallback
-- provider health state → update after every fetch cycle
+5) Add small docs and runbook
 
-Never store ledger truth here.
+Task: Add docs/deployment/bria-runbook.md with:
 
----
+Which envs are required and descriptions (DB URL, QuickNode key, signer key).
 
-## Rate Aggregation Logic
-
-Build a consensus layer, not a single-source reader.
-
-### For directly sourced pairs
-- fetch from all configured providers that support the pair
-- normalize results
-- reject invalid or stale responses
-- compute final result using a safe strategy such as:
-  - median of mids, or
-  - weighted median using provider confidence
+Health checks and how to rotate SIGNER_ENCRYPTION_KEY.
 
-### For derived pairs
-Use deterministic routing.
-
-Examples:
-
-- `KES/BTC = KES/USD × USD/BTC`
-- `BTC/KES = BTC/USD × USD/KES`
-- `KES/USDT = KES/USD × USD/USDT`
-- `USDT/KES = USDT/USD × USD/KES`
-
-Define route builders in a dedicated service.
-
-Do not mix route math with HTTP provider code.
-
----
-
-## Staleness and Safety Rules
-
-Implement staleness checks.
-
-Suggested defaults:
-- crypto rate stale after 10 seconds
-- fiat FX stale after 5 minutes
-- derived rate stale if any component is stale
-
-If all fresh providers fail:
-- attempt to use `rates:lastgood:<pair>`
-- mark snapshot as stale
-- never present stale fallback as fresh
-- ensure callers can see freshness state
-
-If providers disagree too far beyond a tolerance threshold:
-- mark pair degraded
-- do not silently choose a bad price
-- record warning logs and provider health impact
-
----
-
-## Module Structure
-
-Recommended structure:
-
-```text
-apps/api/src/rates
-├── rates.module.ts
-├── rates.service.ts
-├── rates.controller.ts
-├── rates.constants.ts
-├── rates.types.ts
-├── health/
-│   └── rates.health.ts
-├── providers/
-│   ├── provider.interface.ts
-│   ├── binance.provider.ts
-│   ├── kraken.provider.ts
-│   └── fx.provider.ts
-├── aggregation/
-│   ├── rates.aggregator.ts
-│   ├── rates.validator.ts
-│   └── rates.route-builder.ts
-├── cache/
-│   └── rates.cache.ts
-└── __tests__/
-    ├── rates.service.spec.ts
-    ├── rates.aggregator.spec.ts
-    ├── rates.route-builder.spec.ts
-    └── rates.integration.spec.ts
-```
-
----
+How to run locally (docker/run-bria.sh --build), how to start via docker compose up -d, how to tail logs and check health.
 
-## Public API Surface
-
-Expose internal endpoints such as:
-
-### Read endpoints
-- `GET /api/v1/rates`
-- `GET /api/v1/rates/:pair`
-- `GET /api/v1/rates/health`
-
-### Optional query support
-- `?fresh=true`
-- `?includeSources=true`
-
-Return structured metadata including:
-- pair
-- price
-- freshness
-- derived/direct
-- sources used
-- calculatedAt
-
----
-
-## Service Responsibilities
-
-### `RatesService`
-Main entrypoint for consumers.
-Responsibilities:
-- resolve requested pair
-- fetch cached value if valid
-- compute or refresh if needed
-- return final snapshot
-
-### `RatesAggregator`
-Responsibilities:
-- combine multi-provider inputs
-- reject bad/stale values
-- compute final consensus snapshot
-
-### `RatesRouteBuilder`
-Responsibilities:
-- determine derivation path
-- compute derived rates from core pairs
-
-### `RatesValidator`
-Responsibilities:
-- numeric validation
-- timestamp validation
-- divergence checks
-- stale detection
-
-### Provider adapters
-Responsibilities:
-- external API call
-- provider-specific mapping
-- zero business logic
-
----
-
-## Health and Observability
-
-Integrate with existing health patterns.
-
-Track:
-- provider latency
-- provider success/failure count
-- cache hit/miss rate
-- stale rate usage
-- last-good fallback usage
-- per-pair degradation events
-
-Add health checks for:
-- overall rates module
-- provider-level status
-- cache status dependency
-- freshness of core pairs
-
----
-
-## Logging
-
-Log at structured, useful points:
-
-- provider fetch started/finished
-- provider failure
-- invalid provider payload
-- rate divergence beyond threshold
-- stale fallback used
-- cache miss
-- derived route selected
-
-Avoid noisy logs on every normal read path unless debugging is enabled.
-
----
-
-## Testing
-
-Provide strong tests.
-
-### Unit tests
-- provider response normalization
-- pair routing logic
-- derived math correctness
-- staleness rules
-- divergence rejection
-- cache key usage
-
-### Integration tests
-- provider adapter integration with mocked upstream responses
-- Redis caching flow
-- last-good fallback path
-- multiple-provider aggregation
-- derived pair generation
-
-### Critical assertions
-- `KES/BTC` route math is correct
-- stale sources are rejected
-- cached rates expire correctly
-- disagreement threshold handling works
-- provider failure does not crash the module
-
----
-
-## Constraints
-
-Do NOT:
-- hardcode business spread into this module
-- mix quote issuance logic here
-- store financial truth in Redis
-- call execution providers from this module
-- tightly couple rates logic to one exchange
-
-This module is for **trusted price retrieval and derivation**, not trade execution.
-
----
-
-## Deliverables
-
-- `RatesModule`
-- provider interface and adapters
-- aggregation service
-- derivation/route builder
-- Redis-backed rate cache integration
-- last-good fallback logic
-- health endpoints
-- structured tests
-- implementation notes listing files created and modified
-
----
-
-## Success Criteria
-
-The module is complete when:
-
-- API can return fresh BTC/USD, KES/USD, BTC/KES, and KES/USDT rates
-- direct and derived pairs are clearly separated
-- rates are cached through the existing CacheService
-- provider failures degrade safely
-- last-good fallback works
-- health endpoints expose module state
-- structure is ready for quote-engine integration
-
----
-
-## Important Product Rule
-
-This module provides **reference and quote-input prices**.
-
-It does **not**:
-- execute trades
-- lock user funds
-- create quotes
-- apply Koya spread
-- settle ledger entries
-
-That belongs in the quote engine and execution layer.
+Security notes: TLS, secrets store usage, do not expose gRPC publicly. Mention using Koya conventions for secrets (Secrets Manager / KMS).
+
+Acceptance: Runbook added and referenced by PR description.
+
+6) Safety checks and CI gating
+
+Task: Before merging, ensure:
+
+Compose update does not alter api or redis behavior. Run docker compose config and docker compose -f docker-compose.yml up -d in a clean dev environment.
+
+Lint the Dockerfile with hadolint or similar, and run docker scan for high-severity vulnerabilities.
+
+Add a small GitHub Actions workflow job in PR (or ensure existing CI) that builds the Bria image and runs docker compose config, and runs a lightweight health check nc -z localhost 2742 in a service container job (optional for PR to avoid heavy integration).
+
+Acceptance: CI job passes or the PR is explicitly marked to allow manual check for heavy tasks.
+
+7) Prepare the Koya → Bria adapter task (instructions for later)
+
+(Agent should not implement now, but create an issue or note in PR)
+
+Add a TODO in the PR: extract Bria proto files (from src/api/server/proto or proto/), generate TS gRPC client, implement BriaClientService in NestJS as a module libs/bria-adapter with methods:
+
+createProfileIfNotExists(), createWallet(), submitPayout() / submit_signed_psbt(), journalEventsStream(), and estimateFee().
+
+Document the idempotency strategy: every conversion must have external_id used across DFNS, Bria and Koya DB; store processed external IDs and enforce unique constraint.
+
+Acceptance: PR includes TODO/issue ID for adapter work and mapping notes.
+
+8) Security hardening (must be documented before merge)
+
+Ensure docker/bria.env.example is not committed with real secrets. Add .gitignore or .dockerignore guidance (Koya already uses .dockerignore pattern).
+
+Recommend production deploy flow: secrets in Secrets Manager, TLS termination (ALB) or mTLS for gRPC, private network. Document these in the runbook.
+
+Acceptance: Security checklist included in runbook and PR description.
+
+9) PR description & acceptance criteria (what to include in PR)
+
+Files added: Dockerfile.bria, docker/run-bria.sh, config/bria.yml.example, docker/bria.env.example, updated docker-compose.yml.
+
+Runbook: docs/deployment/bria-runbook.md.
+
+CI check: docker build success and docker compose config success.
+
+Runtime test: logs show bria daemon started; healthcheck becomes healthy.
+
+A created issue for the adapter work and DFNS execution flow with linked acceptance tests.
+
+A short security mitigation note (how to inject secrets and enable TLS).
+
+Merge criteria: PR approved by one backend owner and passes CI build. Optionally, a staging deploy must run smoke tests.
+
+10) Smooth implementation tips for the agent (operational)
+
+Do small commits: Dockerfile + run helper + compose + examples + runbook in separate commits. Reference each commit in PR.
+
+Test locally with a remote Postgres (or add a temporary Postgres dev container in compose) and QuickNode testnet. If remote Postgres unreachable, spin a local Postgres for dev and document it.
+
+Keep Bria read-only config mount and example env files separate from real secrets.
+
+Log & monitor: enable RUST_LOG=info and confirm bria logs contain ledger template initialization messages; record at least one UTXO_DETECTED or PAYOUT_SUBMITTED sample in logs.
+
+Reconciliation: after POC, subscribe to journal_events and push to a Koya test consumer.
+
+Copy-paste agent prompt (single block)
+
+Use this exact block for the agent that will run in Koya (or paste into a ticket):
+
+Agent task: integrate Bria container into Koya and prepare for adapter
+
+Create Dockerfile.bria (multi-stage Rust build → slim runtime), run Bria as non-root, default CMD: bria daemon --config /etc/bria/bria.yml ${BRIA_DATABASE_URL} prod. Validate binary present in runtime image.
+
+Add bria service to docker-compose.yml (use existing file fragment). Service must: use env_file: docker/bria.env, mount config/bria.yml read-only, expose 127.0.0.1:2742:2742, have restart: unless-stopped, and a healthcheck using nc. depends_on must reference redis service with condition: service_healthy.
+
+Add docker/run-bria.sh (Koya-style), config/bria.yml.example, docker/bria.env.example. Ensure run helper supports --build.
+
+Add docs/deployment/bria-runbook.md that lists required envs, run commands, health checks, and security guidance (secrets manager, TLS, do not expose gRPC publicly).
+
+Local checks: docker build -f Dockerfile.bria, docker compose up -d bria, container turns healthy and logs show bria daemon start. Add docker compose config CI step.
+
+Create an issue (or TODO) in the PR for the NestJS BriaClientService adapter: list required gRPC calls and idempotency strategy.
+
+Security: do not commit secrets, use secrets manager in runbook, ensure config/bria.yml is read-only mount.
+
+Make small commits, open feature/bria-integration PR with the files and runbook, request review from backend owner, and include the adapter issue.
+
+Provide acceptance evidence: CI build log, docker compose ps output, docker logs snippet showing daemon started and template init.
+
+here are credentials to use in the env files 
+quicknode endpoint https://frosty-little-arrow.btc-testnet4.quiknode.pro/68fad6450fe072a38164588e2eac5340f1d90781
+
+postgress data
+DATABASE_URL=postgresql://doadmin:AVNS_al4Rig0Cj2G6VuAz5Lu@167.71.173.146:25060/koya?sslmode=require&sslaccept=accept_invalid_certs&connect_timeout=30

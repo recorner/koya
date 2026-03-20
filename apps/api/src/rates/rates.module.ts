@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RatesController } from './rates.controller';
 import { RatesService } from './rates.service';
+import { RatesWarmerService } from './rates-warmer.service';
 import { RatesAggregator } from './aggregation/rates.aggregator';
 import { RatesRouteBuilder } from './aggregation/rates.route-builder';
 import { RatesValidator } from './aggregation/rates.validator';
@@ -35,6 +36,9 @@ import type { RatesProvider } from './providers/provider.interface';
 
     // Health
     RatesHealth,
+
+    // Cache warmer (runs on startup + every 5s)
+    RatesWarmerService,
 
     // Main service — inject providers as an array
     {
