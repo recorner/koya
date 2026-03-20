@@ -60,6 +60,9 @@ jobs:
       - name: Unit tests
         run: pnpm nx test api --testPathIgnorePatterns="integration"
 
+      - name: Bria adapter tests
+        run: pnpm nx test bria-adapter
+
   # ──────────────────────────────────────────────
   # Bria Docker build validation
   # ──────────────────────────────────────────────

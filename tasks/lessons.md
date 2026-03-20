@@ -220,6 +220,58 @@ In this project specifically:
 
 ---
 
+## Jest 30 + CJS package.json — `export default` Breaks Config Loading
+
+Jest 30 cannot load `.ts` config files that use `export default` when the nearest `package.json` has `"type": "commonjs"`. The ESM export syntax conflicts with the CJS module system.
+
+**Fix:** Use `module.exports =` instead of `export default` in jest.config.ts files for libraries with `"type": "commonjs"`.
+
+---
+
+## RxJS Observable Mock Streams — Must Include cancel()
+
+When testing RxJS Observable-wrapped gRPC server streams, the mock EventEmitter must include a `cancel()` method. The Observable teardown function calls `cancel()` on unsubscription. Without it, `UnsubscriptionError` is thrown.
+
+**Fix:** Create a helper:
+```ts
+function createMockStream() {
+  const stream = new EventEmitter() as EventEmitter & { cancel: jest.Mock };
+  stream.cancel = jest.fn();
+  return stream;
+}
+```
+
+---
+
+## @nx/js:swc — Requires .swcrc File
+
+The `@nx/js:swc` executor fails with `ENOENT` if no `.swcrc` file exists in the library root. This file is not included in the Nx generator scaffolding.
+
+**Fix:** Copy `.swcrc` from an existing library that uses the same executor (e.g., `libs/config/.swcrc`).
+
+---
+
+## GrpcClient Type — Don't Extend grpc.Client with Index Signature
+
+Extending `grpc.Client` with `[method: string]: (...args: unknown[]) => unknown` causes TS2411 because existing `grpc.Client` properties (like `waitForReady`, `makeUnaryRequest`) have incompatible signatures.
+
+**Fix:** Use `type GrpcClient = grpc.Client` and cast to `Record<string, (...args: unknown[]) => unknown>` at individual call sites.
+
+---
+
+## @nx/dependency-checks — SWC Build Output Causes False Positives
+
+The `@nx/dependency-checks` ESLint rule analyzes the SWC build output to verify package.json deps. Dynamic imports, proto loading, and NestJS dependency injection may not be captured in the compiled output.
+
+**Fix:** Use `ignoredDependencies` array in the ESLint config for known-used packages that the checker can't detect:
+```js
+'@nx/dependency-checks': ['error', {
+  ignoredDependencies: ['@grpc/grpc-js', '@grpc/proto-loader', ...],
+}]
+```
+
+---
+
 ## State Machine — EXPIRED Must Be Reachable From All Pre-Payment States
 
 When adding expiry enforcement to a state machine, ensure that every state where expiry can be checked has `EXPIRED` in its valid transitions list. Otherwise the `transitionState()` call inside `ensureNotExpired()` throws "Invalid state transition" instead of the intended expiry error. In this project, `IDENTITY_PENDING`, `COMPLIANCE_PENDING`, and `PAYOUT_DETAILS_PENDING` all needed `EXPIRED` added to `VALID_STATE_TRANSITIONS`.

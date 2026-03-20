@@ -1,0 +1,33 @@
+{
+  "name": "bria-adapter",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/bria-adapter/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/bria-adapter",
+        "main": "libs/bria-adapter/src/index.ts",
+        "tsConfig": "libs/bria-adapter/tsconfig.lib.json",
+        "assets": [
+          "libs/bria-adapter/*.md",
+          {
+            "glob": "**/*.proto",
+            "input": "libs/bria-adapter/proto",
+            "output": "proto"
+          }
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/bria-adapter/jest.config.ts"
+      }
+    }
+  }
+}

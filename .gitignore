@@ -46,6 +46,7 @@ Thumbs.db
 .env.local
 docker/api.env
 docker/bria.env
+/bria
 
 # Next.js
 .next

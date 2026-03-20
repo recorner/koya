@@ -1,0 +1,20 @@
+{
+  "name": "@koya/bria-adapter",
+  "version": "0.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "scripts": {
+    "copy-proto": "cp -R ../../bria/proto/* proto/"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.3",
+    "@grpc/proto-loader": "^0.8.0",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^11.0.0",
+    "rxjs": "^7.8.0",
+    "@swc/helpers": "~0.5.18"
+  }
+}

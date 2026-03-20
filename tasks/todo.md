@@ -216,12 +216,27 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [ ] **13.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
 - [ ] **13.3** Replace `MockIprsVerifier` with Kenya IPRS API
 - [ ] **13.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
-- [ ] **13.5** Replace `MockBtcDeliveryProvider` with custody API (e.g. Fireblocks)
+- [ ] **13.5** Replace `MockBtcDeliveryProvider` with `BriaClientService` (via `@koya/bria-adapter` — Step 11 ✅)
 - [ ] **13.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
 - [ ] **12.7** WebSocket/SSE for real-time status updates (replace polling)
 - [ ] **12.8** Rate limiting on guest endpoints
 - [ ] **12.9** WhatsApp channel support
 - [ ] **12.10** Admin dashboard for conversion monitoring
+
+## Phase 12d: Bria NestJS Adapter (Step 11)
+
+- [x] **12d.1** Install gRPC deps (`@grpc/grpc-js`, `@grpc/proto-loader`)
+- [x] **12d.2** Scaffold `libs/bria-adapter` Nx library (package.json, project.json, tsconfigs, .swcrc, eslint)
+- [x] **12d.3** Copy proto files (bria.proto, admin/api.proto, vendored struct.proto)
+- [x] **12d.4** Create constants, types, error mapping (`bria.constants.ts`, `bria.types.ts`, `bria.errors.ts`)
+- [x] **12d.5** Build `BriaClientService` — 12 public methods, retry logic, RxJS streaming
+- [x] **12d.6** Build `BriaAdminService` — bootstrap, createAccount, listAccounts
+- [x] **12d.7** Create `BriaModule` + barrel exports
+- [x] **12d.8** Unit tests — 23/23 passing (mocked gRPC client)
+- [x] **12d.9** E2e smoke test (port-check skip when Bria not running)
+- [x] **12d.10** CI integration (`pnpm nx test bria-adapter` in validate job)
+- [x] **12d.11** Lint clean, build passes (SWC), path alias registered
+- [x] **12d.12** Documentation: `docs/progress/step-11.md`
 
 ## Phase 13: Web + WhatsApp Order Sync
 
