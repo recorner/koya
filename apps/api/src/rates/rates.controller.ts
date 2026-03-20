@@ -35,12 +35,12 @@ export class RatesController {
   }
 
   /**
-   * SSE stream: pushes fresh rates every 2 s.
+   * SSE stream: pushes fresh rates every 3 s.
    * Only emits when data actually changes (distinctUntilChanged on mid values).
    */
   @Sse('stream')
   stream(): Observable<MessageEvent> {
-    return interval(2000).pipe(
+    return interval(3000).pipe(
       switchMap(() => from(this.ratesService.getAllRates())),
       map((rates) => rates.filter((r) => !r.stale)),
       distinctUntilChanged(

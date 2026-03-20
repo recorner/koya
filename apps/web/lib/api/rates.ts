@@ -30,29 +30,46 @@ export async function fetchRates(): Promise<RateSnapshot[]> {
   return body.data ?? [];
 }
 
-/**
- * Open a persistent SSE connection to /rates/stream.
- * Calls `onData` whenever the server pushes a new snapshot.
- * Returns a cleanup function to close the connection.
- */
-export function streamRates(onData: (rates: RateSnapshot[]) => void): () => void {
-  const url = `${API_BASE}/rates/stream`;
-  const source = new EventSource(url);
+/* ─── Singleton SSE stream ─────────────────────────────────────────
+   One EventSource shared across all hooks. Ref-counted so it stays
+   open as long as at least one subscriber exists.
+   ──────────────────────────────────────────────────────────────── */
 
-  source.onmessage = (event) => {
+type Listener = (rates: RateSnapshot[]) => void;
+
+const listeners = new Set<Listener>();
+let eventSource: EventSource | null = null;
+
+function ensureStream() {
+  if (eventSource) return;
+  const url = `${API_BASE}/rates/stream`;
+  eventSource = new EventSource(url);
+
+  eventSource.onmessage = (event) => {
     try {
       const payload: RatesResponse = JSON.parse(event.data);
       if (payload.data?.length) {
-        onData(payload.data);
+        for (const cb of listeners) cb(payload.data);
       }
     } catch {
       // ignore malformed frames
     }
   };
+}
 
-  source.onerror = () => {
-    // EventSource auto-reconnects; nothing to do
+function closeStreamIfIdle() {
+  if (listeners.size === 0 && eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
+}
+
+/** Subscribe to the shared SSE rate stream. Returns unsubscribe fn. */
+export function subscribeRates(cb: Listener): () => void {
+  listeners.add(cb);
+  ensureStream();
+  return () => {
+    listeners.delete(cb);
+    closeStreamIfIdle();
   };
-
-  return () => source.close();
 }
