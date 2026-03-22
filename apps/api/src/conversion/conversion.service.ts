@@ -395,10 +395,10 @@ export class ConversionService {
         return;
       }
 
-      if (this.btcDeliveryDriver === 'bria') {
+      if (this.btcDeliveryDriver === 'bria' || this.btcDeliveryDriver === 'dfns') {
         // Async path: payout submitted but not yet on-chain.
-        // Store Bria payout ID, stay in DELIVERY_PENDING.
-        // BriaEventConsumerService will advance to COMPLETED on payout_settled.
+        // Store provider payout ID, stay in DELIVERY_PENDING.
+        // BriaEventConsumerService (bria) or DfnsController webhook (dfns) will advance to COMPLETED.
         await this.prisma.payoutInstruction.update({
           where: { id: payout.id },
           data: {
@@ -446,6 +446,67 @@ export class ConversionService {
   async onPaymentConfirmed(event: { sessionId: string }): Promise<void> {
     this.logger.log(`Payment confirmed event for session ${event.sessionId}`);
     await this.processPaymentConfirmation(event.sessionId);
+  }
+
+  /**
+   * Handle delivery.confirmed event from DFNS webhook (or any async delivery provider)
+   */
+  @OnEvent('delivery.confirmed')
+  async onDeliveryConfirmed(event: {
+    sessionId: string;
+    txId: string;
+    provider: string;
+    providerRequestId: string;
+  }): Promise<void> {
+    this.logger.log(
+      `Delivery confirmed event for session ${event.sessionId} via ${event.provider}`,
+    );
+
+    const session = await this.sessionService.getSession(event.sessionId);
+    if (session.currentState !== 'DELIVERY_PENDING') {
+      this.logger.log(
+        `Session ${event.sessionId} not in DELIVERY_PENDING (${session.currentState}), skipping`,
+      );
+      return;
+    }
+
+    await this.sessionService.transitionState(
+      event.sessionId,
+      ConversionState.COMPLETED,
+      `${event.provider}_delivery_confirmed`,
+      { txId: event.txId, providerRequestId: event.providerRequestId },
+    );
+
+    this.eventEmitter.emit('conversion.completed', {
+      sessionId: event.sessionId,
+      channel: session.channel,
+    });
+  }
+
+  /**
+   * Handle delivery.failed event from DFNS webhook (or any async delivery provider)
+   */
+  @OnEvent('delivery.failed')
+  async onDeliveryFailed(event: {
+    sessionId: string;
+    provider: string;
+    reason: string;
+  }): Promise<void> {
+    this.logger.warn(
+      `Delivery failed event for session ${event.sessionId} via ${event.provider}: ${event.reason}`,
+    );
+
+    const session = await this.sessionService.getSession(event.sessionId);
+    if (session.currentState !== 'DELIVERY_PENDING') {
+      return;
+    }
+
+    await this.sessionService.transitionState(
+      event.sessionId,
+      ConversionState.FAILED,
+      `${event.provider}_delivery_failed`,
+      { reason: event.reason },
+    );
   }
 
   /**

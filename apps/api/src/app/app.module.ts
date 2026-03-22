@@ -9,6 +9,8 @@ import { CacheModule } from '../cache/cache.module';
 import { ConversionModule } from '../conversion/conversion.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { RatesModule } from '../rates/rates.module';
+import { DfnsModule } from '../dfns/dfns.module';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { RatesModule } from '../rates/rates.module';
     ConversionModule,
     WhatsAppModule,
     RatesModule,
+    DfnsModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

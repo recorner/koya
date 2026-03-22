@@ -46,7 +46,12 @@ Thumbs.db
 .env.local
 docker/api.env
 docker/bria.env
+api.env
 /bria
+
+# Keys / Secrets
+*.pem
+*.key
 
 # Next.js
 .next

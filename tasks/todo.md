@@ -210,18 +210,26 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 - [x] **12c.6** Update env files: `docker/api.env.example` and `docker/api.env` with `BINANCE_API_URL`, `KRAKEN_API_URL`
 - [x] **12c.7** All 241 tests passing, zero `[Nest]` log noise in test output
 
-## Phase 13: Production Readiness (Next)
+## Phase 13: Production Readiness — Daraja + DFNS (Step 13)
 
 - [x] **13.1** Replace `MockRateProvider` with real FX API (e.g. CoinGecko, Binance) — **Done via Step 09**: Binance + Kraken live adapters, FX mock swappable
-- [ ] **13.2** Replace `MockMpesaAdapter` with Safaricom Daraja API
+- [x] **13.2** Replace `MockMpesaAdapter` with Safaricom Daraja API — **Done via Step 13**: `DarajaMpesaAdapter` with MPESA_DRIVER factory selection (mock/daraja)
 - [ ] **13.3** Replace `MockIprsVerifier` with Kenya IPRS API
 - [ ] **13.4** Replace `MockAmlScreener` with Chainalysis / ComplyAdvantage
-- [ ] **13.5** Replace `MockBtcDeliveryProvider` with `BriaClientService` (via `@koya/bria-adapter` — Step 11 ✅)
+- [x] **13.5** Replace `MockBtcDeliveryProvider` with `BriaClientService` (via `@koya/bria-adapter` — Step 11 ✅)
+- [x] **13.5b** Add DFNS as BTC delivery driver — **Done via Step 13**: `DfnsBtcDeliveryProvider` with BTC_DELIVERY_DRIVER factory selection (mock/bria/dfns)
 - [ ] **13.6** Replace `MockSwapProvider` with exchange API (e.g. Binance OTC)
-- [ ] **12.7** WebSocket/SSE for real-time status updates (replace polling)
-- [ ] **12.8** Rate limiting on guest endpoints
-- [ ] **12.9** WhatsApp channel support
-- [ ] **12.10** Admin dashboard for conversion monitoring
+- [x] **13.7** Webhook dedup service (`processed_webhooks` table, INSERT ON CONFLICT) — **Done via Step 13**
+- [x] **13.8** Daraja audit trail (`daraja_requests` table) — **Done via Step 13**
+- [x] **13.9** DFNS audit trail + HMAC webhook verification (`dfns_requests` table) — **Done via Step 13**
+- [x] **13.10** Two-layer idempotency for M-Pesa callbacks — **Done via Step 13**
+- [x] **13.11** Event-driven delivery lifecycle (delivery.confirmed/delivery.failed) — **Done via Step 13**
+- [x] **13.12** Unit tests (26 new, 232 total passing) — **Done via Step 13**
+- [x] **13.13** Documentation: `docs/progress/step-13.md` — **Done via Step 13**
+- [ ] **13.14** WebSocket/SSE for real-time status updates (replace polling)
+- [ ] **13.15** Rate limiting on guest endpoints
+- [ ] **13.16** WhatsApp channel support
+- [ ] **13.17** Admin dashboard for conversion monitoring
 
 ## Phase 12d: Bria NestJS Adapter (Step 11)
 

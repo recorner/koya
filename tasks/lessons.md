@@ -118,6 +118,43 @@ DigitalOcean managed Postgres upgraded to PG 18.3. Bria's sqlx migrations use `u
 
 **Fix:** Use a local Postgres 16 container (`bria-pg` service in docker-compose) for Bria instead of the managed PG 18 instance. Bria requires PG ≤16 until upstream migrations are updated.
 
+---
+
+## Avoid `import { Request } from 'express'` in NestJS
+
+Importing `Request` from `express` requires `@types/express` as a devDep. If not installed, the build breaks. For controllers that only need the raw body, define a minimal local interface:
+
+```ts
+interface MinimalRequest { body: unknown; }
+```
+
+This avoids pulling in the full `@types/express` package.
+
+---
+
+## Prisma `InputJsonValue` — Use Double Cast
+
+`rawPayload: body as Record<string, unknown>` doesn't satisfy Prisma's `Prisma.InputJsonValue` type. Use a double cast:
+
+```ts
+import { Prisma } from '@prisma/client';
+rawPayload: body as unknown as Prisma.InputJsonValue,
+```
+
+---
+
+## Event-Driven Architecture to Avoid Circular Module Dependencies
+
+When a webhook controller (e.g., DfnsController) needs to update ConversionService state, importing ConversionModule into DfnsModule creates a circular dep because ConversionModule already imports DfnsModule for the provider factory.
+
+**Fix:** Use EventEmitter2 — the webhook controller emits events (`delivery.confirmed`, `delivery.failed`), and ConversionService listens with `@OnEvent()` decorators. No circular imports needed.
+
+---
+
+## NestJS Factory Providers — Multi-Driver Pattern
+
+When adding a third driver option (e.g., `dfns` alongside `mock` and `bria`), update the `useFactory` switch/if-else to handle all cases. Default to `mock` for safety. Import the new module that provides the driver in the parent module's `imports` array.
+
 **Rule:** Always check target Postgres version compatibility before using managed DB instances for third-party tools with their own migrations.
 
 ---

@@ -144,4 +144,20 @@ export class MpesaService {
 
     return { confirmed: true };
   }
+
+  /**
+   * Update the M-Pesa receipt number from callback metadata
+   */
+  async updateReceiptNumber(
+    checkoutRequestId: string,
+    mpesaReceiptNumber: string,
+  ): Promise<void> {
+    await this.prisma.paymentInstruction.updateMany({
+      where: { checkoutRequestId },
+      data: { mpesaReceiptNumber },
+    });
+    this.logger.log(
+      `Receipt number updated: ${checkoutRequestId} → ${mpesaReceiptNumber}`,
+    );
+  }
 }

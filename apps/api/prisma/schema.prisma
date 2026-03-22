@@ -275,3 +275,41 @@ model WhatsAppMessageEvent {
   @@index([conversationId])
   @@map("whatsapp_message_events")
 }
+
+// ─── Daraja & DFNS Tracking Models ────────────────────────────────
+
+model DarajaRequest {
+  id                String   @id @default(uuid())
+  externalId        String   @unique @map("external_id")
+  checkoutRequestId String   @unique @map("checkout_request_id")
+  amount            BigInt
+  status            String   @default("PENDING")
+  rawPayload        Json?    @map("raw_payload")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("daraja_requests")
+}
+
+model DfnsRequest {
+  id            String   @id @default(uuid())
+  externalId    String   @unique @map("external_id")
+  dfnsRequestId String?  @unique @map("dfns_request_id")
+  dfnsTxId      String?  @map("dfns_tx_id")
+  status        String   @default("PENDING")
+  rawPayload    Json?    @map("raw_payload")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("dfns_requests")
+}
+
+model ProcessedWebhook {
+  id          String   @id @default(uuid())
+  source      String
+  externalId  String   @map("external_id")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@unique([source, externalId], name: "source_external_id_unique")
+  @@map("processed_webhooks")
+}
