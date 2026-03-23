@@ -141,6 +141,20 @@ export interface GetPayoutInput {
 
 // ─── Batch / Signing ───────────────────────────────────────
 
+export interface GetBatchResult {
+  id: string;
+  payoutQueueId: string;
+  txId: string;
+  unsignedPsbt: string;
+  signingSessions: Array<{
+    id: string;
+    batchId: string;
+    xpubId: string;
+    state: string;
+    failureReason?: string;
+  }>;
+}
+
 export interface SubmitSignedPsbtInput {
   batchId: string;
   xpubRef: string;

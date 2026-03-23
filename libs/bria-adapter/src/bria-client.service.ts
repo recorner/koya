@@ -205,6 +205,29 @@ export class BriaClientService implements OnModuleInit, OnModuleDestroy {
 
   // ─── Batch / Signing ────────────────────────────────────
 
+  async getBatch(id: string): Promise<import('./bria.types').GetBatchResult> {
+    const res = await this.callWithRetry<{
+      id: string;
+      payoutQueueId: string;
+      txId: string;
+      unsignedPsbt: string;
+      signingSessions: Array<{
+        id: string;
+        batchId: string;
+        xpubId: string;
+        state: string;
+        failureReason?: string;
+      }>;
+    }>('getBatch', { id });
+    return {
+      id: res.id,
+      payoutQueueId: res.payoutQueueId,
+      txId: res.txId,
+      unsignedPsbt: res.unsignedPsbt,
+      signingSessions: res.signingSessions ?? [],
+    };
+  }
+
   async submitSignedPsbt(input: SubmitSignedPsbtInput): Promise<void> {
     await this.callWithRetry('submitSignedPsbt', {
       batchId: input.batchId,

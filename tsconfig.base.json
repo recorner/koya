@@ -21,7 +21,8 @@
       "@koya/types": ["libs/types/src/index.ts"],
       "@koya/config": ["libs/config/src/index.ts"],
       "@koya/ui": ["libs/ui/src/index.ts"],
-      "@koya/bria-adapter": ["libs/bria-adapter/src/index.ts"]
+      "@koya/bria-adapter": ["libs/bria-adapter/src/index.ts"],
+      "@koya/dfns-sdk": ["libs/dfns-sdk/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

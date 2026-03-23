@@ -292,6 +292,25 @@ Build the full guest conversion vertical slice: Landing page CTA → guest conve
 
 ---
 
+## Phase 14: DFNS SDK + Bria PSBT Signing Engine
+
+**Goal:** Implement `libs/dfns-sdk` TypeScript library and wire Bria-initiated PSBT signing through DFNS. Bria builds PSBTs → Koya stores metadata → DFNS signs → Koya submits signed PSBT back to Bria for broadcast. mTLS required in staging/prod, API-key fallback for sandbox.
+
+- [x] **14.1** Create `libs/dfns-sdk` Nx library with DFNSClient class (mTLS + API-key auth, requestSignPsbt, getRequestStatus, webhook verification)
+- [x] **14.2** Implement retry/backoff helper (exponential backoff + jitter, DfnsTransientError/DfnsPermanentError)
+- [x] **14.3** Implement HMAC-SHA256 signature verification module
+- [x] **14.4** Add `getBatch(id)` method to BriaClientService (returns unsigned PSBT)
+- [x] **14.5** Add `PayoutPsbt` model to Prisma schema + migration
+- [x] **14.6** Wire PSBT signing flow: BriaEventConsumer `payout_committed` → getBatch → DFNS sign → submitSignedPsbt
+- [x] **14.7** Update DfnsBtcDeliveryProvider to use Bria + DFNS SDK
+- [x] **14.8** Update DfnsService to use DFNS SDK (DfnsController unchanged — delegates correctly)
+- [x] **14.9** Unit tests for libs/dfns-sdk (client, retry, signature) — 29 tests
+- [x] **14.10** Unit tests for API changes (PSBT flow, delivery provider, controller) — 239 tests pass
+- [x] **14.11** Run full test suite, lint, typecheck — all clean
+- [x] **14.12** Write docs/progress/step-14.md
+
+---
+
 ## Architecture Decisions
 
 ### State Machine

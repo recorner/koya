@@ -313,3 +313,20 @@ model ProcessedWebhook {
   @@unique([source, externalId], name: "source_external_id_unique")
   @@map("processed_webhooks")
 }
+
+// ─── PSBT Signing Metadata ───────────────────────────────────
+
+model PayoutPsbt {
+  id               String   @id @default(uuid())
+  externalId       String   @unique @map("external_id")
+  psbtBase64       String   @map("psbt_base64")
+  psbtStatus       String   @default("unsigned") @map("psbt_status") // unsigned | signing_pending | signed | broadcast | settled | failed
+  psbtId           String?  @map("psbt_id")       // Bria batch ID
+  dfnsRequestId    String?  @map("dfns_request_id")
+  signedPsbtBase64 String?  @map("signed_psbt_base64")
+  txid             String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("payout_psbts")
+}

@@ -2,9 +2,21 @@ import { ConfigService } from '@nestjs/config';
 import { DfnsService } from '../dfns.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
-// Mock fetch globally
-const mockFetch = jest.fn();
-global.fetch = mockFetch;
+// Mock @koya/dfns-sdk
+const mockRequestSignPsbt = jest.fn();
+const mockVerifyWebhookSignature = jest.fn();
+
+jest.mock('@koya/dfns-sdk', () => ({
+  DFNSClient: jest.fn().mockImplementation(() => ({
+    requestSignPsbt: mockRequestSignPsbt,
+    verifyWebhookSignature: mockVerifyWebhookSignature,
+  })),
+}));
+
+// Mock fs for mTLS cert reading
+jest.mock('fs', () => ({
+  readFileSync: jest.fn(() => Buffer.from('mock-cert-data')),
+}));
 
 describe('DfnsService', () => {
   let service: DfnsService;
@@ -40,22 +52,19 @@ describe('DfnsService', () => {
   });
 
   describe('requestCustodyMove', () => {
-    it('should submit custody move and persist request', async () => {
+    it('should submit custody move via SDK and persist request', async () => {
       (prisma.dfnsRequest.findUnique as jest.Mock).mockResolvedValue(null);
+
+      mockRequestSignPsbt.mockResolvedValue({
+        dfnsRequestId: 'dfns-transfer-001',
+        status: 'PENDING',
+      });
+
       (prisma.dfnsRequest.create as jest.Mock).mockResolvedValue({
         id: 'db-id-001',
         externalId: 'koya:conversion:KYA-TEST01',
         dfnsRequestId: 'dfns-transfer-001',
         status: 'PENDING',
-      });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          id: 'dfns-transfer-001',
-          status: 'Pending',
-        }),
       });
 
       const result = await service.requestCustodyMove({
@@ -66,6 +75,11 @@ describe('DfnsService', () => {
 
       expect(result.dfnsRequestId).toBe('dfns-transfer-001');
       expect(result.status).toBe('PENDING');
+      expect(mockRequestSignPsbt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          externalId: 'koya:conversion:KYA-TEST01',
+        }),
+      );
       expect(prisma.dfnsRequest.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -92,17 +106,13 @@ describe('DfnsService', () => {
 
       expect(result.dfnsRequestId).toBe('dfns-existing');
       expect(result.status).toBe('PENDING');
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockRequestSignPsbt).not.toHaveBeenCalled();
     });
 
-    it('should throw on permanent API error', async () => {
+    it('should throw on SDK error', async () => {
       (prisma.dfnsRequest.findUnique as jest.Mock).mockResolvedValue(null);
 
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        text: async () => 'Bad Request',
-      });
+      mockRequestSignPsbt.mockRejectedValue(new Error('DFNS API error'));
 
       await expect(
         service.requestCustodyMove({
@@ -110,25 +120,23 @@ describe('DfnsService', () => {
           destination: 'invalid',
           satoshis: 0,
         }),
-      ).rejects.toThrow('DFNS API error: 400');
+      ).rejects.toThrow('DFNS API error');
     });
 
-    it('should handle 409 conflict as idempotent', async () => {
+    it('should handle 409 conflict (idempotent via SDK)', async () => {
       (prisma.dfnsRequest.findUnique as jest.Mock).mockResolvedValue(null);
+
+      mockRequestSignPsbt.mockResolvedValue({
+        dfnsRequestId: 'dfns-conflict-id',
+        status: 'PENDING',
+        alreadyExists: true,
+      });
+
       (prisma.dfnsRequest.create as jest.Mock).mockResolvedValue({
         id: 'db-conflict',
         externalId: 'koya:conversion:KYA-CONF',
         dfnsRequestId: 'dfns-conflict-id',
         status: 'PENDING',
-      });
-
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: async () => ({
-          id: 'dfns-conflict-id',
-          status: 'Pending',
-        }),
       });
 
       const result = await service.requestCustodyMove({
@@ -142,20 +150,25 @@ describe('DfnsService', () => {
   });
 
   describe('verifyWebhookSignature', () => {
-    it('should verify valid HMAC signature', () => {
-      const crypto = require('crypto');
-      const secret = 'test-webhook-secret';
-      const payload = '{"id":"test","status":"Executed"}';
-      const expectedSig = crypto
-        .createHmac('sha256', secret)
-        .update(payload)
-        .digest('hex');
+    it('should delegate to SDK for verification', () => {
+      mockVerifyWebhookSignature.mockReturnValue(true);
 
-      const result = service.verifyWebhookSignature(payload, expectedSig);
+      const result = service.verifyWebhookSignature(
+        '{"id":"test","status":"Executed"}',
+        'valid-signature',
+      );
+
       expect(result).toBe(true);
+      expect(mockVerifyWebhookSignature).toHaveBeenCalledWith(
+        '{"id":"test","status":"Executed"}',
+        'valid-signature',
+        'test-webhook-secret',
+      );
     });
 
     it('should reject invalid signature', () => {
+      mockVerifyWebhookSignature.mockReturnValue(false);
+
       const result = service.verifyWebhookSignature(
         '{"id":"test"}',
         'deadbeef',
@@ -163,15 +176,12 @@ describe('DfnsService', () => {
       expect(result).toBe(false);
     });
 
-    it('should reject when no secret configured', () => {
-      const noSecretConfig = {
-        get: jest.fn((key: string, defaultValue?: string) => {
-          if (key === 'DFNS_WEBHOOK_SECRET') return '';
-          return defaultValue ?? '';
-        }),
+    it('should reject when client not initialized', () => {
+      const noConfig = {
+        get: jest.fn(() => ''),
       } as unknown as ConfigService;
 
-      const svc = new DfnsService(noSecretConfig, prisma);
+      const svc = new DfnsService(noConfig, prisma);
       expect(svc.verifyWebhookSignature('payload', 'sig')).toBe(false);
     });
   });

@@ -9,6 +9,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Subscription } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionService } from './session.service';
+import { PsbtSigningService } from './psbt-signing.service';
 import { BriaClientService, BriaEvent, BriaEventPayload } from '@koya/bria-adapter';
 import { ConversionState } from '@koya/types';
 
@@ -22,6 +23,7 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly briaClient: BriaClientService,
     private readonly prisma: PrismaService,
     private readonly sessionService: SessionService,
+    private readonly psbtSigningService: PsbtSigningService,
     private readonly eventEmitter: EventEmitter2,
     private readonly config: ConfigService,
   ) {
@@ -29,13 +31,16 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit() {
-    if (this.driver !== 'bria') {
-      this.logger.log('BTC_DELIVERY_DRIVER is not bria — skipping event subscription');
+    // Subscribe to Bria events for both 'bria' and 'dfns' drivers
+    // (dfns driver uses Bria for UTXO management + PSBT building)
+    if (this.driver !== 'bria' && this.driver !== 'dfns') {
+      this.logger.log('BTC_DELIVERY_DRIVER is not bria/dfns — skipping event subscription');
       return;
     }
 
-    this.logger.log('Starting Bria event subscription');
-    const stream$ = this.briaClient.subscribeAll({ afterSequence: 0 });
+    this.logger.log(`Starting Bria event subscription (driver=${this.driver})`);
+    // augment=true to get payout_info with batch_id
+    const stream$ = this.briaClient.subscribeAll({ afterSequence: 0, augment: true });
 
     this.subscription = stream$.subscribe({
       next: (event: BriaEvent) => {
@@ -67,6 +72,7 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
 
       case 'payout_committed':
         this.logger.debug(`Payout committed: ${payload.data.id} batch txId=${payload.data.txId}`);
+        await this.handlePayoutCommitted(payload, event);
         break;
 
       case 'payout_broadcast':
@@ -85,6 +91,54 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
         // UTXO events and others — log only
         this.logger.debug(`Bria event: ${payload.type} seq=${event.sequence}`);
         break;
+    }
+  }
+
+  /**
+   * When driver=dfns, payout_committed means Bria built the batch with an unsigned PSBT.
+   * We retrieve it, send to DFNS for signing, and submit the signed PSBT back to Bria.
+   */
+  private async handlePayoutCommitted(
+    payload: Extract<BriaEventPayload, { type: 'payout_committed' }>,
+    event: BriaEvent,
+  ): Promise<void> {
+    if (this.driver !== 'dfns') {
+      return; // Only DFNS driver uses external PSBT signing
+    }
+
+    const payout = await this.findPayoutByProviderId(payload.data.id);
+    if (!payout || !payout.externalId) {
+      this.logger.debug(`No Koya payout for committed payout ${payload.data.id}, skipping PSBT signing`);
+      return;
+    }
+
+    // Get batchId from augmented event data or from getPayout
+    const augmentation = (event as unknown as Record<string, unknown>)['augmentation'] as
+      | { payoutInfo?: { batchId?: string } }
+      | undefined;
+    let batchId = augmentation?.payoutInfo?.batchId;
+
+    if (!batchId) {
+      // Fallback: fetch payout info to get batchId
+      const payoutInfo = await this.briaClient.getPayout({ id: payload.data.id });
+      batchId = payoutInfo.batchId;
+    }
+
+    if (!batchId) {
+      this.logger.error(`No batchId found for payout ${payload.data.id} — cannot sign PSBT`);
+      return;
+    }
+
+    try {
+      await this.psbtSigningService.handlePayoutCommitted(
+        payload.data.id,
+        payout.externalId,
+        batchId,
+      );
+    } catch (err) {
+      this.logger.error(
+        `PSBT signing failed for payout ${payload.data.id}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 
@@ -119,6 +173,13 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
         txHash: payload.data.txId,
       },
     });
+
+    // Update PSBT record if tracking
+    if (payout.externalId) {
+      await this.psbtSigningService.markSettled(payout.externalId, payload.data.txId).catch((err) => {
+        this.logger.debug(`PSBT settled update skipped: ${err instanceof Error ? err.message : String(err)}`);
+      });
+    }
 
     // Advance session to COMPLETED if still in DELIVERY_PENDING
     const session = await this.prisma.conversionSession.findUnique({

@@ -4,6 +4,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Subject } from 'rxjs';
 import { BriaEventConsumerService } from '../bria-event-consumer.service';
 import { SessionService } from '../session.service';
+import { PsbtSigningService } from '../psbt-signing.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BriaClientService, BriaEvent } from '@koya/bria-adapter';
 
@@ -12,6 +13,8 @@ describe('BriaEventConsumerService', () => {
   let briaClient: jest.Mocked<BriaClientService>;
   let prisma: any;
   let sessionService: jest.Mocked<SessionService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let psbtSigningService: jest.Mocked<PsbtSigningService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
   let eventSubject: Subject<BriaEvent>;
 
@@ -40,12 +43,18 @@ describe('BriaEventConsumerService', () => {
       emit: jest.fn(),
     };
 
+    const mockPsbtSigningService = {
+      handlePayoutCommitted: jest.fn().mockResolvedValue(undefined),
+      markSettled: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BriaEventConsumerService,
         { provide: BriaClientService, useValue: mockBriaClient },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SessionService, useValue: mockSessionService },
+        { provide: PsbtSigningService, useValue: mockPsbtSigningService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: ConfigService,
@@ -63,6 +72,7 @@ describe('BriaEventConsumerService', () => {
     briaClient = module.get(BriaClientService);
     prisma = module.get(PrismaService);
     sessionService = module.get(SessionService);
+    psbtSigningService = module.get(PsbtSigningService);
     eventEmitter = module.get(EventEmitter2);
 
     return module;
@@ -85,7 +95,7 @@ describe('BriaEventConsumerService', () => {
     await createModule('bria');
     consumer.onModuleInit();
 
-    expect(briaClient.subscribeAll).toHaveBeenCalledWith({ afterSequence: 0 });
+    expect(briaClient.subscribeAll).toHaveBeenCalledWith({ afterSequence: 0, augment: true });
   });
 
   it('should update txHash on payout_broadcast', async () => {

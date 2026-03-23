@@ -50,6 +50,9 @@ COPY --from=builder /app/dist/apps/api ./
 # Copy Prisma schema + migrations for runtime migration
 COPY --from=builder /app/apps/api/prisma ./prisma
 
+# Copy bria-adapter proto files (webpack __dirname resolves to / at runtime)
+COPY --from=builder /app/libs/bria-adapter/proto /proto
+
 # Replace TypeScript config with plain JS (no TS runtime in production)
 RUN rm -f prisma/prisma.config.ts && \
     printf 'const path = require("path");\nconst { defineConfig } = require("prisma/config");\nmodule.exports = defineConfig({\n  earlyAccess: true,\n  schema: path.join(__dirname, "schema.prisma"),\n  datasource: { url: process.env.DATABASE_URL }\n});\n' > prisma/prisma.config.js

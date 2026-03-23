@@ -1,22 +1,33 @@
+import { ConfigService } from '@nestjs/config';
 import { DfnsBtcDeliveryProvider } from '../dfns-btc-delivery.provider';
-import { DfnsService } from '../../dfns/dfns.service';
+import { BriaClientService } from '@koya/bria-adapter';
 
 describe('DfnsBtcDeliveryProvider', () => {
   let provider: DfnsBtcDeliveryProvider;
-  let dfnsService: jest.Mocked<DfnsService>;
+  let briaClient: jest.Mocked<BriaClientService>;
+  let configService: ConfigService;
 
   beforeEach(() => {
-    dfnsService = {
-      requestCustodyMove: jest.fn(),
-    } as unknown as jest.Mocked<DfnsService>;
+    briaClient = {
+      submitPayout: jest.fn(),
+    } as unknown as jest.Mocked<BriaClientService>;
 
-    provider = new DfnsBtcDeliveryProvider(dfnsService);
+    configService = {
+      get: jest.fn((key: string, defaultValue?: string) => {
+        const config: Record<string, string> = {
+          BRIA_WALLET_NAME: 'test-wallet',
+          BRIA_PAYOUT_QUEUE_NAME: 'test-queue',
+        };
+        return config[key] ?? defaultValue ?? '';
+      }),
+    } as unknown as ConfigService;
+
+    provider = new DfnsBtcDeliveryProvider(briaClient, configService);
   });
 
-  it('should submit custody move with correct params', async () => {
-    dfnsService.requestCustodyMove.mockResolvedValue({
-      dfnsRequestId: 'dfns-req-001',
-      status: 'PENDING',
+  it('should submit payout to Bria with correct params', async () => {
+    briaClient.submitPayout.mockResolvedValue({
+      id: 'bria-payout-001',
     });
 
     const result = await provider.send({
@@ -26,21 +37,21 @@ describe('DfnsBtcDeliveryProvider', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.txHash).toBe('dfns-req-001');
+    expect(result.txHash).toBe('bria-payout-001');
     expect(result.confirmations).toBe(0);
 
-    expect(dfnsService.requestCustodyMove).toHaveBeenCalledWith({
-      externalId: 'koya:conversion:KYA-TEST01',
-      destination: 'tb1qtest123',
+    expect(briaClient.submitPayout).toHaveBeenCalledWith({
+      walletName: 'test-wallet',
+      payoutQueueName: 'test-queue',
+      destination: { onchainAddress: 'tb1qtest123' },
       satoshis: 100000,
+      externalId: 'koya:conversion:KYA-TEST01',
+      metadata: { referenceCode: 'KYA-TEST01', driver: 'dfns' },
     });
   });
 
   it('should build correct externalId from referenceCode', async () => {
-    dfnsService.requestCustodyMove.mockResolvedValue({
-      dfnsRequestId: 'dfns-req-002',
-      status: 'PENDING',
-    });
+    briaClient.submitPayout.mockResolvedValue({ id: 'bria-payout-002' });
 
     await provider.send({
       address: 'tb1qaddr',
@@ -48,32 +59,16 @@ describe('DfnsBtcDeliveryProvider', () => {
       referenceCode: 'KYA-ABCD1234',
     });
 
-    expect(dfnsService.requestCustodyMove).toHaveBeenCalledWith(
+    expect(briaClient.submitPayout).toHaveBeenCalledWith(
       expect.objectContaining({
         externalId: 'koya:conversion:KYA-ABCD1234',
       }),
     );
   });
 
-  it('should handle existing request (idempotent)', async () => {
-    dfnsService.requestCustodyMove.mockResolvedValue({
-      dfnsRequestId: 'dfns-existing',
-      status: 'PENDING',
-    });
-
-    const result = await provider.send({
-      address: 'tb1qaddr',
-      amountSatoshis: BigInt(75000),
-      referenceCode: 'KYA-EXIST01',
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.txHash).toBe('dfns-existing');
-  });
-
-  it('should return failure on error', async () => {
-    dfnsService.requestCustodyMove.mockRejectedValue(
-      new Error('DFNS API error: 400 Bad Request'),
+  it('should return failure on Bria error', async () => {
+    briaClient.submitPayout.mockRejectedValue(
+      new Error('forbidden'),
     );
 
     const result = await provider.send({
@@ -88,8 +83,8 @@ describe('DfnsBtcDeliveryProvider', () => {
   });
 
   it('should return failure on network error', async () => {
-    dfnsService.requestCustodyMove.mockRejectedValue(
-      new Error('fetch failed'),
+    briaClient.submitPayout.mockRejectedValue(
+      new Error('gRPC stream error'),
     );
 
     const result = await provider.send({

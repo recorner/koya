@@ -43,7 +43,8 @@
 3. **Track Progress**: Mark items complete as you go
 4. **Explain Changes**: High-level summary at each step
 5. **Document Results**: Add review section to `tasks/todo.md`
-6. **Capture Lessons**: Update `tasks/lessons.md` after corrections
+6 . **Final Progress**: Update `docs/progress/` with the story of the change just like in the other files in `docs/progress/` eg /docs/progress/step-12.md
+7. **Capture Lessons**: Update `tasks/lessons.md` after corrections
 
 ## Core Principles
 

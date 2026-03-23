@@ -1,0 +1,26 @@
+{
+  "name": "dfns-sdk",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/dfns-sdk/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/dfns-sdk",
+        "main": "libs/dfns-sdk/src/index.ts",
+        "tsConfig": "libs/dfns-sdk/tsconfig.lib.json",
+        "assets": ["libs/dfns-sdk/*.md"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "libs/dfns-sdk/jest.config.ts"
+      }
+    }
+  }
+}

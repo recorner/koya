@@ -20,6 +20,7 @@ export type {
   CreateWalletResult,
   EstimatePayoutFeeInput,
   EstimatePayoutFeeResult,
+  GetBatchResult,
   GetPayoutInput,
   ImportXpubInput,
   ImportXpubResult,
