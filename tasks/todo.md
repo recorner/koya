@@ -486,3 +486,54 @@ Wire the `@koya/bria-adapter` library into the conversion engine as a real BTC d
 - [x] **12e.9** Fix pre-existing `libs/types` build error (`rootDir` in tsconfig.lib.json)
 
 **Result:** 254 tests, 18 suites, zero regressions. API + types + bria-adapter builds pass. Lint clean.
+
+---
+
+## Phase 15: Engine — Cursor Persistence, Ops, Retention, CI
+
+Redis cursor persistence, reconciliation job, PSBT retention, DFNS health check, nightly CI, and ops documentation.
+
+- [x] **15.1** Redis cursor store — `RedisCursorStore` service using existing ioredis `REDIS_CLIENT`
+- [x] **15.2** Wire cursor store into `BriaEventConsumerService` — load on init, save after each event
+- [x] **15.3** PSBT retention cron service — archive `payout_psbts` older than 90 days
+- [x] **15.4** Reconciliation cron service — daily Koya ↔ Bria ledger comparison
+- [x] **15.5** Create `OpsModule` — wires retention + reconciliation into `AppModule`
+- [x] **15.6** DFNS health check endpoint — `GET /internal/health/dfns` with TLS handshake validation
+- [x] **15.7** Nightly CI workflow — GitHub Actions skeleton for DFNS integration tests
+- [x] **15.8** mTLS ops docs + runbook — `docs/deployment/dfns-mtls.md`
+- [x] **15.9** Unit tests — cursor store, retention, reconciliation, health check
+- [x] **15.10** Verify — all tests pass, lint clean, types clean
+
+**Result:** 301 tests, 27 suites, zero regressions. All libs pass. Lint clean.
+
+---
+
+## Phase 16: Engine — S3 Archival, CloudWatch, Circuit Breaker, Ops Tooling
+
+Full production ops: S3 PSBT archival, CloudWatch metrics + SNS alarms, circuit breaker for signing, DFNS mock/integration scripts, self-hosted runner provisioning, mTLS rotation automation, full runbook expansion.
+
+- [x] **16.1** Install AWS SDK v3 (`@aws-sdk/client-s3`, `@aws-sdk/client-cloudwatch`)
+- [x] **16.2** S3 archival in `PsbtRetentionService` — upload to S3 w/ KMS before marking `[archived]`
+- [x] **16.3** Unit tests for S3 archival (mock S3 client)
+- [x] **16.4** Terraform for S3 bucket + KMS key (`terraform/aws/s3_psbt_archive.tf`)
+- [x] **16.5** PSBT retention restore playbook (`docs/deployment/psbt-retention.md`)
+- [x] **16.6** CloudWatch `putMetricData` in `ReconciliationService`
+- [x] **16.7** Reconciliation unit test update for CloudWatch metric
+- [x] **16.8** Terraform for CloudWatch alarm + SNS (`terraform/aws/alerts_reconciliation.tf`)
+- [x] **16.9** Reconciliation runbook (`docs/deployment/reconciliation.md`)
+- [x] **16.10** Self-hosted runner CloudFormation + setup script
+- [x] **16.11** Update nightly GH Actions workflow
+- [x] **16.12** Nightly runner docs (`docs/deployment/nightly-runner.md`)
+- [x] **16.13** mTLS rotation script (`scripts/rotate-dfns-mtls.sh`)
+- [x] **16.14** ECS secret update script (`scripts/update-ecs-task-secret.sh`)
+- [x] **16.15** Cert expiry check script (`scripts/check-cert-expiry.sh`)
+- [x] **16.16** Circuit breaker in `PsbtSigningService` (Redis-backed)
+- [x] **16.17** Sign-latency CloudWatch metric + alarm
+- [x] **16.18** Circuit breaker unit tests
+- [x] **16.19** DFNS mock server (`scripts/dfns-mock/server.js`)
+- [x] **16.20** Integration run scripts (`scripts/run-dfns-mock.sh`, `scripts/run-integration.sh`)
+- [x] **16.21** Full runbook expansion (`docs/deployment/dfns-mtls.md`)
+- [x] **16.22** Verify — all tests pass, lint clean, types clean
+- [x] **16.23** Write `docs/progress/step-16.md`
+
+**Result:** 314 tests, 28 suites, zero regressions. All libs pass. Lint clean. Types clean.

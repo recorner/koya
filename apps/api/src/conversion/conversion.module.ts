@@ -6,6 +6,7 @@ import { QuoteService } from './quote.service';
 import { SessionService } from './session.service';
 import { BriaEventConsumerService } from './bria-event-consumer.service';
 import { PsbtSigningService } from './psbt-signing.service';
+import { RedisCursorStore } from './redis-cursor.store';
 import { BriaSetupService } from './bria-setup.service';
 import { BriaSetupController } from './bria-setup.controller';
 import { KycModule } from '../kyc/kyc.module';
@@ -39,6 +40,7 @@ if (process.env['NODE_ENV'] !== 'production') {
     SessionService,
     BriaEventConsumerService,
     PsbtSigningService,
+    RedisCursorStore,
     BriaSetupService,
     MockBtcDeliveryProvider,
     BriaBtcDeliveryProvider,

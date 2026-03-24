@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Koya self-hosted GitHub Actions runner for nightly DFNS integration tests'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues: [t3.small, t3.medium, t3.large, t3.xlarge]
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: SSH key pair for runner access
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  GitHubTokenSecretArn:
+    Type: String
+    Description: 'ARN of Secrets Manager secret containing GitHub runner registration token'
+  GitHubOrg:
+    Type: String
+    Default: westronet
+  GitHubRepo:
+    Type: String
+    Default: koya
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [staging, production]
+
+Resources:
+  RunnerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Koya GitHub Actions runner
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: SSH access (restrict to VPN CIDR in production)
+      SecurityGroupEgress:
+        - IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub 'koya-runner-sg-${Environment}'
+
+  RunnerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'koya-runner-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: RunnerSecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref GitHubTokenSecretArn
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/koya/dfns/*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub 'arn:aws:s3:::koya-archives-${Environment}/*'
+              - Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace:
+                      - Koya/Reconciliation
+                      - Koya/Signing
+
+  RunnerInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref RunnerRole
+
+  RunnerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0c7217cdde317cfec  # Ubuntu 22.04 LTS us-east-1 (update for your region)
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      IamInstanceProfile: !Ref RunnerInstanceProfile
+      SecurityGroupIds:
+        - !Ref RunnerSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 50
+            VolumeType: gp3
+            Encrypted: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'koya-runner-${Environment}'
+        - Key: Service
+          Value: koya
+        - Key: Component
+          Value: ci-runner
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > >(tee /var/log/user-data.log) 2>&1
+
+          echo "=== Koya Runner Setup ==="
+
+          # System updates
+          apt-get update -y
+          apt-get install -y curl jq unzip git
+
+          # Docker
+          curl -fsSL https://get.docker.com | sh
+          usermod -aG docker ubuntu
+          systemctl enable docker
+
+          # Docker Compose
+          COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | jq -r .tag_name)
+          curl -L "https://github.com/docker/compose/releases/download/$COMPOSE_VERSION/docker-compose-linux-$(uname -m)" -o /usr/local/bin/docker-compose
+          chmod +x /usr/local/bin/docker-compose
+
+          # AWS CLI v2
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
+          unzip -q /tmp/awscliv2.zip -d /tmp
+          /tmp/aws/install
+          rm -rf /tmp/aws /tmp/awscliv2.zip
+
+          # Node.js 22
+          curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+          apt-get install -y nodejs
+
+          # pnpm
+          npm install -g pnpm@10
+
+          # GitHub Actions runner
+          RUNNER_DIR=/opt/actions-runner
+          mkdir -p $RUNNER_DIR
+          cd $RUNNER_DIR
+
+          RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name | sed 's/v//')
+          curl -o actions-runner.tar.gz -L "https://github.com/actions/runner/releases/download/v$RUNNER_VERSION/actions-runner-linux-x64-$RUNNER_VERSION.tar.gz"
+          tar xzf actions-runner.tar.gz
+          rm actions-runner.tar.gz
+
+          chown -R ubuntu:ubuntu $RUNNER_DIR
+
+          # Get GH runner token from Secrets Manager
+          GH_TOKEN=$(aws secretsmanager get-secret-value \
+            --secret-id "${GitHubTokenSecretArn}" \
+            --query SecretString --output text \
+            --region ${AWS::Region})
+
+          # Configure runner
+          su ubuntu -c "./config.sh --url https://github.com/${GitHubOrg}/${GitHubRepo} --token $GH_TOKEN --name koya-runner-$(hostname) --labels self-hosted,linux,docker --unattended --replace"
+
+          # Install and start as service
+          ./svc.sh install ubuntu
+          ./svc.sh start
+
+          echo "=== Runner setup complete ==="
+
+Outputs:
+  RunnerInstanceId:
+    Value: !Ref RunnerInstance
+  RunnerPublicIp:
+    Value: !GetAtt RunnerInstance.PublicIp
+  RunnerRoleArn:
+    Value: !GetAtt RunnerRole.Arn

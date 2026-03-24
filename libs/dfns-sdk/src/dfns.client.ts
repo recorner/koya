@@ -146,6 +146,65 @@ export class DFNSClient {
     };
   }
 
+  // ─── Health Check ───────────────────────────────────────
+
+  /**
+   * Validate connectivity to DFNS.
+   * If mTLS is configured, performs a TLS handshake.
+   * Otherwise, does a lightweight GET with a short timeout.
+   * Returns { ok, latencyMs, mTls }.
+   */
+  async healthcheck(): Promise<{ ok: boolean; latencyMs: number; mTls: boolean }> {
+    const start = Date.now();
+    const healthTimeout = 2_000;
+
+    if (this.httpsAgent) {
+      // mTLS: attempt a TLS handshake by connecting and immediately ending
+      return new Promise((resolve) => {
+        const parsedUrl = new URL(this.baseUrl);
+        const socket = require('tls').connect(
+          {
+            host: parsedUrl.hostname,
+            port: Number(parsedUrl.port) || 443,
+            cert: (this.httpsAgent as { options: { cert: Buffer } }).options.cert,
+            key: (this.httpsAgent as { options: { key: Buffer } }).options.key,
+            ca: (this.httpsAgent as { options: { ca?: Buffer } }).options.ca,
+            rejectUnauthorized: true,
+            timeout: healthTimeout,
+          },
+          () => {
+            const latencyMs = Date.now() - start;
+            socket.end();
+            resolve({ ok: true, latencyMs, mTls: true });
+          },
+        );
+        socket.on('error', () => {
+          resolve({ ok: false, latencyMs: Date.now() - start, mTls: true });
+        });
+        socket.on('timeout', () => {
+          socket.destroy();
+          resolve({ ok: false, latencyMs: Date.now() - start, mTls: true });
+        });
+      });
+    }
+
+    // No mTLS: lightweight GET with short timeout
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), healthTimeout);
+      const fetchOpts: RequestInit = {
+        method: 'GET',
+        headers: this.buildHeaders(),
+        signal: controller.signal,
+      };
+      const response = await fetch(`${this.baseUrl}/health`, fetchOpts);
+      clearTimeout(timer);
+      return { ok: response.ok || response.status === 404, latencyMs: Date.now() - start, mTls: false };
+    } catch {
+      return { ok: false, latencyMs: Date.now() - start, mTls: false };
+    }
+  }
+
   // ─── HTTP helpers ──────────────────────────────────────
 
   private buildHeaders(idempotencyKey?: string): Record<string, string> {

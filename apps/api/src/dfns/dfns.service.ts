@@ -162,4 +162,14 @@ export class DfnsService {
     const secret = this.config.get<string>('DFNS_WEBHOOK_SECRET', '');
     return this.dfnsClient.verifyWebhookSignature(payload, signature, secret);
   }
+
+  /**
+   * Health check: validates mTLS handshake or API connectivity.
+   */
+  async healthcheck(): Promise<{ ok: boolean; latencyMs: number; mTls: boolean }> {
+    if (!this.dfnsClient) {
+      return { ok: false, latencyMs: 0, mTls: false };
+    }
+    return this.dfnsClient.healthcheck();
+  }
 }

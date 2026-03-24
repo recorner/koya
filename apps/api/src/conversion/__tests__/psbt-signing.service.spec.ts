@@ -23,6 +23,11 @@ jest.mock('fs', () => ({
   readFileSync: jest.fn(() => Buffer.from('mock-cert-data')),
 }));
 
+jest.mock('@aws-sdk/client-cloudwatch', () => ({
+  CloudWatchClient: jest.fn().mockImplementation(() => ({ send: jest.fn() })),
+  PutMetricDataCommand: jest.fn(),
+}));
+
 describe('PsbtSigningService', () => {
   let service: PsbtSigningService;
   let prisma: jest.Mocked<PrismaService>;
@@ -56,7 +61,7 @@ describe('PsbtSigningService', () => {
       get: jest.fn((key: string, defaultValue?: string) => configValues[key] ?? defaultValue ?? ''),
     } as unknown as ConfigService;
 
-    service = new PsbtSigningService(prisma, briaClient, configService);
+    service = new PsbtSigningService(prisma, briaClient, configService, null);
   });
 
   describe('handlePayoutCommitted', () => {

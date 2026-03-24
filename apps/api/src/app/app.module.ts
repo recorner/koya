@@ -11,6 +11,7 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { RatesModule } from '../rates/rates.module';
 import { DfnsModule } from '../dfns/dfns.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
+import { OpsModule } from '../ops/ops.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { WebhooksModule } from '../webhooks/webhooks.module';
     RatesModule,
     DfnsModule,
     WebhooksModule,
+    OpsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

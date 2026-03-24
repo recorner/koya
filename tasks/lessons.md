@@ -100,6 +100,49 @@ Unit tests (validation, route-policy, risk) use no DB and run fast. Integration 
 
 ---
 
+## @Optional() Redis Injection in NestJS
+
+When a service uses `@Inject(REDIS_CLIENT) @Optional() private readonly redis: Redis | null`, tests must pass `null` as the corresponding constructor argument in `new Service(...)` calls. The `@Optional()` decorator only works with NestJS DI container — manual instantiation still requires explicit `null`.
+
+---
+
+## Conditional AWS Client Initialization
+
+When services optionally use AWS clients (S3, CloudWatch), initialize them in the constructor only when the env var is set. This avoids requiring AWS credentials in local dev and tests. Pattern:
+
+```ts
+constructor(private readonly config: ConfigService) {
+  const bucket = config.get<string>('PSBT_ARCHIVE_S3_BUCKET');
+  if (bucket) {
+    this.s3 = new S3Client({ region: config.get('AWS_REGION') });
+    this.bucket = bucket;
+  }
+}
+```
+
+---
+
+## Circuit Breaker Redis Key Design
+
+Use sorted sets for failure windows (`ZADD` with timestamp score) and simple strings for open-until timestamps. Key naming: `koya:cb:{name}:failures` and `koya:cb:{name}:open_until`. The sorted set allows `ZRANGEBYSCORE` to count recent failures within a time window efficiently.
+
+---
+
+## AWS SDK v3 Mocking in Jest
+
+Mock the entire module, not individual classes. Pattern:
+
+```ts
+jest.mock('@aws-sdk/client-s3', () => ({
+  S3Client: jest.fn().mockImplementation(() => ({ send: jest.fn().mockResolvedValue({}) })),
+  PutObjectCommand: jest.fn(),
+}));
+```
+
+This works because AWS SDK v3 uses tree-shakeable named exports.
+
+---
+
 ## NestJS Error Responses — Status Codes
 
 - `BadRequestException` → 400

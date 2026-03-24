@@ -1,8 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { BriaClientService } from '@koya/bria-adapter';
 import { DFNSClient } from '@koya/dfns-sdk';
+import { CircuitBreaker } from './circuit-breaker';
+import { REDIS_CLIENT } from '../cache/cache.constants';
+import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+import type Redis from 'ioredis';
 
 /**
  * PsbtSigningService orchestrates the Bria → DFNS → Bria PSBT signing flow:
@@ -17,13 +21,35 @@ export class PsbtSigningService {
   private readonly logger = new Logger(PsbtSigningService.name);
   private dfnsClient: DFNSClient | null = null;
   private readonly xpubRef: string;
+  private readonly circuitBreaker: CircuitBreaker;
+  private readonly cwClient: CloudWatchClient | null;
+  private readonly environment: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly briaClient: BriaClientService,
     private readonly config: ConfigService,
+    @Inject(REDIS_CLIENT) @Optional() private readonly redis: Redis | null,
   ) {
     this.xpubRef = this.config.get<string>('BRIA_XPUB_REF', 'default');
+    this.environment = this.config.get<string>('NODE_ENV', 'dev');
+
+    this.circuitBreaker = new CircuitBreaker(this.redis ?? null, {
+      name: 'psbt_signing',
+      failureThreshold: 5,
+      failureWindowSecs: 600,
+      openDurationSecs: 900,
+    });
+
+    const enableMetrics = this.config.get<string>('CLOUDWATCH_METRICS_ENABLED', '');
+    if (enableMetrics) {
+      this.cwClient = new CloudWatchClient({
+        region: this.config.get<string>('AWS_REGION', 'us-east-1'),
+      });
+    } else {
+      this.cwClient = null;
+    }
+
     this.initDfnsClient();
   }
 
@@ -82,6 +108,13 @@ export class PsbtSigningService {
   ): Promise<void> {
     if (!this.dfnsClient) {
       this.logger.warn('DFNS client not initialized — skipping PSBT signing');
+      return;
+    }
+
+    // Circuit breaker check
+    const canProceed = await this.circuitBreaker.canExecute();
+    if (!canProceed) {
+      this.logger.error(`Circuit breaker OPEN for PSBT signing — rejecting ${externalId}`);
       return;
     }
 
@@ -155,10 +188,14 @@ export class PsbtSigningService {
       });
 
       this.logger.log(`Signed PSBT submitted to Bria for broadcast: batch=${batchId} external=${externalId}`);
+
+      await this.circuitBreaker.recordSuccess();
     } catch (err) {
       this.logger.error(
         `PSBT signing failed for ${externalId}: ${err instanceof Error ? err.message : String(err)}`,
       );
+
+      await this.circuitBreaker.recordFailure();
 
       await this.prisma.payoutPsbt.update({
         where: { id: psbtRecord.id },
@@ -182,6 +219,56 @@ export class PsbtSigningService {
         where: { id: record.id },
         data: { psbtStatus: 'settled', txid },
       });
+    }
+  }
+
+  /**
+   * Check for PSBTs stuck in signing_pending > 10 minutes and publish CloudWatch metric.
+   * Called by reconciliation or as a standalone check.
+   */
+  async checkSignPendingLatency(): Promise<number> {
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+    const stuckPsbts = await this.prisma.payoutPsbt.count({
+      where: {
+        psbtStatus: 'signing_pending',
+        updatedAt: { lt: tenMinutesAgo },
+      },
+    });
+
+    if (stuckPsbts > 0) {
+      this.logger.warn(`${stuckPsbts} PSBTs stuck in signing_pending > 10 minutes`);
+    }
+
+    await this.publishSigningMetric('SignPendingCount', stuckPsbts);
+
+    return stuckPsbts;
+  }
+
+  private async publishSigningMetric(metricName: string, value: number): Promise<void> {
+    if (!this.cwClient) return;
+
+    try {
+      await this.cwClient.send(
+        new PutMetricDataCommand({
+          Namespace: 'Koya/Signing',
+          MetricData: [
+            {
+              MetricName: metricName,
+              Value: value,
+              Unit: 'Count',
+              Timestamp: new Date(),
+              Dimensions: [
+                { Name: 'Environment', Value: this.environment },
+              ],
+            },
+          ],
+        }),
+      );
+    } catch (err) {
+      this.logger.error(
+        `Failed to publish CloudWatch metric ${metricName}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }

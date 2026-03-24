@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { BriaEventConsumerService } from '../bria-event-consumer.service';
 import { SessionService } from '../session.service';
 import { PsbtSigningService } from '../psbt-signing.service';
+import { RedisCursorStore } from '../redis-cursor.store';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BriaClientService, BriaEvent } from '@koya/bria-adapter';
 
@@ -16,6 +17,7 @@ describe('BriaEventConsumerService', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let psbtSigningService: jest.Mocked<PsbtSigningService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
+  let cursorStore: jest.Mocked<RedisCursorStore>;
   let eventSubject: Subject<BriaEvent>;
 
   const createModule = async (driver = 'bria') => {
@@ -48,6 +50,11 @@ describe('BriaEventConsumerService', () => {
       markSettled: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockCursorStore = {
+      getCursor: jest.fn().mockResolvedValue(null),
+      setCursor: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BriaEventConsumerService,
@@ -55,6 +62,7 @@ describe('BriaEventConsumerService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: SessionService, useValue: mockSessionService },
         { provide: PsbtSigningService, useValue: mockPsbtSigningService },
+        { provide: RedisCursorStore, useValue: mockCursorStore },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: ConfigService,
@@ -74,6 +82,7 @@ describe('BriaEventConsumerService', () => {
     sessionService = module.get(SessionService);
     psbtSigningService = module.get(PsbtSigningService);
     eventEmitter = module.get(EventEmitter2);
+    cursorStore = module.get(RedisCursorStore);
 
     return module;
   };
@@ -86,21 +95,49 @@ describe('BriaEventConsumerService', () => {
 
   it('should skip subscription when driver is mock', async () => {
     await createModule('mock');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     expect(briaClient.subscribeAll).not.toHaveBeenCalled();
   });
 
   it('should subscribe to Bria events when driver is bria', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
+    expect(cursorStore.getCursor).toHaveBeenCalledWith('bria_event_consumer');
     expect(briaClient.subscribeAll).toHaveBeenCalledWith({ afterSequence: 0, augment: true });
+  });
+
+  it('should resume from stored cursor on init', async () => {
+    await createModule('bria');
+    cursorStore.getCursor.mockResolvedValue(42);
+    await consumer.onModuleInit();
+
+    expect(briaClient.subscribeAll).toHaveBeenCalledWith({ afterSequence: 42, augment: true });
+  });
+
+  it('should persist cursor after processing event', async () => {
+    await createModule('bria');
+    await consumer.onModuleInit();
+
+    prisma.payoutInstruction.findFirst.mockResolvedValue(null);
+
+    eventSubject.next({
+      sequence: 10,
+      recordedAt: Date.now(),
+      payload: {
+        type: 'payout_submitted',
+        data: { id: 'p-10', walletId: 'w1', payoutQueueId: 'q1', satoshis: 1000 },
+      },
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(cursorStore.setCursor).toHaveBeenCalledWith('bria_event_consumer', 10);
   });
 
   it('should update txHash on payout_broadcast', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     const mockPayout = { id: 'pi-1', conversionSessionId: 'sess-1', status: 'PENDING' };
     prisma.payoutInstruction.findFirst.mockResolvedValue(mockPayout);
@@ -137,7 +174,7 @@ describe('BriaEventConsumerService', () => {
 
   it('should transition session to COMPLETED on payout_settled', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     const mockPayout = { id: 'pi-2', conversionSessionId: 'sess-2', status: 'PENDING' };
     prisma.payoutInstruction.findFirst.mockResolvedValue(mockPayout);
@@ -186,7 +223,7 @@ describe('BriaEventConsumerService', () => {
 
   it('should skip already CONFIRMED payouts on payout_settled (idempotent)', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     const mockPayout = { id: 'pi-3', conversionSessionId: 'sess-3', status: 'CONFIRMED' };
     prisma.payoutInstruction.findFirst.mockResolvedValue(mockPayout);
@@ -216,7 +253,7 @@ describe('BriaEventConsumerService', () => {
 
   it('should skip events for unknown payouts', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     prisma.payoutInstruction.findFirst.mockResolvedValue(null);
 
@@ -244,7 +281,7 @@ describe('BriaEventConsumerService', () => {
 
   it('should unsubscribe on destroy', async () => {
     await createModule('bria');
-    consumer.onModuleInit();
+    await consumer.onModuleInit();
 
     expect(briaClient.subscribeAll).toHaveBeenCalled();
 

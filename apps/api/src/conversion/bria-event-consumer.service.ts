@@ -10,8 +10,11 @@ import { Subscription } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { SessionService } from './session.service';
 import { PsbtSigningService } from './psbt-signing.service';
+import { RedisCursorStore } from './redis-cursor.store';
 import { BriaClientService, BriaEvent, BriaEventPayload } from '@koya/bria-adapter';
 import { ConversionState } from '@koya/types';
+
+const CURSOR_NAME = 'bria_event_consumer';
 
 @Injectable()
 export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -24,13 +27,14 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly sessionService: SessionService,
     private readonly psbtSigningService: PsbtSigningService,
+    private readonly cursorStore: RedisCursorStore,
     private readonly eventEmitter: EventEmitter2,
     private readonly config: ConfigService,
   ) {
     this.driver = this.config.get<string>('BTC_DELIVERY_DRIVER', 'mock');
   }
 
-  onModuleInit() {
+  async onModuleInit() {
     // Subscribe to Bria events for both 'bria' and 'dfns' drivers
     // (dfns driver uses Bria for UTXO management + PSBT building)
     if (this.driver !== 'bria' && this.driver !== 'dfns') {
@@ -38,9 +42,10 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    this.logger.log(`Starting Bria event subscription (driver=${this.driver})`);
+    const cursor = await this.cursorStore.getCursor(CURSOR_NAME) ?? 0;
+    this.logger.log(`Starting Bria event subscription (driver=${this.driver}, cursor=${cursor})`);
     // augment=true to get payout_info with batch_id
-    const stream$ = this.briaClient.subscribeAll({ afterSequence: 0, augment: true });
+    const stream$ = this.briaClient.subscribeAll({ afterSequence: cursor, augment: true });
 
     this.subscription = stream$.subscribe({
       next: (event: BriaEvent) => {
@@ -65,6 +70,15 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
   private async handleEvent(event: BriaEvent): Promise<void> {
     const { payload } = event;
 
+    try {
+      await this.processEvent(payload, event);
+    } finally {
+      // Persist cursor after processing (even on failure, to avoid infinite retry loops)
+      await this.cursorStore.setCursor(CURSOR_NAME, event.sequence);
+    }
+  }
+
+  private async processEvent(payload: BriaEventPayload, event: BriaEvent): Promise<void> {
     switch (payload.type) {
       case 'payout_submitted':
         this.logger.debug(`Payout submitted: ${payload.data.id} seq=${event.sequence}`);

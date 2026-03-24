@@ -1,0 +1,118 @@
+name: nightly/dfns-integration
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # daily 03:00 UTC
+  workflow_dispatch: {}   # manual trigger
+
+concurrency:
+  group: dfns-integration
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: [self-hosted, linux, docker]
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Fetch DFNS secrets
+        run: |
+          mkdir -p docker/secrets
+          aws secretsmanager get-secret-value \
+            --secret-id /koya/dfns/apiKey \
+            --query SecretString --output text > docker/secrets/dfns_api_key
+          aws secretsmanager get-secret-value \
+            --secret-id /koya/dfns/mTLS/cert \
+            --query SecretString --output text > docker/secrets/dfns_cert.pem
+          aws secretsmanager get-secret-value \
+            --secret-id /koya/dfns/mTLS/key \
+            --query SecretString --output text > docker/secrets/dfns_key.pem
+          aws secretsmanager get-secret-value \
+            --secret-id /koya/dfns/mTLS/ca \
+            --query SecretString --output text > docker/secrets/dfns_ca.pem
+          aws secretsmanager get-secret-value \
+            --secret-id /koya/dfns/webhookSecret \
+            --query SecretString --output text > docker/secrets/dfns_webhook_secret
+          chmod 600 docker/secrets/*
+
+      - name: Check cert expiry
+        run: |
+          EXPIRY=$(openssl x509 -in docker/secrets/dfns_cert.pem -noout -enddate 2>/dev/null | cut -d= -f2)
+          if [ -n "$EXPIRY" ]; then
+            EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s 2>/dev/null || date -jf "%b %d %H:%M:%S %Y %Z" "$EXPIRY" +%s)
+            NOW_EPOCH=$(date +%s)
+            DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+            echo "DFNS cert expires: $EXPIRY ($DAYS_LEFT days left)"
+            if [ "$DAYS_LEFT" -lt 14 ]; then
+              echo "::warning::DFNS mTLS certificate expires in $DAYS_LEFT days — rotate immediately"
+            fi
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start integration stack
+        run: |
+          docker compose up -d --build --wait
+        env:
+          DFNS_MTLS_CERT: /run/secrets/dfns_cert
+          DFNS_MTLS_KEY: /run/secrets/dfns_key
+          DFNS_MTLS_CA: /run/secrets/dfns_ca
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for API..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3333/api/v1/health > /dev/null 2>&1; then
+              echo "API is ready"
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Run DFNS integration tests
+        run: pnpm nx test api --testPathPattern="dfns.*integration" --timeout 120000
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/koya_test
+          REDIS_HOST: localhost
+
+      - name: DFNS health check probe
+        run: |
+          result=$(curl -sf http://localhost:3333/internal/health/dfns)
+          echo "DFNS health: $result"
+          echo "$result" | grep -q '"status":"ok"' || echo "::warning::DFNS health check failed"
+
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p tmp/integration-logs
+          docker compose logs --no-color > tmp/integration-logs/docker-compose.log 2>&1 || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dfns-integration-logs
+          path: ./tmp/integration-logs
+          retention-days: 7
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
