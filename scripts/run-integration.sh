@@ -19,6 +19,7 @@ cd "$PROJECT_DIR"
 SKIP_BUILD=false
 KEEP_RUNNING=false
 EXIT_CODE=0
+COMPOSE_FILE="docker-compose.integration.yml"
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -32,7 +33,14 @@ cleanup() {
   echo ""
   echo "=== Collecting logs ==="
   mkdir -p tmp/integration-logs
-  docker compose logs --no-color > tmp/integration-logs/docker-compose.log 2>&1 || true
+  docker compose -f "$COMPOSE_FILE" logs --no-color > tmp/integration-logs/docker-compose.log 2>&1 || true
+
+  # Upload logs to S3 when running in CI
+  if [[ -n "${CI:-}" && -n "${PSBT_ARCHIVE_BUCKET:-}" ]]; then
+    local ts
+    ts=$(date -u +%Y%m%dT%H%M%SZ)
+    aws s3 cp tmp/integration-logs/ "s3://${PSBT_ARCHIVE_BUCKET}/integration-logs/${ts}/" --recursive 2>/dev/null || true
+  fi
 
   # Kill DFNS mock if running
   if [[ -n "${MOCK_PID:-}" ]]; then
@@ -41,7 +49,7 @@ cleanup() {
 
   if [[ "$KEEP_RUNNING" != "true" ]]; then
     echo "=== Tearing down ==="
-    docker compose down -v 2>/dev/null || true
+    docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
   else
     echo "=== Stack left running (--keep-running) ==="
   fi
@@ -66,7 +74,7 @@ echo ""
 # Step 1: Build
 if [[ "$SKIP_BUILD" != "true" ]]; then
   echo "=== [1/6] Building Docker images ==="
-  docker compose build
+  docker compose -f "$COMPOSE_FILE" build
 else
   echo "=== [1/6] Skipping build (--skip-build) ==="
 fi
@@ -74,7 +82,7 @@ fi
 # Step 2: Start stack
 echo ""
 echo "=== [2/6] Starting integration stack ==="
-docker compose up -d --wait
+docker compose -f "$COMPOSE_FILE" up -d --wait
 
 # Step 3: Start DFNS mock
 echo ""

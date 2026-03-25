@@ -537,3 +537,19 @@ Full production ops: S3 PSBT archival, CloudWatch metrics + SNS alarms, circuit 
 - [x] **16.23** Write `docs/progress/step-16.md`
 
 **Result:** 314 tests, 28 suites, zero regressions. All libs pass. Lint clean. Types clean.
+
+## Phase 17: Engine — Integration Compose, SNS Dual Subscription, CB Metrics
+
+Gaps identified between engine.md spec and Step 16 implementation. These are the remaining items to reach full spec compliance.
+
+- [x] **17.1** Create `docker-compose.integration.yml` — dedicated integration stack with DFNS sandbox env vars, API, Redis, Bria, bria-pg (spec F)
+- [x] **17.2** Add OneUptime SNS subscription to `alerts_reconciliation.tf` — dual webhook: Slack + OneUptime (spec B)
+- [x] **17.3** Add `CBOpenCount` CloudWatch metric to `PsbtSigningService` — publish when circuit breaker rejects a signing attempt (spec E)
+- [x] **17.4** Update `nightly-dfns-integration.yml` — use `docker-compose.integration.yml` instead of default (spec C)
+- [x] **17.5** Create `scripts/wait-for-services.sh` — health-check waiter for API, Redis, Bria (spec C)
+- [x] **17.6** Update `scripts/run-integration.sh` — use `docker-compose.integration.yml`, add S3 log upload for CI (spec F)
+- [x] **17.7** Update PSBT signing tests for CBOpenCount metric
+- [x] **17.8** Verify — all tests pass, lint clean, types clean
+- [x] **17.9** Write `docs/progress/step-17.md`
+
+**Result:** 315 tests, 28 suites, zero regressions. Lint clean. Types clean.

@@ -115,6 +115,7 @@ export class PsbtSigningService {
     const canProceed = await this.circuitBreaker.canExecute();
     if (!canProceed) {
       this.logger.error(`Circuit breaker OPEN for PSBT signing — rejecting ${externalId}`);
+      await this.publishSigningMetric('CBOpenCount', 1);
       return;
     }
 

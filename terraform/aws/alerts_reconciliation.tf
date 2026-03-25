@@ -3,8 +3,14 @@
 
 variable "ops_notification_endpoint" {
   type        = string
-  description = "HTTPS endpoint for ops alerts (Slack webhook, PagerDuty, etc.)"
+  description = "HTTPS endpoint for ops alerts (Slack webhook)"
   default     = "https://hooks.slack.com/services/PLACEHOLDER"
+}
+
+variable "oneuptime_notification_endpoint" {
+  type        = string
+  description = "HTTPS endpoint for OneUptime alerts"
+  default     = "https://oneuptime.com/api/webhook/PLACEHOLDER"
 }
 
 # --- SNS Topic ---
@@ -23,6 +29,12 @@ resource "aws_sns_topic_subscription" "ops_webhook" {
   topic_arn = aws_sns_topic.reconciliation_alerts.arn
   protocol  = "https"
   endpoint  = var.ops_notification_endpoint
+}
+
+resource "aws_sns_topic_subscription" "oneuptime_webhook" {
+  topic_arn = aws_sns_topic.reconciliation_alerts.arn
+  protocol  = "https"
+  endpoint  = var.oneuptime_notification_endpoint
 }
 
 # --- CloudWatch Alarms ---

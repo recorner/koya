@@ -24,9 +24,11 @@ jest.mock('fs', () => ({
 }));
 
 jest.mock('@aws-sdk/client-cloudwatch', () => ({
-  CloudWatchClient: jest.fn().mockImplementation(() => ({ send: jest.fn() })),
+  CloudWatchClient: jest.fn().mockImplementation(() => ({ send: jest.fn().mockResolvedValue({}) })),
   PutMetricDataCommand: jest.fn(),
 }));
+
+const { PutMetricDataCommand } = jest.requireMock('@aws-sdk/client-cloudwatch');
 
 describe('PsbtSigningService', () => {
   let service: PsbtSigningService;
@@ -221,6 +223,45 @@ describe('PsbtSigningService', () => {
         where: { id: 'psbt-fail' },
         data: { psbtStatus: 'failed' },
       });
+    });
+  });
+
+  describe('circuit breaker open', () => {
+    it('should publish CBOpenCount metric when circuit breaker rejects', async () => {
+      // Create a service with CloudWatch enabled and a Redis mock where CB is open
+      const redisMock = {
+        get: jest.fn().mockResolvedValue(String(Date.now() + 900_000)), // open_until in the future
+      } as unknown as import('ioredis').default;
+
+      const configWithMetrics: Record<string, string> = {
+        ...configValues,
+        CLOUDWATCH_METRICS_ENABLED: 'true',
+      };
+
+      const configService = {
+        get: jest.fn((key: string, defaultValue?: string) => configWithMetrics[key] ?? defaultValue ?? ''),
+      } as unknown as ConfigService;
+
+      const serviceWithCB = new PsbtSigningService(prisma, briaClient, configService, redisMock);
+
+      await serviceWithCB.handlePayoutCommitted('payout-1', 'ext-1', 'batch-1');
+
+      // Should NOT have called DFNS or Bria
+      expect(briaClient.getBatch).not.toHaveBeenCalled();
+      expect(mockRequestSignPsbt).not.toHaveBeenCalled();
+
+      // Should have published CBOpenCount metric
+      expect(PutMetricDataCommand).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Namespace: 'Koya/Signing',
+          MetricData: expect.arrayContaining([
+            expect.objectContaining({
+              MetricName: 'CBOpenCount',
+              Value: 1,
+            }),
+          ]),
+        }),
+      );
     });
   });
 

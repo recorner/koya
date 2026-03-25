@@ -1,0 +1,100 @@
+# docker-compose.integration.yml
+# Dedicated integration test stack with DFNS sandbox environment variables.
+# Used by: scripts/run-integration.sh, .github/workflows/nightly-dfns-integration.yml
+#
+# Usage:
+#   docker compose -f docker-compose.integration.yml up -d --build --wait
+#   docker compose -f docker-compose.integration.yml down -v
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: koya-int-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: koya-int-api
+    ports:
+      - '127.0.0.1:3333:3333'
+    env_file:
+      - docker/api.env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      # DFNS sandbox configuration — real mTLS, no mock
+      - DFNS_API_URL=${DFNS_API_URL:-https://app.dfns.io/}
+      - DFNS_APP_ID=${DFNS_APP_ID:-}
+      - DFNS_WALLET_ID=${DFNS_WALLET_ID:-}
+      - DFNS_API_KEY=${DFNS_API_KEY:-}
+      - DFNS_WEBHOOK_SECRET=${DFNS_WEBHOOK_SECRET:-}
+      - DFNS_MTLS_CERT=${DFNS_MTLS_CERT:-/run/secrets/dfns_cert}
+      - DFNS_MTLS_KEY=${DFNS_MTLS_KEY:-/run/secrets/dfns_key}
+      - DFNS_MTLS_CA=${DFNS_MTLS_CA:-/run/secrets/dfns_ca}
+      # Quicknode testnet for broadcasting
+      - QUICKNODE_RPC_URL=${QUICKNODE_RPC_URL:-}
+      # Metrics
+      - CLOUDWATCH_METRICS_ENABLED=${CLOUDWATCH_METRICS_ENABLED:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+    volumes:
+      - ./libs/bria-adapter/proto:/proto:ro
+      - ./docker/secrets:/run/secrets:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+      bria:
+        condition: service_healthy
+    restart: 'no'
+
+  # ── Bria Infrastructure ────────────────────────────────────
+  bria-pg:
+    image: postgres:16-alpine
+    container_name: koya-int-bria-pg
+    environment:
+      POSTGRES_DB: bria
+      POSTGRES_USER: bria
+      POSTGRES_PASSWORD: bria_dev_password
+    ports:
+      - '127.0.0.1:5433:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bria']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: 'no'
+
+  # ── Bria — Bitcoin Custody & Payout ────────────────────────
+  bria:
+    build:
+      context: .
+      dockerfile: Dockerfile.bria
+    image: koyabank/bria:latest
+    container_name: koya-int-bria
+    ports:
+      - '127.0.0.1:2742:2742'
+      - '127.0.0.1:2743:2743'
+    env_file:
+      - docker/bria.env
+    volumes:
+      - ./config/bria.yml:/etc/bria/bria.yml:ro
+    healthcheck:
+      test: ['CMD', 'nc', '-z', 'localhost', '2742']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      bria-pg:
+        condition: service_healthy
+    restart: 'no'
