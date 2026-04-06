@@ -50,6 +50,9 @@ COPY --from=builder /app/dist/apps/api ./
 # Copy Prisma schema + migrations for runtime migration
 COPY --from=builder /app/apps/api/prisma ./prisma
 
+# Copy migration script
+COPY --from=builder /app/apps/api/scripts ./scripts
+
 # Copy bria-adapter proto files (webpack __dirname resolves to / at runtime)
 COPY --from=builder /app/libs/bria-adapter/proto /proto
 
@@ -74,5 +77,5 @@ ENV PORT=3333
 
 EXPOSE 3333
 
-# Run migrations then start
-CMD ["sh", "-c", "cd prisma && npx prisma migrate deploy && cd .. && node main.js"]
+# API starts without migrations — migrations run as a separate deploy step
+CMD ["node", "main.js"]

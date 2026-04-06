@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CacheModule } from '../cache/cache.module';
+import { ApiSecurityModule } from '../security/api-security.module';
 import { ConversionModule } from '../conversion/conversion.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { RatesModule } from '../rates/rates.module';
@@ -20,6 +21,7 @@ import { OpsModule } from '../ops/ops.module';
     ScheduleModule.forRoot(),
     PrismaModule,
     CacheModule,
+    ApiSecurityModule,
     ConversionModule,
     WhatsAppModule,
     RatesModule,

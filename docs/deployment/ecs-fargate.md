@@ -3,10 +3,32 @@
 ## Architecture
 
 ```
-Internet → ALB (443/HTTPS) → ECS Fargate Service → Container (3333)
-                                                  ↓
-                                    DigitalOcean Managed PostgreSQL
+Internet → Route53 → ALB (443/HTTPS) → WAF → ECS Fargate Service → Container (3333)
+                                                                   ↓
+                                                     PostgreSQL (db.koyabank.com)
+                                                     Redis (redis.koyabank.com)
+                                                     Bria / DFNS / Daraja
 ```
+
+### Ingress Protection Layers
+
+1. **AWS WAF:** Managed rules (OWASP, bad inputs, IP reputation) + rate-based rules
+2. **App-level throttling:** Redis-backed `@nestjs/throttler` per IP per endpoint class
+3. **Webhook signature verification:** DFNS HMAC, M-Pesa idempotency, Twilio validation
+
+### Container Startup
+
+- API container runs `node main.js` only (no migrations)
+- Migrations run as a separate ECS task (`koya-api-migrate`) during deploy
+- Deploy flow: `scripts/deploy-api.sh` → run migration task → update service
+
+### Autoscaling
+
+- CPU target tracking: 60%
+- Memory target tracking: 70%
+- ALB request count per target
+- Scale-out cooldown: 60s, scale-in cooldown: 300s
+- Min/max: 2-10 (production), 1-4 (staging)
 
 ## Prerequisites
 
@@ -153,6 +175,11 @@ aws ecs create-service \
 | `DATABASE_URL` | Secrets Manager | PostgreSQL connection string |
 | `NODE_ENV` | Task definition | `production` |
 | `PORT` | Task definition | `3333` |
+| `TRUST_PROXY_HOPS` | Task definition | Trusted proxy hops (default: `1`) |
+| `JSON_BODY_LIMIT` | Task definition | Max JSON body size (default: `100kb`) |
+| `URLENCODED_BODY_LIMIT` | Task definition | Max URL-encoded body (default: `100kb`) |
+| `THROTTLE_DEFAULT_LIMIT` | Task definition | Default rate limit per IP (default: `60`) |
+| `THROTTLE_DEFAULT_TTL_SECONDS` | Task definition | Rate limit window seconds (default: `60`) |
 | `MPESA_CONSUMER_KEY` | Secrets Manager | Safaricom API key |
 | `MPESA_CONSUMER_SECRET` | Secrets Manager | Safaricom API secret |
 | `MPESA_PASSKEY` | Secrets Manager | Safaricom passkey |
@@ -196,6 +223,16 @@ jobs:
           docker build -f apps/api/Dockerfile -t ${{ env.ECR_REGISTRY }}/koya/api:${{ github.sha }} .
           docker push ${{ env.ECR_REGISTRY }}/koya/api:${{ github.sha }}
 
+      - name: Run database migrations
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster koya-api \
+            --task-definition koya-api-migrate \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SG],assignPublicIp=ENABLED}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster koya-api --tasks $TASK_ARN
+
       - name: Update ECS service
         run: |
           aws ecs update-service \
@@ -212,6 +249,7 @@ jobs:
 |----------|------|----------|
 | ECS Fargate (2 tasks) | 0.5 vCPU, 1 GB | ~$30 |
 | ALB | Standard | ~$20 |
+| WAF | Web ACL + managed rules | ~$11 |
 | CloudWatch Logs | 5 GB | ~$3 |
 | ECR | 2 GB images | ~$0.20 |
-| **Total** | | **~$53/mo** |
+| **Total** | | **~$64/mo** |

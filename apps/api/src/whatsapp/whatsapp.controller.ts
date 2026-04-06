@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Logger, HttpCode } from '@nestjs/common';
 import { WhatsAppService } from './whatsapp.service';
+import { WebhookThrottle } from '../security/throttle.decorators';
 
 /**
  * Twilio sends form-urlencoded data. NestJS handles this via
@@ -18,6 +19,7 @@ interface TwilioWebhookBody {
 }
 
 @Controller('whatsapp')
+@WebhookThrottle()
 export class WhatsAppController {
   private readonly logger = new Logger(WhatsAppController.name);
 

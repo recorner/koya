@@ -1,61 +1,106 @@
-# Engine.md — Full Real Test Cycle Execution
+# Engine Hardening — API Ingress, Rate Limiting, Autoscaling
 
-> Real test cycle: Daraja sandbox + Bria + DFNS sandbox + QuickNode testnet4
-> Started: 2026-04-05
+## Plan
 
-## Phase 0: Read & Understand
-- [x] Read all prerequisite files (step-13 through step-18, lessons, Bria adapter, env)
-- [x] Summarize architecture, driver settings, callback paths
+### Part 1 — NestJS Ingress Hardening
+- [x] **1.1** Bootstrap hardening in `main.ts`: helmet, trust proxy, body limits, correlation ID, graceful shutdown
+- [x] **1.2** Redis-backed throttling: `RedisThrottlerStorage`, `ApiSecurityModule` with ThrottlerModule, env-driven limits
+- [x] **1.3** Route-specific decorators: per-endpoint class limits on conversion, payments, webhooks, health
 
-## Phase 1: Manual Validation
-- [x] A. Environment & secrets validation
-- [x] B. Service health validation (Redis, Bria, API, DFNS, QuickNode)
-- [x] C. Driver validation (confirm real, not mock)
-- [x] D. Bria wallet/xpub validation
+### Part 2 — Container & Migration Hardening
+- [x] **2.1** Split migrations from Dockerfile CMD → separate migration job
+- [x] **2.2** Container safety review & documentation
 
-## Phase 2: Generate Funding Address
-- [x] Generate Bria receive address
-- [x] Record and validate address
-- [x] Fund with ~150 BTC (regtest mining)
-- [x] Verify UTXO detection
+### Part 3 — AWS WAF on ALB
+- [x] **3.1** Terraform WAF: Web ACL, managed rules, rate-based rules, ALB association
 
-## Phase 3: Daraja Sandbox Payment Tests
-- [x] T1. Happy path STK push → COMPLETED (KYA-D96DD151, txId=eb427840...)
-- [x] T2. Duplicate callback idempotency → PASS (state unchanged, no dupes)
-- [x] T3. Failure payment path → PASS (KYA-6916A988, FAILED, no payout)
+### Part 4 — ECS Autoscaling
+- [x] **4.1** Terraform autoscaling: CPU/memory target tracking, ALB request count, min/max/desired
 
-## Phase 4: Bria + DFNS Signing Tests
-- [x] T4. Happy path payout signing (full e2e via bitcoind signer, DFNS deferred)
-- [N/A] T5. Duplicate sign request idempotency (bitcoind signer, not DFNS)
-- [N/A] T6. Duplicate DFNS webhook idempotency (bitcoind signer, not DFNS)
-- [N/A] T7. Manual payout resend (deferred to DFNS integration)
-- [N/A] T8. Failure recovery (deferred to DFNS integration)
+### Part 5 — CloudWatch Alarms
+- [x] **5.1** Ingress/abuse alarms: 429 rate, 5xx, latency, request count, unhealthy tasks, WAF blocks
+- [x] **5.2** App-level metrics — deferred (circuit breaker already emits CBOpenCount)
 
-## Phase 5: Reconciliation & Ops
-- [x] A. Reconciliation job — all checks pass (completed==payouts, 0 orphans)
-- [ ] B. PSBT archival (S3 bucket configured but no DFNS PSBTs to archive)
-- [ ] C. Circuit breaker (requires extended load testing)
-- [ ] D. Alerts (CloudWatch metrics enabled, needs load to trigger)
+### Part 6 — Endpoint Protection Review
+- [x] **6.1** Document limit profiles for all endpoint groups
 
-## Phase 6: Evidence Pack
-- [x] Create timestamped evidence folder (tmp/test-evidence/)
-- [x] Collect all test artifacts (e2e-test-report.md)
+### Part 7 — Documentation
+- [x] **7.1** Update ecs-fargate.md, cold-start.md, environment-matrix.md
+- [x] **7.2** Create docs/runbooks/api-hardening.md
 
-## Phase 7: Final Report
-- [x] Produce final test report (tmp/test-evidence/e2e-test-report.md)
-- [x] Update docs/progress/step-19.md
+### Part 8 — Environment Variables
+- [x] **8.1** Add all new env vars to api.env.example and ecs-task-definition.json
+
+### Part 9 — Tests
+- [x] **9.1** Unit tests for RedisThrottlerStorage and guard
+- [x] **9.2** Integration test: route gets 429 after limit exceeded
+- [x] **9.3** Test webhook route still works under threshold
+
+### Part 10 — Summary
+- [x] **10.1** PR summary in docs/progress/step-20.md
 
 ---
 
-## Bugs Found & Fixed
-1. **Bria SQL batch bug**: PG 16 breaks `$3WHERE` → downgrade to PG 14
-2. **BriaEventConsumer this binding**: `streamFn(req, metadata)` → `.call(this.client, req, metadata)`
+# Cold Start — Full Koya Infrastructure from Zero (archived)
 
----
+> Previous content (Guest Conversion Engine) archived below separator.
 
-## Previous: Cold Start (archived)
+## Current State (Phase A)
+- [x] Read all reference docs (step-01 through step-16, deployment docs)
+- [x] Inventory AWS: **completely bare** — no ECR, ECS, secrets, S3, ALB, ACM, SNS, CloudWatch alarms
+- [x] Default VPC exists: `vpc-098dd0a4627aa9bbc` with 6 subnets (us-east-1a–f)
+- [x] AWS account: 286119371044, user: lazarus
+- [x] Tools: Docker 29.3, Compose v5.1, AWS CLI 1.22, Vercel CLI 50.38, pnpm, Node 22
 
-All cold-start tasks completed — see docs/runbooks/ for full documentation.
+## Phase B — Vercel & GitHub Deployment Auth
+- [ ] Document Vercel setup steps
+- [ ] Document GitHub secrets required
+
+## Phase C — AWS Secrets Baseline
+- [x] Create all Secrets Manager entries (19 secrets)
+- [x] Document secret names and consumers
+
+## Phase D — API Deployment Baseline (AWS)
+- [x] Create ECR, ECS cluster, ALB, IAM roles, security groups, ACM cert, task def, service
+
+## Phase E–H — Runtime, Web, DFNS, Ops
+- [x] Document all service startup in runbooks
+- [x] S3 archive buckets (staging + prod), KMS key, SNS topic, 5 CloudWatch alarms
+
+## Phase I — Final Runbook Documents
+- [x] docs/runbooks/cold-start.md
+- [x] docs/runbooks/cold-start-checklist.md
+- [x] docs/runbooks/environment-matrix.md
+- [x] docs/runbooks/service-dependency-map.md
+
+## DNS & Networking
+- [x] ACM cert DNS CNAME validation (ISSUED)
+- [x] api.koyabank.com CNAME → ALB
+- [x] db.koyabank.com A → 34.79.165.195
+- [x] redis.koyabank.com A → 34.79.165.195
+- [x] GCP firewall rules for PostgreSQL (5432) and Redis (6379)
+
+## Staging Infrastructure (GCP cassini VM)
+- [x] PostgreSQL 14 — user=koya, db=koya, exposed on db.koyabank.com:5432
+- [x] Redis 6 — password auth, exposed on redis.koyabank.com:6379
+- [x] All 6 Prisma migrations applied
+
+## Deployment
+- [x] First Docker image build + ECR push (koya/api:latest)
+- [x] HTTPS listener on ALB (ACM cert)
+- [x] ECS service with ALB, task koya-api:2 RUNNING + HEALTHY
+- [x] API live at https://api.koyabank.com/api/v1/health ✓
+
+## Secrets Updated (from placeholder)
+- [x] DATABASE_URL → db.koyabank.com
+- [x] REDIS_PASSWORD → real password
+- [x] REDIS_URL → redis.koyabank.com
+
+## Remaining
+- [ ] Replace 16 remaining placeholder secrets (Daraja, DFNS, Twilio, etc.)
+- [ ] Vercel project linking + GitHub secrets
+- [ ] Self-hosted runner provisioning
+- [ ] Web deployment (Vercel)
 
 ---
 

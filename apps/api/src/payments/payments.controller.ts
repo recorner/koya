@@ -5,8 +5,10 @@ import { ProcessedWebhookService } from '../webhooks/processed-webhook.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { MpesaCallbackPayload } from '../providers/mpesa-adapter.interface';
 import { Prisma } from '@prisma/client';
+import { WebhookThrottle } from '../security/throttle.decorators';
 
 @Controller('payments/mpesa')
+@WebhookThrottle()
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
 

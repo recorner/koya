@@ -41,7 +41,12 @@
         { "name": "BRIA_XPUB_REF", "value": "koya-testnet-xpub" },
         { "name": "PSBT_ARCHIVE_S3_BUCKET", "value": "koya-archives-prod" },
         { "name": "REDIS_TLS", "value": "false" },
-        { "name": "REDIS_DB", "value": "0" }
+        { "name": "REDIS_DB", "value": "0" },
+        { "name": "TRUST_PROXY_HOPS", "value": "1" },
+        { "name": "JSON_BODY_LIMIT", "value": "100kb" },
+        { "name": "URLENCODED_BODY_LIMIT", "value": "100kb" },
+        { "name": "THROTTLE_DEFAULT_LIMIT", "value": "60" },
+        { "name": "THROTTLE_DEFAULT_TTL_SECONDS", "value": "60" }
       ],
       "secrets": [
         {

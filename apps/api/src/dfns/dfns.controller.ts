@@ -17,6 +17,7 @@ interface MinimalRequest {
 import { DfnsService } from './dfns.service';
 import { ProcessedWebhookService } from '../webhooks/processed-webhook.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { WebhookThrottle } from '../security/throttle.decorators';
 
 interface DfnsWebhookPayload {
   id: string;
@@ -30,6 +31,7 @@ interface DfnsWebhookPayload {
 }
 
 @Controller('dfns')
+@WebhookThrottle()
 export class DfnsController {
   private readonly logger = new Logger(DfnsController.name);
 

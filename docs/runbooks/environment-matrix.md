@@ -101,6 +101,16 @@
 | `AWS_REGION` | — | `us-east-1` | `us-east-1` | ECS task def |
 | `CLOUDWATCH_METRICS_ENABLED` | `false` | `true` | `true` | ECS task def |
 
+### Security / Hardening
+
+| Variable | Local | Staging | Production | Source |
+|----------|-------|---------|------------|--------|
+| `TRUST_PROXY_HOPS` | `0` | `1` | `1` | ECS task def |
+| `JSON_BODY_LIMIT` | `100kb` | `100kb` | `100kb` | ECS task def |
+| `URLENCODED_BODY_LIMIT` | `100kb` | `100kb` | `100kb` | ECS task def |
+| `THROTTLE_DEFAULT_LIMIT` | `1000` | `60` | `60` | ECS task def |
+| `THROTTLE_DEFAULT_TTL_SECONDS` | `60` | `60` | `60` | ECS task def |
+
 ---
 
 ## Bria Environment Variables

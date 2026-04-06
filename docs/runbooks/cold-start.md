@@ -289,7 +289,38 @@ aws ecr describe-images \
   --query 'imageDetails[].imageTags'
 ```
 
-### Step 3.8 — Scale Up ECS Service
+### Step 3.8 — Run Database Migrations
+
+Migrations run as a separate ECS task (not part of API container startup):
+
+```bash
+# Register migration task definition
+aws ecs register-task-definition \
+  --region us-east-1 \
+  --cli-input-json file://infra/ecs-migrate-task-definition.json
+
+# Run migration task
+TASK_ARN=$(aws ecs run-task \
+  --cluster koya-api \
+  --task-definition koya-api-migrate \
+  --launch-type FARGATE \
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-xxx],securityGroups=[sg-xxx],assignPublicIp=ENABLED}" \
+  --region us-east-1 \
+  --query 'tasks[0].taskArn' --output text)
+
+# Wait for completion
+aws ecs wait tasks-stopped --cluster koya-api --tasks $TASK_ARN --region us-east-1
+
+# Verify exit code
+aws ecs describe-tasks \
+  --cluster koya-api --tasks $TASK_ARN --region us-east-1 \
+  --query 'tasks[0].containers[0].exitCode'
+# Expected: 0
+```
+
+**Rollback:** Migrations are additive. Check CloudWatch logs: `/ecs/koya-api` (stream prefix: migrate).
+
+### Step 3.9 — Scale Up ECS Service
 
 ```bash
 aws ecs update-service \
