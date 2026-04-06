@@ -50,6 +50,10 @@ export class DarajaMpesaAdapter implements MpesaAdapter {
   }
 
   async initiateSTKPush(input: STKPushInput): Promise<STKPushResult> {
+    return this.doSTKPush(input, false);
+  }
+
+  private async doSTKPush(input: STKPushInput, isRetry: boolean): Promise<STKPushResult> {
     const token = await this.getAccessToken();
     const timestamp = this.getTimestamp();
     const password = Buffer.from(
@@ -92,6 +96,18 @@ export class DarajaMpesaAdapter implements MpesaAdapter {
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error(`STK push failed: ${response.status} ${errorText}`);
+
+      // Invalidate token and retry once on auth-related errors
+      if (!isRetry && (response.status === 401 || response.status === 403 || response.status === 404)) {
+        const isAuthError = errorText.includes('Invalid Access Token') || errorText.includes('access token');
+        if (isAuthError) {
+          this.logger.warn('Token appears invalid, invalidating cache and retrying once');
+          this.cachedToken = null;
+          this.tokenExpiresAt = 0;
+          return this.doSTKPush(input, true);
+        }
+      }
+
       return {
         success: false,
         merchantRequestId: '',

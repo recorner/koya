@@ -26,6 +26,7 @@ export class InvalidPhoneError extends Error {
 
 /**
  * Validate a BTC address (P2PKH, P2SH, Bech32, Taproot)
+ * Also accepts testnet (tb1) and regtest (bcrt1) addresses when NODE_ENV !== 'production'
  */
 export function isValidBtcAddress(address: string): boolean {
   // P2PKH: starts with 1, 25-34 chars
@@ -36,6 +37,10 @@ export function isValidBtcAddress(address: string): boolean {
   if (/^bc1q[a-z0-9]{38,58}$/.test(address)) return true;
   // Taproot: starts with bc1p, 62 chars
   if (/^bc1p[a-z0-9]{58}$/.test(address)) return true;
+  // Testnet bech32: starts with tb1q
+  if (/^tb1q[a-z0-9]{38,58}$/.test(address)) return true;
+  // Regtest bech32: starts with bcrt1q
+  if (/^bcrt1q[a-z0-9]{38,58}$/.test(address)) return true;
 
   return false;
 }

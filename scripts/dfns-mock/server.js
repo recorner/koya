@@ -56,20 +56,23 @@ async function handleSignPsbt(req, res) {
     return respond(res, 200, { ...cached, alreadyExists: true });
   }
 
-  const { externalId, psbtBase64, psbtId } = body;
+  const { externalId, psbtBase64, psbt, psbtId } = body;
+  const inputPsbt = psbt || psbtBase64;
 
-  if (!externalId || !psbtBase64) {
-    return respond(res, 400, { error: 'Missing externalId or psbtBase64' });
+  if (!externalId || !inputPsbt) {
+    return respond(res, 400, { error: 'Missing externalId or psbt/psbtBase64' });
   }
 
   // Simulate signing: prefix the PSBT (in real life, DFNS signs the PSBT)
-  const signedPsbtBase64 = Buffer.from(`signed:${psbtBase64}`).toString('base64');
+  const signedPsbtBase64 = Buffer.from(`signed:${inputPsbt}`).toString('base64');
   const dfnsRequestId = `dfns-mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   const result = {
     dfnsRequestId,
     externalId,
+    signedPsbt: signedPsbtBase64,
     signedPsbtBase64,
+    signerMeta: { signerId: 'mock-signer', timestamp: new Date().toISOString() },
     psbtId: psbtId || 'unknown',
     status: 'COMPLETED',
   };
@@ -132,10 +135,21 @@ const server = createServer(async (req, res) => {
     return handleSignPsbt(req, res);
   }
 
+  // Match SDK pattern: POST /wallets/{walletId}/sign-psbt
+  if (method === 'POST' && url?.match(/^\/wallets\/[^/]+\/sign-psbt$/)) {
+    return handleSignPsbt(req, res);
+  }
+
   if (method === 'POST' && url === '/v1/webhook/test') {
     return handleWebhookTest(req, res);
   }
 
+  // Match SDK health check pattern
+  if (method === 'GET' && url === '/health') {
+    return respond(res, 200, { status: 'ok', service: 'dfns-mock' });
+  }
+
+  console.log(`[DFNS Mock] 404 ${method} ${url}`);
   respond(res, 404, { error: 'Not found' });
 });
 

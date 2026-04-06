@@ -4,8 +4,8 @@
 # Public testnet4 options: mempool.space:60601, blockstream.info:60601
 
 blockchain:
-  network: testnet4
-  electrum_url: "mempool.space:40002"
+  network: regtest
+  electrum_url: "electrs:50001"
 
 api:
   listen_port: 2742

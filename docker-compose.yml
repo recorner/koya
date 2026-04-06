@@ -34,9 +34,64 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── Bitcoin Regtest Node ───────────────────────────────────
+  bitcoind:
+    image: lncm/bitcoind:v27.0
+    container_name: koya-bitcoind
+    command:
+      - -regtest
+      - -server
+      - -txindex
+      - -rpcuser=koya
+      - -rpcpassword=koya_regtest
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -fallbackfee=0.00001
+      - -zmqpubrawblock=tcp://0.0.0.0:28332
+      - -zmqpubrawtx=tcp://0.0.0.0:28333
+    ports:
+      - '127.0.0.1:18443:18443'
+      - '127.0.0.1:28332:28332'
+      - '127.0.0.1:28333:28333'
+    volumes:
+      - bitcoind_data:/home/bitcoin/.bitcoin
+    healthcheck:
+      test: ['CMD', 'bitcoin-cli', '-regtest', '-rpcuser=koya', '-rpcpassword=koya_regtest', 'getblockchaininfo']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── Electrs (Electrum server for Bria) ─────────────────────
+  # Shares network namespace with Bria so electrs is at 127.0.0.1:50001 from Bria's perspective
+  # (Bria hardcodes 127.0.0.1:50001 for regtest, ignoring config)
+  electrs:
+    image: ghcr.io/vulpemventures/electrs:latest
+    container_name: koya-electrs
+    network_mode: "service:bria"
+    entrypoint:
+      - /build/electrs
+      - --network
+      - regtest
+      - --daemon-rpc-addr
+      - bitcoind:18443
+      - --cookie
+      - koya:koya_regtest
+      - --electrum-rpc-addr
+      - 0.0.0.0:50001
+      - --jsonrpc-import
+      - -vvv
+    depends_on:
+      bria:
+        condition: service_started
+      bitcoind:
+        condition: service_healthy
+    restart: unless-stopped
+
   # ── Bria Infrastructure ────────────────────────────────────
   bria-pg:
-    image: postgres:16-alpine
+    image: postgres:14-alpine
     container_name: koya-bria-pg
     environment:
       POSTGRES_DB: bria
@@ -55,7 +110,7 @@ services:
 
   # ── Bria — Bitcoin Custody & Payout ────────────────────────
   bria:
-    image: us.gcr.io/galoy-org/bria:latest
+    image: us.gcr.io/galoy-org/bria:0.1.131
     container_name: koya-bria
     command: ["bria", "daemon", "run"]
     ports:
@@ -78,4 +133,5 @@ services:
 
 volumes:
   redis_data:
+  bitcoind_data:
   bria_pg_data:

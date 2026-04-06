@@ -250,7 +250,7 @@ export class BriaClientService implements OnModuleInit, OnModuleDestroy {
       if (!streamFn) {
         throw new Error('subscribeAll method not found on gRPC client');
       }
-      const call = streamFn(req, metadata) as grpc.ClientReadableStream<Record<string, unknown>>;
+      const call = streamFn.call(this.client, req, metadata) as grpc.ClientReadableStream<Record<string, unknown>>;
 
       call.on('data', (raw: Record<string, unknown>) => {
         if (subscriber.closed) return;

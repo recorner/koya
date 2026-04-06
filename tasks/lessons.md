@@ -485,3 +485,31 @@ For non-TestingModule tests (plain class instantiation), `Logger.overrideLogger(
 ## Replacing Mock Providers — Import the New Module's Dependencies
 
 When swapping a mock provider (e.g., `MockRateProvider`) with a live adapter that depends on another module (e.g., `LiveRateProvider → RatesService → CacheModule`), ALL integration tests that transitively import the changed module MUST include the new dependency. In this project, `WhatsAppModule → ConversionModule → RatesModule → CacheModule`, so the WhatsApp integration test needed `CacheModule` added to its imports.
+
+---
+
+## Bria + PostgreSQL 16 Compatibility — Use PG 14
+
+**Bug:** Bria's `reserve_utxos_in_batch` SQL query fails with `"trailing junk after parameter at or near '$3WHERE'"` on PostgreSQL 16. PG 16 introduced stricter SQL parameter-boundary parsing that breaks Bria's (galoy-org) internal queries where a `$N` parameter token was immediately followed by a keyword without whitespace.
+
+**Rule:** Always use `postgres:14-alpine` (not 16+) for the Bria PostgreSQL container. If upgrading Bria version, re-test batch creation before deploying. This is an upstream Bria bug — not something we can fix in our code.
+
+**Symptoms:** Payouts get submitted but batches never form. Error appears in Bria logs during `batch_inclusion` phase.
+
+---
+
+## gRPC Client Method Extraction — Always Bind `this`
+
+**Bug:** In `bria-client.service.ts`, the `subscribeAll` method was extracted from the gRPC client object and called without preserving `this` context:
+```ts
+const streamFn = this.client[method]; // extracted method
+streamFn(req, metadata); // BROKEN — `this` is undefined
+```
+This caused `TypeError: Cannot read properties of undefined (reading 'checkMetadataAndOptions')` deep inside `@grpc/grpc-js`.
+
+**Fix:**
+```ts
+streamFn.call(this.client, req, metadata); // preserve this binding
+```
+
+**Rule:** When extracting a method from a gRPC (or any protobuf-generated) client object and calling it later, ALWAYS use `.call(obj, ...)` or `.bind(obj)` to preserve the receiver. gRPC client methods rely on `this` internally for channel/metadata handling.
