@@ -55,27 +55,23 @@ services:
 
   # ── Bria — Bitcoin Custody & Payout ────────────────────────
   bria:
-    build:
-      context: .
-      dockerfile: Dockerfile.bria
-    image: koyabank/bria:latest
+    image: us.gcr.io/galoy-org/bria:latest
     container_name: koya-bria
+    command: ["bria", "daemon", "run"]
     ports:
-      - '127.0.0.1:2742:2742'
-      - '127.0.0.1:2743:2743'
+      - '0.0.0.0:2742:2742'
+      - '0.0.0.0:2743:2743'
     env_file:
       - docker/bria.env
     volumes:
       - ./config/bria.yml:/etc/bria/bria.yml:ro
     healthcheck:
-      test: ['CMD', 'nc', '-z', 'localhost', '2742']
+      test: ['CMD', 'bria', 'list-profiles']
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     depends_on:
-      redis:
-        condition: service_healthy
       bria-pg:
         condition: service_healthy
     restart: unless-stopped

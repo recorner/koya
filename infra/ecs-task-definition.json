@@ -1,0 +1,101 @@
+{
+  "family": "koya-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::286119371044:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::286119371044:role/koyaApiTaskRole",
+  "containerDefinitions": [
+    {
+      "name": "koya-api",
+      "image": "286119371044.dkr.ecr.us-east-1.amazonaws.com/koya/api:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3333,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "3333" },
+        { "name": "MPESA_SHORTCODE", "value": "174379" },
+        { "name": "MPESA_DRIVER", "value": "daraja" },
+        { "name": "MPESA_ENVIRONMENT", "value": "sandbox" },
+        { "name": "BTC_DELIVERY_DRIVER", "value": "dfns" },
+        { "name": "CORS_ORIGINS", "value": "https://koyabank.com,https://www.koyabank.com" },
+        { "name": "REDIS_HOST", "value": "redis.koyabank.com" },
+        { "name": "REDIS_PORT", "value": "6379" },
+        { "name": "CLOUDWATCH_METRICS_ENABLED", "value": "true" },
+        { "name": "AWS_REGION", "value": "us-east-1" },
+        { "name": "BRIA_API_HOST", "value": "db.koyabank.com" },
+        { "name": "BRIA_API_PORT", "value": "2742" },
+        { "name": "DFNS_API_URL", "value": "https://api.dfns.ninja/v2" },
+        { "name": "DFNS_APP_ID", "value": "ap-01jkc-epkt0-e4acqhbp4mfg5q9e" },
+        { "name": "DFNS_WALLET_ID", "value": "wa-01jkc-eqlb8-es3ge87t68fftqem" },
+        { "name": "MPESA_CALLBACK_URL", "value": "https://api.koyabank.com/api/v1/payments/mpesa/callback" },
+        { "name": "DFNS_WEBHOOK_URL", "value": "https://api.koyabank.com/api/v1/dfns/webhook" },
+        { "name": "BRIA_WALLET_NAME", "value": "koya-mainnet" },
+        { "name": "BRIA_PAYOUT_QUEUE_NAME", "value": "koya-payouts" },
+        { "name": "BRIA_XPUB_REF", "value": "koya-testnet-xpub" },
+        { "name": "PSBT_ARCHIVE_S3_BUCKET", "value": "koya-archives-prod" },
+        { "name": "REDIS_TLS", "value": "false" },
+        { "name": "REDIS_DB", "value": "0" }
+      ],
+      "secrets": [
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/api/DATABASE_URL-HyyV4E"
+        },
+        {
+          "name": "REDIS_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/api/REDIS_PASSWORD-CDCQOL"
+        },
+        {
+          "name": "MPESA_CONSUMER_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/daraja/consumerKey-v95zjF"
+        },
+        {
+          "name": "MPESA_CONSUMER_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/daraja/consumerSecret-HjlKnd"
+        },
+        {
+          "name": "MPESA_PASSKEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/daraja/passkey-fUgQZb"
+        },
+        {
+          "name": "DFNS_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/dfns/apiKey-72X7ZG"
+        },
+        {
+          "name": "DFNS_WEBHOOK_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/dfns/webhookSecret-UGFAqm"
+        },
+        {
+          "name": "BRIA_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/bria/apiKey-HOftUH"
+        },
+        {
+          "name": "FX_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:286119371044:secret:/koya/api/FX_API_KEY-DyjiRM"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/koya-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "api"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -qO- http://localhost:3333/api/v1/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

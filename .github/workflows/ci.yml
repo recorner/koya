@@ -20,7 +20,7 @@ jobs:
   # ──────────────────────────────────────────────
   validate:
     name: Validate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,7 +68,7 @@ jobs:
   # ──────────────────────────────────────────────
   bria-build:
     name: Bria Build Check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
     name: Deploy Preview
     needs: validate
     if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/develop' && github.event_name == 'push')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     environment:
       name: preview
       url: ${{ steps.deploy.outputs.url }}
@@ -134,7 +134,7 @@ jobs:
     name: Deploy Production
     needs: validate
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, docker]
     environment:
       name: production
       url: https://koyabank.com

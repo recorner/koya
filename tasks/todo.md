@@ -1,4 +1,67 @@
-# Guest Conversion Engine — KES → BTC
+# Cold Start — Full Koya Infrastructure from Zero
+
+> Previous content (Guest Conversion Engine) archived below separator.
+
+## Current State (Phase A)
+- [x] Read all reference docs (step-01 through step-16, deployment docs)
+- [x] Inventory AWS: **completely bare** — no ECR, ECS, secrets, S3, ALB, ACM, SNS, CloudWatch alarms
+- [x] Default VPC exists: `vpc-098dd0a4627aa9bbc` with 6 subnets (us-east-1a–f)
+- [x] AWS account: 286119371044, user: lazarus
+- [x] Tools: Docker 29.3, Compose v5.1, AWS CLI 1.22, Vercel CLI 50.38, pnpm, Node 22
+
+## Phase B — Vercel & GitHub Deployment Auth
+- [ ] Document Vercel setup steps
+- [ ] Document GitHub secrets required
+
+## Phase C — AWS Secrets Baseline
+- [x] Create all Secrets Manager entries (19 secrets)
+- [x] Document secret names and consumers
+
+## Phase D — API Deployment Baseline (AWS)
+- [x] Create ECR, ECS cluster, ALB, IAM roles, security groups, ACM cert, task def, service
+
+## Phase E–H — Runtime, Web, DFNS, Ops
+- [x] Document all service startup in runbooks
+- [x] S3 archive buckets (staging + prod), KMS key, SNS topic, 5 CloudWatch alarms
+
+## Phase I — Final Runbook Documents
+- [x] docs/runbooks/cold-start.md
+- [x] docs/runbooks/cold-start-checklist.md
+- [x] docs/runbooks/environment-matrix.md
+- [x] docs/runbooks/service-dependency-map.md
+
+## DNS & Networking
+- [x] ACM cert DNS CNAME validation (ISSUED)
+- [x] api.koyabank.com CNAME → ALB
+- [x] db.koyabank.com A → 34.79.165.195
+- [x] redis.koyabank.com A → 34.79.165.195
+- [x] GCP firewall rules for PostgreSQL (5432) and Redis (6379)
+
+## Staging Infrastructure (GCP cassini VM)
+- [x] PostgreSQL 14 — user=koya, db=koya, exposed on db.koyabank.com:5432
+- [x] Redis 6 — password auth, exposed on redis.koyabank.com:6379
+- [x] All 6 Prisma migrations applied
+
+## Deployment
+- [x] First Docker image build + ECR push (koya/api:latest)
+- [x] HTTPS listener on ALB (ACM cert)
+- [x] ECS service with ALB, task koya-api:2 RUNNING + HEALTHY
+- [x] API live at https://api.koyabank.com/api/v1/health ✓
+
+## Secrets Updated (from placeholder)
+- [x] DATABASE_URL → db.koyabank.com
+- [x] REDIS_PASSWORD → real password
+- [x] REDIS_URL → redis.koyabank.com
+
+## Remaining
+- [ ] Replace 16 remaining placeholder secrets (Daraja, DFNS, Twilio, etc.)
+- [ ] Vercel project linking + GitHub secrets
+- [ ] Self-hosted runner provisioning
+- [ ] Web deployment (Vercel)
+
+---
+
+# Guest Conversion Engine — KES → BTC (archived)
 
 ## Overview
 
