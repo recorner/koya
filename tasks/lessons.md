@@ -100,6 +100,70 @@ Unit tests (validation, route-policy, risk) use no DB and run fast. Integration 
 
 ---
 
+## Next.js 16 + Nx: `NODE_ENV` Must Be Set Explicitly
+
+Nx's `run-commands` executor does **not** set `NODE_ENV`. Next.js 16.x treats unset `NODE_ENV` as "non-standard" which causes the internal `_global-error` page to crash during prerender with:
+
+```
+TypeError: Cannot read properties of null (reading 'useContext')
+    at LayoutRouterContext
+```
+
+`npx next build` works because the Next.js CLI sets `NODE_ENV=production` itself. But `nx:run-commands` → `next build` does not.
+
+**Fix:** Set `NODE_ENV=production` explicitly in:
+- `apps/web/project.json` build target: `"env": { "NODE_ENV": "production" }`
+- `vercel.json` build env: `"NODE_ENV": "production"`
+
+**Rule:** Always verify `NODE_ENV` is set when running Next.js builds through task runners (Nx, Turbo, Make, etc.).
+
+---
+
+## Vercel: Non-Prebuilt Deploy Fails on Monorepos
+
+`vercel deploy --prod` (non-prebuilt) can fail with "Unexpected error" on monorepo projects, even when `vercel build --prod` succeeds locally.
+
+**Fix:** Always use the prebuilt pattern:
+```bash
+vercel build --prod --token=$TOKEN
+vercel deploy --prebuilt --prod --token=$TOKEN
+```
+
+This is also faster — Vercel skips the remote build step.
+
+**Rule:** CI should always use `vercel build` → `vercel deploy --prebuilt`. Never `vercel deploy` alone for monorepos.
+
+---
+
+## GitHub Repo Remote — Always Verify Before `gh` Commands
+
+Don't assume the repo name from the project name. The actual remote can differ (e.g., `westronet/koya` not `koyabank/koya`).
+
+**Rule:** Always run `git remote -v` to get the real owner/repo before running `gh secret set`, `gh workflow`, etc.
+
+---
+
+## Next.js 16: Custom `_not-found` and `_global-error` Pages
+
+Next.js 16 requires App Router error boundary pages to be valid server components. Creating a `global-error.tsx` does NOT fix the internal `_global-error` prerender crash — the crash is in Next.js's own internal page, not in user code.
+
+**Rule:** Don't try to fix framework-internal prerender errors by creating user-space error pages. Look for environment/config root causes first.
+
+---
+
+## `.nxignore` for Stray `package.json` Files
+
+If Nx picks up unexpected projects (e.g., `scripts/dfns-mock/package.json`), it adds them to the project graph and can cause build failures.
+
+**Fix:** Add the directory to `.nxignore`:
+```
+scripts/dfns-mock
+```
+
+**Rule:** After adding any directory with a `package.json` that isn't a real Nx project, add it to `.nxignore`.
+
+---
+
 ## @Optional() Redis Injection in NestJS
 
 When a service uses `@Inject(REDIS_CLIENT) @Optional() private readonly redis: Redis | null`, tests must pass `null` as the corresponding constructor argument in `new Service(...)` calls. The `@Optional()` decorator only works with NestJS DI container — manual instantiation still requires explicit `null`.

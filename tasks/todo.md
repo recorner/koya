@@ -1,4 +1,51 @@
-# Koya — AWS Bootstrap Engine
+# Euclide v1.1.001 — Web + API Delivery Pattern (COMPLETE)
+
+> Finalize the Koya release pattern for Euclide v1.1.001.
+> **Deployed to koyabank.com on 2026-04-06. Cache headers verified. GitHub secrets configured.**
+
+## Part 1 — Vercel cache/header policy
+- [x] Keep `framework: "nextjs"` in vercel.json (already done)
+- [x] Add `headers()` to `next.config.js` with 3-tier cache policy
+- [x] Document which routes belong to each cache class
+
+## Part 2 — Frontend cache persistence discipline
+- [x] Add `NEXT_PUBLIC_APP_VERSION=1.1.001` and `NEXT_PUBLIC_RELEASE_NAME=euclide` to env files
+- [x] Document cache-buster/persistence guidance
+
+## Part 3 — CI split by changed paths
+- [x] Refactor `.github/workflows/ci.yml` with path filters for web/api/infra
+- [x] Web deploy triggers on web changes only
+- [x] API deploy triggers on API/backend changes only
+- [x] Infra apply triggers on terraform/infra changes only
+
+## Part 4 — API redeploy flow in CI
+- [x] Add `deploy-api` job: validate → build Docker → tag with SHA+version → push ECR → migrate → deploy → health check
+- [x] Fail workflow if health check doesn't recover
+
+## Part 5 — Unified env/secrets in CI
+- [x] CI loads env file once per job, no hardcoded IDs in workflow
+- [x] Terraform outputs resolve infra identifiers
+
+## Part 6 — Release identity
+- [x] Set `euclide` / `1.1.001` in web env, API env, Docker image tags, logs
+- [x] Add to env files, Dockerfile labels, vercel.json
+
+## Part 7 — Docs
+- [x] Create `docs/progress/step-22.md`
+- [x] Update `docs/runbooks/cold-start.md`
+- [x] Update `docs/runbooks/aws-bootstrap.md`
+- [x] Update `docs/runbooks/environment-matrix.md`
+
+## Part 8 — Verification
+- [x] API build passes
+- [x] 282 unit tests pass (26 suites)
+- [x] TypeScript strict check clean
+- [x] YAML/JSON syntax valid
+- [x] All acceptance criteria met
+
+---
+
+# Previous: AWS Bootstrap Engine (COMPLETE)
 
 > Platform reproducibility and deployment discipline task.
 > Goal: Brand-new AWS account → fully running Koya, entirely from repo code.

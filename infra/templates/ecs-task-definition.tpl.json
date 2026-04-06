@@ -46,7 +46,9 @@
         { "name": "JSON_BODY_LIMIT", "value": "${JSON_BODY_LIMIT}" },
         { "name": "URLENCODED_BODY_LIMIT", "value": "${URLENCODED_BODY_LIMIT}" },
         { "name": "THROTTLE_DEFAULT_LIMIT", "value": "${THROTTLE_DEFAULT_LIMIT}" },
-        { "name": "THROTTLE_DEFAULT_TTL_SECONDS", "value": "${THROTTLE_DEFAULT_TTL_SECONDS}" }
+        { "name": "THROTTLE_DEFAULT_TTL_SECONDS", "value": "${THROTTLE_DEFAULT_TTL_SECONDS}" },
+        { "name": "RELEASE_FAMILY", "value": "${RELEASE_FAMILY}" },
+        { "name": "RELEASE_VERSION", "value": "${RELEASE_VERSION}" }
       ],
       "secrets": [
         { "name": "DATABASE_URL", "valueFrom": "${SECRET_ARN_DATABASE_URL}" },

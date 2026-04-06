@@ -14,6 +14,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+    restart: unless-stopped
 
   api:
     build:
@@ -87,6 +88,11 @@ services:
         condition: service_started
       bitcoind:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
     restart: unless-stopped
 
   # ── Bria Infrastructure ────────────────────────────────────

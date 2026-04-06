@@ -1,6 +1,7 @@
 # AWS Bootstrap Runbook
 
-> Bootstrap a brand-new AWS account to run the full Koya platform.
+> Bootstrap a brand-new AWS account to run the full Koya platform.  
+> **Current release:** Euclide v1.1.001
 
 ## Prerequisites
 
@@ -168,6 +169,29 @@ vercel deploy --prod
 
 Set Vercel environment variable:
 - `NEXT_PUBLIC_API_URL` = `https://api.koyabank.com/api/v1`
+- `NEXT_PUBLIC_APP_VERSION` = `1.1.001`
+- `NEXT_PUBLIC_RELEASE_NAME` = `euclide`
+
+---
+
+## After Bootstrap: CI/CD Auto-Deploy
+
+Once infrastructure is provisioned, the CI/CD pipeline (`.github/workflows/ci.yml`) handles deploys automatically based on which files change:
+
+| Changed Paths | CI Job | Target |
+|--------------|--------|--------|
+| `apps/web/**`, `libs/ui/**`, `vercel.json` | `deploy-web-preview` / `deploy-web-production` | Vercel |
+| `apps/api/**`, `libs/bria-adapter/**`, `env/*.env`, `infra/templates/**` | `deploy-api-staging` / `deploy-api-production` | ECS (Docker → ECR → migrate → deploy → health check) |
+| `terraform/aws/**`, `infra/secrets-map.json` | `infra-plan` | Terraform plan (apply is manual) |
+
+The API deploy flow:
+1. AWS credentials via OIDC
+2. Resolve subnets/SGs/ECR from Terraform outputs (zero hardcoded values)
+3. Build Docker image with SHA + version tags
+4. Push to ECR
+5. Run migration ECS task, fail on non-zero exit
+6. Force new ECS deployment
+7. Health check with 5 retries — **workflow fails if health doesn't recover**
 
 ---
 

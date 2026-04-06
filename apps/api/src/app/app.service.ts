@@ -15,6 +15,8 @@ export class AppService {
     return {
       status: cacheStatus.ok ? 'ok' : 'degraded',
       service: 'koya-api',
+      release: process.env.RELEASE_FAMILY || 'unknown',
+      version: process.env.RELEASE_VERSION || 'unknown',
       timestamp: new Date().toISOString(),
       cache: {
         status: cacheStatus.ok ? 'ok' : 'down',

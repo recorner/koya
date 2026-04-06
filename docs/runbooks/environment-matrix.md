@@ -1,6 +1,18 @@
 # Environment Matrix
 
-**Last updated:** 2026-04-05
+**Last updated:** 2026-04-06  
+**Release:** Euclide v1.1.001
+
+---
+
+## Release Identity
+
+| Variable | Local | Staging | Production | Source |
+|----------|-------|---------|------------|--------|
+| `RELEASE_FAMILY` | `euclide` | `euclide` | `euclide` | ECS task def / env file |
+| `RELEASE_VERSION` | `1.1.001` | `1.1.001` | `1.1.001` | ECS task def / env file |
+| `NEXT_PUBLIC_APP_VERSION` | `1.1.001` | `1.1.001` | `1.1.001` | Vercel env / `.env.local` |
+| `NEXT_PUBLIC_RELEASE_NAME` | `euclide` | `euclide` | `euclide` | Vercel env / `.env.local` |
 
 ---
 

@@ -1,6 +1,13 @@
-# Koya CI/CD Pipeline
-# Runs validation gates on all PRs and branch pushes.
-# Deploys to Vercel preview (PRs + develop) or production (main).
+# Koya CI/CD Pipeline — Euclide v1.1.001
+#
+# Validates all PRs and pushes. Deploys the correct components based on
+# which files changed:
+#   - Web changes → Vercel deploy
+#   - API/backend changes → Docker build → ECR push → ECS migrate → ECS deploy → health check
+#   - Infra changes → Terraform plan (apply is manual)
+#
+# Env files (env/*.env) are the single source of truth for non-secret config.
+# Secrets live in AWS Secrets Manager and GitHub Secrets.
 
 name: CI
 
@@ -14,9 +21,60 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  RELEASE_FAMILY: euclide
+  RELEASE_VERSION: 1.1.001
+
 jobs:
   # ──────────────────────────────────────────────
-  # Quality gates — lint, typecheck, build
+  # Detect which components changed
+  # ──────────────────────────────────────────────
+  detect-changes:
+    name: Detect Changes
+    runs-on: [self-hosted, linux, docker]
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Path filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'libs/ui/**'
+              - 'libs/types/**'
+              - 'vercel.json'
+              - 'apps/web/next.config.js'
+              - 'apps/web/postcss.config.mjs'
+            api:
+              - 'apps/api/**'
+              - 'libs/bria-adapter/**'
+              - 'libs/config/**'
+              - 'libs/types/**'
+              - 'libs/dfns-sdk/**'
+              - 'scripts/deploy-api.sh'
+              - 'env/*.env'
+              - 'infra/templates/**'
+              - 'docker-compose.yml'
+              - 'docker-compose.integration.yml'
+            infra:
+              - 'terraform/aws/**'
+              - 'infra/secrets-map.json'
+              - 'scripts/bootstrap-aws.sh'
+              - 'scripts/render-task-definitions.sh'
+              - 'scripts/sync-secrets.sh'
+              - 'env/*.env'
+
+  # ──────────────────────────────────────────────
+  # Quality gates — lint, typecheck, build, test
   # ──────────────────────────────────────────────
   validate:
     name: Validate
@@ -83,12 +141,14 @@ jobs:
         run: docker run --rm koyabank/bria ls -la /usr/local/bin/bria
 
   # ──────────────────────────────────────────────
-  # Preview deploy — PRs and develop branch
+  # Web: Preview deploy — PRs and develop branch
   # ──────────────────────────────────────────────
-  deploy-preview:
-    name: Deploy Preview
-    needs: validate
-    if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/develop' && github.event_name == 'push')
+  deploy-web-preview:
+    name: Deploy Web Preview
+    needs: [validate, detect-changes]
+    if: |
+      needs.detect-changes.outputs.web == 'true' &&
+      (github.event_name == 'pull_request' || (github.ref == 'refs/heads/develop' && github.event_name == 'push'))
     runs-on: [self-hosted, linux, docker]
     environment:
       name: preview
@@ -120,6 +180,9 @@ jobs:
 
       - name: Build
         run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          NEXT_PUBLIC_APP_VERSION: ${{ env.RELEASE_VERSION }}
+          NEXT_PUBLIC_RELEASE_NAME: ${{ env.RELEASE_FAMILY }}
 
       - name: Deploy
         id: deploy
@@ -128,12 +191,14 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
   # ──────────────────────────────────────────────
-  # Production deploy — push to main only
+  # Web: Production deploy — push to main only
   # ──────────────────────────────────────────────
-  deploy-production:
-    name: Deploy Production
-    needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  deploy-web-production:
+    name: Deploy Web Production
+    needs: [validate, detect-changes]
+    if: |
+      needs.detect-changes.outputs.web == 'true' &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: [self-hosted, linux, docker]
     environment:
       name: production
@@ -165,6 +230,301 @@ jobs:
 
       - name: Build
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          NEXT_PUBLIC_APP_VERSION: ${{ env.RELEASE_VERSION }}
+          NEXT_PUBLIC_RELEASE_NAME: ${{ env.RELEASE_FAMILY }}
 
       - name: Deploy
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+  # ──────────────────────────────────────────────
+  # API: Build, push, migrate, deploy (staging)
+  # ──────────────────────────────────────────────
+  deploy-api-staging:
+    name: Deploy API Staging
+    needs: [validate, detect-changes]
+    if: |
+      needs.detect-changes.outputs.api == 'true' &&
+      github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    runs-on: [self-hosted, linux, docker]
+    environment: staging
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Load environment config
+        run: source scripts/load-env.sh staging
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve infrastructure from Terraform
+        id: infra
+        run: |
+          TF_PLATFORM="terraform/aws/platform"
+          TF_FOUNDATION="terraform/aws/foundation"
+          TF_APPLICATION="terraform/aws/application"
+
+          ECR_REPO_URL=$(terraform -chdir="${TF_PLATFORM}" output -raw ecr_repository_url 2>/dev/null)
+          CLUSTER=$(terraform -chdir="${TF_PLATFORM}" output -raw ecs_cluster_name 2>/dev/null)
+          SERVICE=$(terraform -chdir="${TF_APPLICATION}" output -raw api_service_name 2>/dev/null)
+          SUBNETS=$(terraform -chdir="${TF_FOUNDATION}" output -json public_subnet_ids 2>/dev/null | jq -r 'join(",")')
+          SG=$(terraform -chdir="${TF_FOUNDATION}" output -raw ecs_security_group_id 2>/dev/null)
+
+          echo "ecr_repo_url=${ECR_REPO_URL}" >> "$GITHUB_OUTPUT"
+          echo "cluster=${CLUSTER}" >> "$GITHUB_OUTPUT"
+          echo "service=${SERVICE}" >> "$GITHUB_OUTPUT"
+          echo "subnets=${SUBNETS}" >> "$GITHUB_OUTPUT"
+          echo "security_group=${SG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build -f apps/api/Dockerfile \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --label "org.opencontainers.image.version=${{ env.RELEASE_VERSION }}" \
+            --label "org.opencontainers.image.title=koya-api" \
+            --label "org.opencontainers.image.description=Koya API — ${{ env.RELEASE_FAMILY }} ${{ env.RELEASE_VERSION }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:${{ github.sha }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:latest" \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ github.sha }}"
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}"
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:latest"
+
+      - name: Run database migrations
+        run: |
+          source scripts/load-env.sh staging
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --task-definition "${MIGRATE_TASK_FAMILY}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.infra.outputs.subnets }}],securityGroups=[${{ steps.infra.outputs.security_group }}],assignPublicIp=ENABLED}" \
+            --region us-east-1 \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "Migration task: ${TASK_ARN}"
+          aws ecs wait tasks-stopped \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --tasks "${TASK_ARN}" \
+            --region us-east-1
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --tasks "${TASK_ARN}" \
+            --region us-east-1 \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [[ "${EXIT_CODE}" != "0" ]]; then
+            echo "::error::Migration failed with exit code ${EXIT_CODE}"
+            exit 1
+          fi
+          echo "Migrations completed successfully."
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --service "${{ steps.infra.outputs.service }}" \
+            --force-new-deployment \
+            --region us-east-1 \
+            --query 'service.deployments[0].status' \
+            --output text
+
+      - name: Health check
+        run: |
+          echo "Waiting 60s for new tasks to register..."
+          sleep 60
+
+          HEALTH_URL="https://api.koyabank.com/api/v1/health"
+          MAX_RETRIES=5
+          RETRY_DELAY=15
+
+          for i in $(seq 1 ${MAX_RETRIES}); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || echo "000")
+            if [[ "${HTTP_CODE}" == "200" ]]; then
+              echo "Health check passed: ${HEALTH_URL} → ${HTTP_CODE}"
+              exit 0
+            fi
+            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_CODE}. Retrying in ${RETRY_DELAY}s..."
+            sleep ${RETRY_DELAY}
+          done
+
+          echo "::error::Health check failed after ${MAX_RETRIES} attempts"
+          exit 1
+
+  # ──────────────────────────────────────────────
+  # API: Build, push, migrate, deploy (production)
+  # ──────────────────────────────────────────────
+  deploy-api-production:
+    name: Deploy API Production
+    needs: [validate, detect-changes]
+    if: |
+      needs.detect-changes.outputs.api == 'true' &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: [self-hosted, linux, docker]
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Load environment config
+        run: source scripts/load-env.sh production
+
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve infrastructure from Terraform
+        id: infra
+        run: |
+          TF_PLATFORM="terraform/aws/platform"
+          TF_FOUNDATION="terraform/aws/foundation"
+          TF_APPLICATION="terraform/aws/application"
+
+          ECR_REPO_URL=$(terraform -chdir="${TF_PLATFORM}" output -raw ecr_repository_url 2>/dev/null)
+          CLUSTER=$(terraform -chdir="${TF_PLATFORM}" output -raw ecs_cluster_name 2>/dev/null)
+          SERVICE=$(terraform -chdir="${TF_APPLICATION}" output -raw api_service_name 2>/dev/null)
+          SUBNETS=$(terraform -chdir="${TF_FOUNDATION}" output -json public_subnet_ids 2>/dev/null | jq -r 'join(",")')
+          SG=$(terraform -chdir="${TF_FOUNDATION}" output -raw ecs_security_group_id 2>/dev/null)
+
+          echo "ecr_repo_url=${ECR_REPO_URL}" >> "$GITHUB_OUTPUT"
+          echo "cluster=${CLUSTER}" >> "$GITHUB_OUTPUT"
+          echo "service=${SERVICE}" >> "$GITHUB_OUTPUT"
+          echo "subnets=${SUBNETS}" >> "$GITHUB_OUTPUT"
+          echo "security_group=${SG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        run: |
+          docker build -f apps/api/Dockerfile \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" \
+            --label "org.opencontainers.image.version=${{ env.RELEASE_VERSION }}" \
+            --label "org.opencontainers.image.title=koya-api" \
+            --label "org.opencontainers.image.description=Koya API — ${{ env.RELEASE_FAMILY }} ${{ env.RELEASE_VERSION }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:${{ github.sha }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}" \
+            -t "${{ steps.infra.outputs.ecr_repo_url }}:latest" \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ github.sha }}"
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}"
+          docker push "${{ steps.infra.outputs.ecr_repo_url }}:latest"
+
+      - name: Run database migrations
+        run: |
+          source scripts/load-env.sh production
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --task-definition "${MIGRATE_TASK_FAMILY}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.infra.outputs.subnets }}],securityGroups=[${{ steps.infra.outputs.security_group }}],assignPublicIp=ENABLED}" \
+            --region us-east-1 \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "Migration task: ${TASK_ARN}"
+          aws ecs wait tasks-stopped \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --tasks "${TASK_ARN}" \
+            --region us-east-1
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --tasks "${TASK_ARN}" \
+            --region us-east-1 \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [[ "${EXIT_CODE}" != "0" ]]; then
+            echo "::error::Migration failed with exit code ${EXIT_CODE}"
+            exit 1
+          fi
+          echo "Migrations completed successfully."
+
+      - name: Deploy ECS service
+        run: |
+          aws ecs update-service \
+            --cluster "${{ steps.infra.outputs.cluster }}" \
+            --service "${{ steps.infra.outputs.service }}" \
+            --force-new-deployment \
+            --region us-east-1 \
+            --query 'service.deployments[0].status' \
+            --output text
+
+      - name: Health check
+        run: |
+          echo "Waiting 60s for new tasks to register..."
+          sleep 60
+
+          HEALTH_URL="https://api.koyabank.com/api/v1/health"
+          MAX_RETRIES=5
+          RETRY_DELAY=15
+
+          for i in $(seq 1 ${MAX_RETRIES}); do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || echo "000")
+            if [[ "${HTTP_CODE}" == "200" ]]; then
+              echo "Health check passed: ${HEALTH_URL} → ${HTTP_CODE}"
+              exit 0
+            fi
+            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_CODE}. Retrying in ${RETRY_DELAY}s..."
+            sleep ${RETRY_DELAY}
+          done
+
+          echo "::error::Health check failed after ${MAX_RETRIES} attempts"
+          exit 1
+
+  # ──────────────────────────────────────────────
+  # Infra: Terraform plan (apply is manual)
+  # ──────────────────────────────────────────────
+  infra-plan:
+    name: Terraform Plan
+    needs: [detect-changes]
+    if: |
+      needs.detect-changes.outputs.infra == 'true' &&
+      github.event_name == 'pull_request'
+    runs-on: [self-hosted, linux, docker]
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform plan (all layers)
+        run: |
+          ./scripts/bootstrap-aws.sh all staging --plan

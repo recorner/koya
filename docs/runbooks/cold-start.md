@@ -1,6 +1,7 @@
 # Cold-Start Runbook — Koya Platform
 
-**Last updated:** 2026-04-05  
+**Last updated:** 2026-04-06  
+**Release:** Euclide v1.1.001  
 **AWS Account:** 286119371044 (us-east-1)  
 **Domain:** koyabank.com / api.koyabank.com
 
@@ -14,9 +15,21 @@ For a fully automated bootstrap from a blank AWS account, use the new bootstrap 
 2. Bootstrap: `./scripts/bootstrap-aws.sh all staging`
 3. Secrets: `./scripts/sync-secrets.sh staging` then set each secret value
 4. Build & Deploy: `./scripts/deploy-api.sh staging latest --build`
-5. Verify: `curl https://api.koyabank.com/api/v1/health`
+5. Verify: `curl https://api.koyabank.com/api/v1/health` (response includes `release: euclide`, `version: 1.1.001`)
 
 See `docs/runbooks/aws-bootstrap.md` for the full guide.
+
+## CI/CD Automatic Deploys (Euclide v1.1.001)
+
+Once infrastructure exists, pushes to `develop`/`main` deploy automatically:
+
+| Changed Files | Action |
+|--------------|--------|
+| `apps/web/**`, `libs/ui/**`, `vercel.json` | Vercel web deploy (preview on develop, production on main) |
+| `apps/api/**`, `libs/bria-adapter/**`, `env/*.env` | Docker build → ECR push → ECS migrate → ECS deploy → health check |
+| `terraform/aws/**`, `infra/secrets-map.json` | Terraform plan on PRs (apply is manual) |
+
+No manual deploy needed for normal development. See `.github/workflows/ci.yml`.
 
 The manual steps below remain valid for understanding and troubleshooting.
 
