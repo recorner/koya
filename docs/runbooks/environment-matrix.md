@@ -170,3 +170,21 @@
 | `VERCEL_ORG_ID` | CI: deploy-preview, deploy-production | Vercel team/org ID |
 | `VERCEL_PROJECT_ID` | CI: deploy-preview, deploy-production | Vercel project ID |
 | `AWS_ROLE_ARN` | Nightly CI, deploy-api | `arn:aws:iam::286119371044:role/github-actions-deploy` |
+
+---
+
+## Environment Files
+
+### Config Source of Truth
+
+Non-secret configuration now lives in environment files:
+- `env/staging.env` — Staging config
+- `env/production.env` — Production config
+- `env/integration.env` — Local development config
+
+These files feed into:
+- Terraform variables (via `scripts/bootstrap-aws.sh`)
+- Task definition rendering (via `scripts/render-task-definitions.sh`)
+- Deploy scripts (via `scripts/load-env.sh`)
+
+Secrets continue to live in AWS Secrets Manager. See `infra/secrets-map.json` for the mapping.

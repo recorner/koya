@@ -40,6 +40,34 @@ Internet → Route53 → ALB (443/HTTPS) → WAF → ECS Fargate Service → Con
 
 ---
 
+## Automated Deployment
+
+### Using the Bootstrap System
+
+The recommended deployment flow uses the automated scripts:
+
+```bash
+# First-time infrastructure setup
+./scripts/bootstrap-aws.sh all staging
+
+# Populate secrets
+./scripts/sync-secrets.sh staging
+
+# Build, push, migrate, deploy
+./scripts/deploy-api.sh staging latest --build
+```
+
+The deploy script:
+1. Loads environment from `env/<environment>.env`
+2. Resolves subnets, SGs, and cluster from Terraform outputs
+3. Runs the migration ECS task
+4. Updates the API service with force-new-deployment
+5. Verifies health endpoint
+
+No hardcoded account IDs, subnet IDs, or security group IDs.
+
+---
+
 ## ECR Setup
 
 ```bash

@@ -1,0 +1,79 @@
+{
+  "family": "${API_TASK_FAMILY}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "${API_CPU}",
+  "memory": "${API_MEMORY}",
+  "executionRoleArn": "${EXECUTION_ROLE_ARN}",
+  "taskRoleArn": "${API_TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "${PROJECT}-api",
+      "image": "${IMAGE_URI}",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": ${PORT},
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "${NODE_ENV}" },
+        { "name": "PORT", "value": "${PORT}" },
+        { "name": "MPESA_SHORTCODE", "value": "${MPESA_SHORTCODE}" },
+        { "name": "MPESA_DRIVER", "value": "${MPESA_DRIVER}" },
+        { "name": "MPESA_ENVIRONMENT", "value": "${MPESA_ENVIRONMENT}" },
+        { "name": "BTC_DELIVERY_DRIVER", "value": "${BTC_DELIVERY_DRIVER}" },
+        { "name": "CORS_ORIGINS", "value": "${CORS_ORIGINS}" },
+        { "name": "REDIS_HOST", "value": "${REDIS_HOST}" },
+        { "name": "REDIS_PORT", "value": "${REDIS_PORT}" },
+        { "name": "REDIS_TLS", "value": "${REDIS_TLS}" },
+        { "name": "REDIS_DB", "value": "${REDIS_DB}" },
+        { "name": "CLOUDWATCH_METRICS_ENABLED", "value": "${CLOUDWATCH_METRICS_ENABLED}" },
+        { "name": "AWS_REGION", "value": "${AWS_REGION}" },
+        { "name": "BRIA_API_HOST", "value": "${BRIA_API_HOST}" },
+        { "name": "BRIA_API_PORT", "value": "${BRIA_API_PORT}" },
+        { "name": "DFNS_API_URL", "value": "${DFNS_API_URL}" },
+        { "name": "DFNS_APP_ID", "value": "${DFNS_APP_ID}" },
+        { "name": "DFNS_WALLET_ID", "value": "${DFNS_WALLET_ID}" },
+        { "name": "MPESA_CALLBACK_URL", "value": "${MPESA_CALLBACK_URL}" },
+        { "name": "DFNS_WEBHOOK_URL", "value": "${DFNS_WEBHOOK_URL}" },
+        { "name": "BRIA_WALLET_NAME", "value": "${BRIA_WALLET_NAME}" },
+        { "name": "BRIA_PAYOUT_QUEUE_NAME", "value": "${BRIA_PAYOUT_QUEUE_NAME}" },
+        { "name": "BRIA_XPUB_REF", "value": "${BRIA_XPUB_REF}" },
+        { "name": "PSBT_ARCHIVE_S3_BUCKET", "value": "${PSBT_ARCHIVE_S3_BUCKET}" },
+        { "name": "TRUST_PROXY_HOPS", "value": "${TRUST_PROXY_HOPS}" },
+        { "name": "JSON_BODY_LIMIT", "value": "${JSON_BODY_LIMIT}" },
+        { "name": "URLENCODED_BODY_LIMIT", "value": "${URLENCODED_BODY_LIMIT}" },
+        { "name": "THROTTLE_DEFAULT_LIMIT", "value": "${THROTTLE_DEFAULT_LIMIT}" },
+        { "name": "THROTTLE_DEFAULT_TTL_SECONDS", "value": "${THROTTLE_DEFAULT_TTL_SECONDS}" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "${SECRET_ARN_DATABASE_URL}" },
+        { "name": "REDIS_PASSWORD", "valueFrom": "${SECRET_ARN_REDIS_PASSWORD}" },
+        { "name": "MPESA_CONSUMER_KEY", "valueFrom": "${SECRET_ARN_MPESA_CONSUMER_KEY}" },
+        { "name": "MPESA_CONSUMER_SECRET", "valueFrom": "${SECRET_ARN_MPESA_CONSUMER_SECRET}" },
+        { "name": "MPESA_PASSKEY", "valueFrom": "${SECRET_ARN_MPESA_PASSKEY}" },
+        { "name": "DFNS_API_KEY", "valueFrom": "${SECRET_ARN_DFNS_API_KEY}" },
+        { "name": "DFNS_WEBHOOK_SECRET", "valueFrom": "${SECRET_ARN_DFNS_WEBHOOK_SECRET}" },
+        { "name": "BRIA_API_KEY", "valueFrom": "${SECRET_ARN_BRIA_API_KEY}" },
+        { "name": "FX_API_KEY", "valueFrom": "${SECRET_ARN_FX_API_KEY}" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${LOG_GROUP_NAME}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "api"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -qO- http://localhost:${PORT}/api/v1/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}

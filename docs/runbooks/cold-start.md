@@ -6,6 +6,22 @@
 
 ---
 
+## Automated Bootstrap (Recommended)
+
+For a fully automated bootstrap from a blank AWS account, use the new bootstrap system:
+
+1. Configure: Edit `env/staging.env` with your environment values
+2. Bootstrap: `./scripts/bootstrap-aws.sh all staging`
+3. Secrets: `./scripts/sync-secrets.sh staging` then set each secret value
+4. Build & Deploy: `./scripts/deploy-api.sh staging latest --build`
+5. Verify: `curl https://api.koyabank.com/api/v1/health`
+
+See `docs/runbooks/aws-bootstrap.md` for the full guide.
+
+The manual steps below remain valid for understanding and troubleshooting.
+
+---
+
 ## Table of Contents
 
 1. [Prerequisites](#1-prerequisites)

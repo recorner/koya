@@ -150,3 +150,18 @@ API ──► Bria (gRPC: payout, address, events)
 | Next.js Dev | 3000 | HTTP | Local only |
 | ALB | 443 | HTTPS | Public |
 | ALB | 80 | HTTP→301 | Public (redirect) |
+
+---
+
+## Infrastructure as Code
+
+### Terraform Layers
+
+| Layer | Path | Creates |
+|-------|------|---------|
+| Foundation | `terraform/aws/foundation/` | VPC, subnets, NAT, IGW, SGs, IAM, log groups |
+| Platform | `terraform/aws/platform/` | ECR, ECS cluster, ALB, ACM, Route53, Secrets Manager |
+| Application | `terraform/aws/application/` | Task defs, ECS service, WAF, autoscaling, alarms, S3/KMS |
+
+Apply in order: foundation → platform → application
+Destroy in reverse: application → platform → foundation

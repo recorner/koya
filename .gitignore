@@ -49,6 +49,15 @@ docker/bria.env
 api.env
 /bria
 
+# Rendered infrastructure (generated from templates)
+infra/rendered/
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.auto.tfvars
+
 # Keys / Secrets
 *.pem
 *.key

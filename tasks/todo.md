@@ -1,102 +1,76 @@
-# Engine Hardening — API Ingress, Rate Limiting, Autoscaling
+# Koya — AWS Bootstrap Engine
 
-## Plan
+> Platform reproducibility and deployment discipline task.
+> Goal: Brand-new AWS account → fully running Koya, entirely from repo code.
 
-### Part 1 — NestJS Ingress Hardening
-- [x] **1.1** Bootstrap hardening in `main.ts`: helmet, trust proxy, body limits, correlation ID, graceful shutdown
-- [x] **1.2** Redis-backed throttling: `RedisThrottlerStorage`, `ApiSecurityModule` with ThrottlerModule, env-driven limits
-- [x] **1.3** Route-specific decorators: per-endpoint class limits on conversion, payments, webhooks, health
+## Previous Phases (COMPLETE)
+- [x] Phase A: Cold start infrastructure (ECR, ECS, ALB, secrets, IAM, ACM, S3, SNS, alarms)
+- [x] Phase C-I: Secrets, deployment, runbooks, DNS, staging infra
 
-### Part 2 — Container & Migration Hardening
-- [x] **2.1** Split migrations from Dockerfile CMD → separate migration job
-- [x] **2.2** Container safety review & documentation
+## Phase J — AWS Bootstrap Engine
 
-### Part 3 — AWS WAF on ALB
-- [x] **3.1** Terraform WAF: Web ACL, managed rules, rate-based rules, ALB association
+### J.1 Terraform Foundation Layer (`terraform/aws/foundation/`)
+- [x] Provider + backend config
+- [x] Variables
+- [x] VPC, subnets (public/private, 2+ AZs)
+- [x] Route tables, NAT gateway, Internet gateway
+- [x] Security groups (ALB, ECS, DB egress)
+- [x] IAM roles (ECS execution, API task, migrate task, runner)
+- [x] CloudWatch log groups
+- [x] Outputs
 
-### Part 4 — ECS Autoscaling
-- [x] **4.1** Terraform autoscaling: CPU/memory target tracking, ALB request count, min/max/desired
+### J.2 Terraform Platform Layer (`terraform/aws/platform/`)
+- [x] ECR repository
+- [x] ECS cluster
+- [x] ALB + listeners + target group
+- [x] ACM certificate
+- [x] Route53 DNS records
+- [x] Secrets Manager placeholders
+- [x] Outputs
 
-### Part 5 — CloudWatch Alarms
-- [x] **5.1** Ingress/abuse alarms: 429 rate, 5xx, latency, request count, unhealthy tasks, WAF blocks
-- [x] **5.2** App-level metrics — deferred (circuit breaker already emits CBOpenCount)
+### J.3 Terraform Application Layer (`terraform/aws/application/`)
+- [x] ECS task definition (from template)
+- [x] ECS migrate task definition (from template)
+- [x] ECS service
+- [x] WAF (move existing waf.tf)
+- [x] Autoscaling (move existing ecs_autoscaling.tf)
+- [x] CloudWatch alarms (move existing alerts_*.tf)
+- [x] S3/KMS (move existing s3_psbt_archive.tf)
 
-### Part 6 — Endpoint Protection Review
-- [x] **6.1** Document limit profiles for all endpoint groups
+### J.4 Unified Environment + Secrets Model
+- [x] `env/staging.env` — non-secret config
+- [x] `env/production.env` — non-secret config
+- [x] `env/integration.env` — non-secret config
+- [x] `infra/secrets-map.json` — logical secret → SM path mapping
 
-### Part 7 — Documentation
-- [x] **7.1** Update ecs-fargate.md, cold-start.md, environment-matrix.md
-- [x] **7.2** Create docs/runbooks/api-hardening.md
+### J.5 Task Definition Templates
+- [x] `infra/templates/ecs-task-definition.tpl.json`
+- [x] `infra/templates/ecs-migrate-task-definition.tpl.json`
 
-### Part 8 — Environment Variables
-- [x] **8.1** Add all new env vars to api.env.example and ecs-task-definition.json
+### J.6 Bootstrap/Deploy/Teardown Scripts
+- [x] `scripts/bootstrap-aws.sh` — layer-by-layer terraform apply
+- [x] `scripts/load-env.sh` — load + validate env file
+- [x] `scripts/sync-secrets.sh` — create/validate SM secrets
+- [x] `scripts/render-task-definitions.sh` — template → JSON
+- [x] `scripts/deploy-api.sh` — refactor (no hardcoded values)
+- [x] `scripts/destroy-environment.sh` — ordered teardown
 
-### Part 9 — Tests
-- [x] **9.1** Unit tests for RedisThrottlerStorage and guard
-- [x] **9.2** Integration test: route gets 429 after limit exceeded
-- [x] **9.3** Test webhook route still works under threshold
+### J.7 Validation & Testing
+- [x] Env loader validation (required vars)
+- [x] Template rendering validation
+- [x] Secret mapping validation
+- [x] Dry-run documentation
 
-### Part 10 — Summary
-- [x] **10.1** PR summary in docs/progress/step-20.md
+### J.8 Documentation
+- [x] `docs/runbooks/aws-bootstrap.md`
+- [x] Update cold-start.md
+- [x] Update cold-start-checklist.md
+- [x] Update environment-matrix.md
+- [x] Update service-dependency-map.md
+- [x] Update ecs-fargate.md
+- [x] `docs/progress/step-21.md`
 
----
-
-# Cold Start — Full Koya Infrastructure from Zero (archived)
-
-> Previous content (Guest Conversion Engine) archived below separator.
-
-## Current State (Phase A)
-- [x] Read all reference docs (step-01 through step-16, deployment docs)
-- [x] Inventory AWS: **completely bare** — no ECR, ECS, secrets, S3, ALB, ACM, SNS, CloudWatch alarms
-- [x] Default VPC exists: `vpc-098dd0a4627aa9bbc` with 6 subnets (us-east-1a–f)
-- [x] AWS account: 286119371044, user: lazarus
-- [x] Tools: Docker 29.3, Compose v5.1, AWS CLI 1.22, Vercel CLI 50.38, pnpm, Node 22
-
-## Phase B — Vercel & GitHub Deployment Auth
-- [ ] Document Vercel setup steps
-- [ ] Document GitHub secrets required
-
-## Phase C — AWS Secrets Baseline
-- [x] Create all Secrets Manager entries (19 secrets)
-- [x] Document secret names and consumers
-
-## Phase D — API Deployment Baseline (AWS)
-- [x] Create ECR, ECS cluster, ALB, IAM roles, security groups, ACM cert, task def, service
-
-## Phase E–H — Runtime, Web, DFNS, Ops
-- [x] Document all service startup in runbooks
-- [x] S3 archive buckets (staging + prod), KMS key, SNS topic, 5 CloudWatch alarms
-
-## Phase I — Final Runbook Documents
-- [x] docs/runbooks/cold-start.md
-- [x] docs/runbooks/cold-start-checklist.md
-- [x] docs/runbooks/environment-matrix.md
-- [x] docs/runbooks/service-dependency-map.md
-
-## DNS & Networking
-- [x] ACM cert DNS CNAME validation (ISSUED)
-- [x] api.koyabank.com CNAME → ALB
-- [x] db.koyabank.com A → 34.79.165.195
-- [x] redis.koyabank.com A → 34.79.165.195
-- [x] GCP firewall rules for PostgreSQL (5432) and Redis (6379)
-
-## Staging Infrastructure (GCP cassini VM)
-- [x] PostgreSQL 14 — user=koya, db=koya, exposed on db.koyabank.com:5432
-- [x] Redis 6 — password auth, exposed on redis.koyabank.com:6379
-- [x] All 6 Prisma migrations applied
-
-## Deployment
-- [x] First Docker image build + ECR push (koya/api:latest)
-- [x] HTTPS listener on ALB (ACM cert)
-- [x] ECS service with ALB, task koya-api:2 RUNNING + HEALTHY
-- [x] API live at https://api.koyabank.com/api/v1/health ✓
-
-## Secrets Updated (from placeholder)
-- [x] DATABASE_URL → db.koyabank.com
-- [x] REDIS_PASSWORD → real password
-- [x] REDIS_URL → redis.koyabank.com
-
-## Remaining
+## Remaining (from before)
 - [ ] Replace 16 remaining placeholder secrets (Daraja, DFNS, Twilio, etc.)
 - [ ] Vercel project linking + GitHub secrets
 - [ ] Self-hosted runner provisioning

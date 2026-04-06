@@ -6,6 +6,22 @@ Use this checklist to verify a complete cold start. Check off each item as you c
 
 ---
 
+## Automated Validation
+
+Run the automated validation to check bootstrap readiness:
+```bash
+./scripts/validate-bootstrap.sh staging
+```
+
+This checks:
+- Environment files have all required variables
+- Secrets map is valid and complete
+- Task definition templates have correct placeholders
+- Terraform layer structure is intact
+- All scripts are executable
+
+---
+
 ## Pre-Flight
 
 - [ ] AWS CLI configured and authenticated (`aws sts get-caller-identity`)
