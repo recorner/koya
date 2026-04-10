@@ -10,13 +10,20 @@ import { conversionApi, type QuoteResponse } from '@/lib/api/conversion';
 export function AmountStep({
   onQuoteReady,
   initialAmount,
+  initialFrom = 'KES',
+  initialTo = 'BTC',
 }: {
   onQuoteReady: (quote: QuoteResponse) => void;
   initialAmount?: string;
+  initialFrom?: string;
+  initialTo?: string;
 }) {
   const [amount, setAmount] = useState(initialAmount ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const sourceAsset = initialFrom;
+  const targetAsset = initialTo;
 
   const numericAmount = useMemo(() => {
     const val = parseFloat(amount.replace(/,/g, ''));
@@ -26,11 +33,13 @@ export function AmountStep({
   const isValid = numericAmount >= 100 && numericAmount <= 100_000;
 
   // Live BTC rate updating every 2 seconds
-  const rate = useLiveRate('KES', 'BTC');
-  const previewBtc = useMemo(() => {
+  const rate = useLiveRate(sourceAsset, targetAsset);
+  const isCryptoTarget = ['BTC', 'ETH'].includes(targetAsset);
+  const previewDest = useMemo(() => {
     if (!numericAmount || !rate) return '';
-    return (numericAmount * rate).toFixed(8);
-  }, [numericAmount, rate]);
+    const result = numericAmount * rate;
+    return isCryptoTarget ? result.toFixed(8) : result.toFixed(2);
+  }, [numericAmount, rate, isCryptoTarget]);
 
   const handleSubmit = useCallback(async () => {
     if (!isValid) return;
@@ -39,8 +48,8 @@ export function AmountStep({
 
     try {
       const quote = await conversionApi.createQuote({
-        sourceAsset: 'KES',
-        targetAsset: 'BTC',
+        sourceAsset,
+        targetAsset,
         sourceAmount: numericAmount.toString(),
         channel: 'WEB',
       });
@@ -55,10 +64,10 @@ export function AmountStep({
   return (
     <div>
       <h2 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
-        Convert KES to BTC
+        Convert {sourceAsset} to {targetAsset}
       </h2>
       <p className="mt-1.5 text-sm text-white/50">
-        Enter the amount in Kenyan Shillings you want to convert.
+        Enter the amount in {sourceAsset} you want to convert.
       </p>
 
       <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.04] p-4">
@@ -67,9 +76,9 @@ export function AmountStep({
         </p>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
-            <AssetIcon symbol="KES" size={20} />
+            <AssetIcon symbol={sourceAsset} size={20} />
             <span className="font-mono text-sm font-semibold text-white">
-              KES
+              {sourceAsset}
             </span>
           </div>
           <input
@@ -93,13 +102,13 @@ export function AmountStep({
         </p>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
-            <AssetIcon symbol="BTC" size={20} />
+            <AssetIcon symbol={targetAsset} size={20} />
             <span className="font-mono text-sm font-semibold text-white">
-              BTC
+              {targetAsset}
             </span>
           </div>
           <div className="w-full min-w-0 text-right font-mono text-2xl font-semibold tracking-tight text-white">
-            {previewBtc || <span className="text-white/20">0.00000000</span>}
+            {previewDest || <span className="text-white/20">{isCryptoTarget ? '0.00000000' : '0.00'}</span>}
           </div>
         </div>
       </div>
@@ -109,12 +118,14 @@ export function AmountStep({
         <div className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-white/6 bg-white/[0.02] px-3 py-2">
           <RefreshCw size={10} className="text-white/25" />
           <span className="font-mono text-[11px] text-white/40">
-            1 BTC ≈ {Math.round(1 / rate).toLocaleString('en-US')} KES
+            {rate < 0.01
+              ? `1 ${targetAsset} ≈ ${Math.round(1 / rate).toLocaleString('en-US')} ${sourceAsset}`
+              : `1 ${sourceAsset} ≈ ${rate.toLocaleString('en-US', { maximumFractionDigits: 2 })} ${targetAsset}`}
           </span>
         </div>
       )}
       <p className="mt-2 text-center text-[11px] text-white/30">
-        Guest limit: KES 100 – 100,000 per transaction
+        Guest limit: {sourceAsset} 100 – 100,000 per transaction
       </p>
 
       {error && (

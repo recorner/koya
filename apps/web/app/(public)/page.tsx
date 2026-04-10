@@ -1,6 +1,6 @@
-import { getPageBySlug } from '@/lib/directus';
-import type { PageSection } from '@/lib/directus';
-import { SectionRenderer } from '@/lib/directus/section-renderer';
+import { getPageBySlug } from '@/lib/cms';
+import type { PageSection } from '@/lib/cms';
+import { SectionRenderer } from '@/lib/cms/section-renderer';
 import { MarketRibbon } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
 import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
@@ -11,19 +11,23 @@ import { SecuritySection } from '@/components/marketing/security-section';
 import { CardsSection } from '@/components/marketing/cards-section';
 import { GlobalFinanceSection } from '@/components/marketing/global-finance-section';
 import { FinalCTA } from '@/components/marketing/final-cta';
+import { fetchRibbonRates } from '@/lib/api/rates';
 
 /** Revalidate homepage every 60 seconds for near-instant CMS updates. */
 export const revalidate = 60;
 
 export default async function LandingPage() {
-  const page = await getPageBySlug('/');
+  const [page, initialRates] = await Promise.all([
+    getPageBySlug('/'),
+    fetchRibbonRates(),
+  ]);
   const sections = page?.sections as PageSection[] | undefined;
 
-  // CMS-driven: render sections from Directus in the order defined there
+  // CMS-driven: render sections in the order defined in content
   if (sections?.length) {
     return (
       <main className="overflow-x-hidden">
-        <SectionRenderer sections={sections} />
+        <SectionRenderer sections={sections} initialRates={initialRates} />
       </main>
     );
   }
@@ -31,7 +35,7 @@ export default async function LandingPage() {
   // Fallback: hardcoded layout when CMS is unavailable or page not configured
   return (
     <main className="overflow-x-hidden">
-      <MarketRibbon />
+      <MarketRibbon initialRates={initialRates} />
       <HeroSection />
       <section className="relative py-12 md:py-16">
         <div className="mx-auto max-w-7xl px-6">

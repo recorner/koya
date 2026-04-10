@@ -4,26 +4,15 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { KoyaMark } from '@/components/marketing/koya-mark';
 import { ArrowUpRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { GlowPulse } from '@/components/marketing/motion-wrapper';
 
 export function FinalCTA() {
   return (
     <section className="relative overflow-hidden bg-[linear-gradient(180deg,#070707_0%,#050505_100%)] py-24 md:py-32">
-      {/* ambient background */}
+      {/* ambient background — breathing */}
       <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(212,175,55,0.18) 0%, rgba(212,175,55,0.06) 42%, transparent 72%)',
-          }}
-        />
-        <div
-          className="absolute right-[8%] bottom-[10%] h-[220px] w-[220px] rounded-full opacity-20 blur-3xl"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(0,229,255,0.12) 0%, transparent 72%)',
-          }}
-        />
+        <GlowPulse className="left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2" />
+        <GlowPulse className="right-[8%] bottom-[10%] h-[220px] w-[220px]" color="rgba(0,229,255,0.10)" />
       </div>
 
       <motion.div

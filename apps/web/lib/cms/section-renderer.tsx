@@ -9,8 +9,8 @@
  * This means the premium UI is NEVER degraded — CMS just overrides text content.
  */
 
-import type { PageSection } from '@/lib/directus/types';
-import { MarketRibbon } from '@/components/marketing/market-ribbon';
+import type { PageSection } from '@/lib/cms/types';
+import { MarketRibbon, type RibbonRate } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
 import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
 import { TrustStrip } from '@/components/marketing/trust-strip';
@@ -30,32 +30,41 @@ import { CmsCta } from '@/components/marketing/cms/cms-cta';
  * Components that don't accept CMS props map directly to existing components.
  * Components that CAN be driven by CMS content use lightweight wrappers.
  */
-const sectionRegistry: Record<
+function buildRegistry(initialRates?: RibbonRate[]): Record<
   string,
   React.ComponentType<{ section: PageSection }>
-> = {
-  // These render the original components as-is (CMS only controls ordering)
-  market_ribbon: () => <MarketRibbon />,
-  hero: () => <HeroSection />,
-  stats: () => <TrustStrip />,
-  feature_grid: () => <ProductPillars />,
-  how_it_works: () => <HowItWorks />,
-  security: () => <SecuritySection />,
-  cards: () => <CardsSection />,
-  global_finance: () => <GlobalFinanceSection />,
-  final_cta: () => <FinalCTA />,
+> {
+  return {
+    // These render the original components as-is (CMS only controls ordering)
+    market_ribbon: () => <MarketRibbon initialRates={initialRates} />,
+    hero: () => <HeroSection />,
+    stats: () => <TrustStrip />,
+    feature_grid: () => <ProductPillars />,
+    how_it_works: () => <HowItWorks />,
+    security: () => <SecuritySection />,
+    cards: () => <CardsSection />,
+    global_finance: () => <GlobalFinanceSection />,
+    final_cta: () => <FinalCTA />,
 
-  // These have CMS-driven wrappers for editable content
-  swap_widget: CmsSwapSection,
-  rich_text: CmsRichText,
-  cta: CmsCta,
-};
+    // These have CMS-driven wrappers for editable content
+    swap_widget: CmsSwapSection,
+    rich_text: CmsRichText,
+    cta: CmsCta,
+  };
+}
 
-export function SectionRenderer({ sections }: { sections: PageSection[] }) {
+export function SectionRenderer({
+  sections,
+  initialRates,
+}: {
+  sections: PageSection[];
+  initialRates?: RibbonRate[];
+}) {
+  const registry = buildRegistry(initialRates);
   return (
     <>
       {sections.map((section) => {
-        const Component = sectionRegistry[section.section_type];
+        const Component = registry[section.section_type];
         if (!Component) {
           if (process.env.NODE_ENV === 'development') {
             console.warn(

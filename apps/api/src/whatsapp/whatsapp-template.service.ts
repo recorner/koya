@@ -474,7 +474,7 @@ export class WhatsAppTemplateService {
       variables: this.toStringVariables(tokens),
       interactive: {
         templateKey: key,
-        directusItemId: template?.id ?? null,
+        cmsItemId: template?.id ?? null,
         bodyTemplate,
         buttons,
         contentSid: template?.twilioContentSid ?? null,

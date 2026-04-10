@@ -1,4 +1,4 @@
-import type { PageSection } from '@/lib/directus/types';
+import type { PageSection } from '@/lib/cms/types';
 import { SectionShell } from '@/components/marketing/section-shell';
 
 /**

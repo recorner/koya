@@ -1,3 +1,110 @@
+# Task: Replace Directus CMS with TinaCMS
+
+## Plan
+
+### Phase 1: Remove Directus
+- [x] Study codebase — all Directus touchpoints identified
+- [ ] Remove `@directus/sdk` from root `package.json`
+
+### Phase 2: Install & Configure TinaCMS
+- [ ] Install TinaCMS packages (`tinacms`, `@tinacms/cli`)
+- [ ] Create `tina/config.ts` in `apps/web/` with all collections
+- [ ] Create content directory structure: `apps/web/content/`
+
+### Phase 3: Create CMS Query Layer
+- [ ] Create `apps/web/lib/cms/types.ts`
+- [ ] Create `apps/web/lib/cms/queries.ts`
+- [ ] Create `apps/web/lib/cms/section-renderer.tsx`
+- [ ] Create `apps/web/lib/cms/index.ts`
+
+### Phase 4: Create Seed Content
+- [ ] Global settings, SEO, nav, footer JSON
+- [ ] Homepage with sections
+- [ ] Legal pages, FAQ, WhatsApp preview links
+
+### Phase 5: Update Consumers
+- [ ] Update all web page imports from `@/lib/directus` → `@/lib/cms`
+- [ ] Update CMS wrapper components
+- [ ] Remove Directus from API services (WhatsApp, Twilio)
+
+### Phase 6: Config & Env Updates
+- [ ] Update `next.config.js`, `.env.example`, environment-matrix
+
+### Phase 7: Cleanup & Docs
+- [ ] Delete `apps/web/lib/directus/` directory
+- [ ] Update README, create `docs/progress/step-23.md`
+
+### Phase 8: Verify
+- [ ] Build passes (`pnpm nx build web`)
+- [ ] No Directus references remain
+
+## Review
+
+- [x] `pnpm nx build web`
+
+---
+
+# Frontend Depth Sweep — Sitri Step 27
+
+> Raise the landing page from flat/generic to premium fintech quality.
+
+- [x] Audit hero, ribbon, buttons, iconography, and mobile breakpoints
+- [x] Rebuild hero composition for depth, alignment, and mobile stability
+- [x] Upgrade shared button styling and authentic asset symbols
+- [x] Redesign market ribbon motion and remove cheap visual cues in How It Works
+- [x] Verify web build and document the sweep in docs/progress
+
+## Review
+
+- [x] `pnpm nx build web`
+
+---
+
+# Frontend Polish Sweep — Sitri Step 26
+
+> Fix broken components, upgrade motion system, premium scroll flow
+
+- [x] Fix SSE reconnection with exponential backoff (ribbon freeze)
+- [x] Fix hero BTC/KES rate → DOM-patched ref (zero re-renders)
+- [x] Add swap widget connecting/loading state
+- [x] Redesign TrustStrip as compact credibility bar
+- [x] Upgrade motion system — richer entrance variants, floating FX
+- [x] Polish section differentiation
+- [x] Build + verify
+
+---
+
+# Sitri Agent — Prompt Suite And Defaults
+
+> Add prompt entry points for Sitri and tighten how it defaults when requests are ambiguous.
+
+- [x] Create a dedicated frontend audit prompt in `.github/prompts/`
+- [x] Create a dedicated PostHog planning prompt in `.github/prompts/`
+- [x] Tighten Sitri's default mode selection for ambiguous requests
+- [x] Document the refinement in `docs/progress/step-25.md`
+
+---
+
+# Sitri Agent — Output Contract Refinement
+
+> Tighten Sitri so audits and implementation plans follow a repeatable, explicit structure.
+
+- [x] Define stricter output modes for audits, proposals, implementation, library decisions, and instrumentation
+- [x] Update `.github/agents/sitri.agent.md` with a required output contract
+- [x] Document the refinement in `docs/progress/step-24.md`
+
+---
+
+# Sitri Agent — UX/UI Head Draft
+
+> Create a workspace agent named `sitri` from the attached UX/UI Head charter.
+
+- [x] Review agent customization guidance, existing Koya agents, and the attached charter
+- [x] Draft `.github/agents/sitri.agent.md` with focused frontmatter, tool scope, and operating rules
+- [x] Document the change in `docs/progress/step-23.md`
+
+---
+
 # Euclide v1.1.001 — Web + API Delivery Pattern (COMPLETE)
 
 > Finalize the Koya release pattern for Euclide v1.1.001.

@@ -1,6 +1,5 @@
-// ─── Directus CMS Types for Koya Marketing Site ────────────────────────────
-// These types mirror the Directus collections created for the public site.
-// Only marketing/public content — no core banking types here.
+// ─── CMS Types for Koya Marketing Site ─────────────────────────────────────
+// Mirrors the previous Directus types. All public/marketing content only.
 
 export type SectionType =
   | 'hero'
@@ -118,18 +117,4 @@ export interface WhatsAppPreviewLink {
   og_image: string | null;
   url_path: string;
   is_active: boolean;
-}
-
-/** Directus SDK schema type map. */
-export interface CmsSchema {
-  global_settings: GlobalSettings[];
-  navigation: NavItem[];
-  footer_columns: FooterColumn[];
-  footer_links: FooterLink[];
-  pages: Page[];
-  page_sections: PageSection[];
-  faq_items: FaqItem[];
-  legal_pages: LegalPage[];
-  seo_defaults: SeoDefaults[];
-  whatsapp_preview_links: WhatsAppPreviewLink[];
 }

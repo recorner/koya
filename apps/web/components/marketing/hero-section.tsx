@@ -1,13 +1,23 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ArrowRightLeft, ChevronRight, CreditCard, ShieldCheck, Sparkles, TrendingUp, Wallet } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ArrowRightLeft,
+  ChevronRight,
+  CreditCard,
+  Wallet,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
-import { KoyaMark } from '@/components/marketing/koya-mark';
-import { BtcIcon, UsdcIcon, KesIcon, UsdIcon } from '@/components/marketing/asset-icons';
+import { BtcIcon, KesIcon, UsdcIcon, UsdIcon } from '@/components/marketing/asset-icons';
+import { KoyaMark, KoyaWordmark } from '@/components/marketing/koya-mark';
+import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
 import { Button } from '@/components/ui/button';
-import { useLiveRate } from '@/lib/hooks/use-realtime-rates';
 
+const ease = [0.22, 1, 0.36, 1] as const;
+
+/* ─── Mastercard logo ──────────────────────────────────────────── */
 function MastercardLogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 48 30" fill="none" className={className}>
@@ -22,372 +32,269 @@ function MastercardLogo({ className }: { className?: string }) {
   );
 }
 
-const currencies = ['KES', 'USD', 'BTC', 'USDC', 'USDT'];
-
-const floatSoft = {
-  animate: {
-    y: [0, -8, 0],
-    rotate: [0, 0.6, 0],
-    transition: {
-      duration: 8,
-      repeat: Infinity,
-      ease: 'easeInOut' as const,
-    },
-  },
-};
-
-function GlassCard({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
+/* ─── Premium card visual — proper credit card ratio (85.6:53.98 ≈ 1.586) ── */
+function PremiumCardSurface() {
   return (
     <div
       className={[
-        'rounded-[28px] border border-white/10 bg-white/[0.06] backdrop-blur-md shadow-[0_20px_80px_rgba(0,0,0,0.45)]',
-        'before:pointer-events-none before:absolute before:inset-0 before:rounded-[28px]',
-        'before:border before:border-white/5 before:[mask-image:linear-gradient(to_bottom,white,transparent)]',
-        className ?? '',
+        'relative overflow-hidden rounded-2xl sm:rounded-[28px] border border-white/12',
+        'bg-[linear-gradient(145deg,#0C0D11_0%,#21242B_18%,#50545E_45%,#1A1D23_68%,#090A0E_100%)]',
+        'shadow-[0_30px_96px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.14)]',
+        'aspect-[1.586/1] w-full',
       ].join(' ')}
     >
-      {children}
+      {/* Radial glow accents */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(240,208,96,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.08),transparent_28%)]" />
+
+      {/* Holographic shimmer */}
+      <motion.div
+        className="pointer-events-none absolute inset-y-0 left-[-45%] w-[42%] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent)] mix-blend-screen"
+        animate={{ x: ['0%', '280%'] }}
+        transition={{ duration: 4.6, repeat: Infinity, repeatDelay: 1.6, ease: 'easeInOut' }}
+      />
+
+      {/* Holographic foil */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.06] mix-blend-color-dodge"
+        style={{
+          backgroundImage: 'linear-gradient(135deg, #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff0000)',
+          backgroundSize: '300% 300%',
+          animation: 'holo-shift 8s ease-in-out infinite',
+        }}
+      />
+
+      {/* Top gold line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.42),transparent)]" />
+
+      {/* Card content — positioned absolutely to fill the aspect-ratio box */}
+      <div className="absolute inset-0 flex flex-col justify-between p-5 sm:p-6">
+        {/* Top row: logo + badge */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <KoyaWordmark markSize={22} textSize="text-base" id="hero-card" />
+          </div>
+          <span className="rounded-full border border-white/12 bg-white/[0.06] px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] text-white/45">
+            Premier
+          </span>
+        </div>
+
+        {/* Middle: chip + Mastercard */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="h-[26px] w-[36px] rounded-[5px] bg-[linear-gradient(145deg,#C9A030_0%,#D4AF37_42%,#8B6914_100%)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.3),0_2px_8px_rgba(0,0,0,0.35)]">
+            <div className="mx-auto mt-[6px] h-[10px] w-[18px] rounded-[2px] border border-[rgba(107,79,0,0.55)] bg-[linear-gradient(180deg,rgba(240,208,96,0.3),rgba(139,105,20,0.24))]" />
+          </div>
+          <MastercardLogo className="h-6 w-auto opacity-90" />
+        </div>
+
+        {/* Card number */}
+        <p className="font-mono text-lg tracking-[0.28em] text-white/80 sm:text-xl sm:tracking-[0.3em]">
+          •••• •••• •••• 4821
+        </p>
+
+        {/* Bottom: currencies + expiry */}
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[8px] uppercase tracking-[0.14em] text-white/25">Spend from</p>
+            <div className="mt-1 flex items-center gap-1.5">
+              <KesIcon size={16} />
+              <UsdIcon size={16} />
+              <BtcIcon size={16} />
+              <UsdcIcon size={16} />
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-[8px] uppercase tracking-[0.14em] text-white/25">Expiry</p>
+            <p className="mt-0.5 font-mono text-xs text-white/70">09/29</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MetricRow({
-  label,
-  value,
-  delta,
-}: {
-  label: string;
-  value: string;
-  delta?: string;
-}) {
+/* ─── Desktop hero visual — card with hover-to-swap ────────────── */
+function DesktopHeroVisual() {
+  const [showSwap, setShowSwap] = useState(false);
+  const [locked, setLocked] = useState(false);
+
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3">
-      <div className="flex items-center gap-3">
-        <div className="h-2.5 w-2.5 rounded-full bg-[rgba(212,175,55,0.95)] shadow-[0_0_18px_rgba(212,175,55,0.55)]" />
-        <span className="text-sm font-medium text-white/72">{label}</span>
-      </div>
+    <div className="relative hidden lg:block">
+      {/* Background glow */}
+      <div className="pointer-events-none absolute left-[8%] top-[10%] h-[280px] w-[280px] rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.12),transparent_68%)] blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[8%] right-[10%] h-[220px] w-[220px] rounded-full bg-[radial-gradient(circle,rgba(0,229,255,0.07),transparent_72%)] blur-3xl" />
 
-      <div className="text-right">
-        <div className="text-sm font-semibold tracking-wide text-white">{value}</div>
-        {delta ? <div className="text-[11px] text-emerald-300/80">{delta}</div> : null}
+      <div
+        className="relative"
+        onMouseEnter={() => { if (!locked) setShowSwap(true); }}
+        onMouseLeave={() => { if (!locked) setShowSwap(false); }}
+      >
+        <AnimatePresence mode="wait">
+          {showSwap ? (
+            <motion.div
+              key="swap"
+              initial={{ opacity: 0, rotateY: 90 }}
+              animate={{ opacity: 1, rotateY: 0 }}
+              exit={{ opacity: 0, rotateY: -90 }}
+              transition={{ duration: 0.38, ease }}
+              style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
+              onClickCapture={() => setLocked(true)}
+              onFocusCapture={() => setLocked(true)}
+            >
+              <GuestSwapWidget />
+              {locked && (
+                <motion.button
+                  type="button"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocked(false);
+                    setShowSwap(false);
+                  }}
+                  className="mx-auto mt-2 flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-white/50 transition-colors hover:bg-white/[0.08] hover:text-white/80"
+                >
+                  <X className="h-3 w-3" />
+                  Back to card
+                </motion.button>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="card"
+              initial={{ opacity: 0, rotateY: -90 }}
+              animate={{ opacity: 1, rotateY: 0 }}
+              exit={{ opacity: 0, rotateY: 90 }}
+              transition={{ duration: 0.38, ease }}
+              style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
+              className="mx-auto max-w-[440px]"
+            >
+              <PremiumCardSurface />
+              <p className="mt-2 text-center text-[10px] uppercase tracking-[0.14em] text-white/26">
+                Hover to try live conversion
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-export function HeroSection() {
-  const btcKesRate = useLiveRate('BTC', 'KES');
-  const btcKesDisplay = btcKesRate
-    ? Math.round(btcKesRate).toLocaleString('en-US')
-    : '—';
+/* ─── Mobile hero visual — card only (swap widget lives below) ── */
+function MobileHeroVisual() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.65, delay: 0.2, ease }}
+      className="mt-6 lg:hidden"
+    >
+      <div className="mx-auto max-w-[360px]">
+        <PremiumCardSurface />
+      </div>
+    </motion.div>
+  );
+}
 
+/* ─── Value props ──────────────────────────────────────────────── */
+const valueProps = [
+  { icon: Wallet, title: 'M-Pesa funding', detail: 'Deposit locally, hold globally.' },
+  { icon: ArrowRightLeft, title: 'Instant conversion', detail: 'KES to BTC at live rates.' },
+  { icon: CreditCard, title: 'Premium cards', detail: 'Spend from any wallet balance.' },
+] as const;
+
+/* ─── Main hero export ─────────────────────────────────────────── */
+export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.10),transparent_28%),radial-gradient(circle_at_80%_70%,rgba(0,229,255,0.08),transparent_20%),linear-gradient(180deg,#050505_0%,#080808_45%,#0A0A0A_100%)]" />
+      <div className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_top,rgba(212,175,55,0.14),transparent_26%),radial-gradient(circle_at_78%_22%,rgba(0,229,255,0.08),transparent_18%),linear-gradient(180deg,#050506_0%,#090B12_42%,#050506_100%)]" />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(135deg,rgba(255,255,255,0.02),transparent_32%,rgba(255,255,255,0.015)_68%,transparent_100%)]" />
+      <div className="absolute inset-0 -z-10 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:96px_96px]" />
 
-      {/* Noise / grid wash */}
-      <div className="absolute inset-0 -z-10 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:72px_72px]" />
-
-      {/* Main gold glow */}
-      <div
-        className="pointer-events-none absolute left-1/2 top-[22%] -z-10 h-[720px] w-[720px] -translate-x-1/2 rounded-full opacity-30 blur-3xl"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(212,175,55,0.22) 0%, rgba(212,175,55,0.07) 42%, transparent 72%)',
-        }}
-      />
-
-      {/* Lower cyan glow */}
-      <div
-        className="pointer-events-none absolute right-[8%] bottom-[10%] -z-10 h-[340px] w-[340px] rounded-full opacity-20 blur-3xl"
-        style={{
-          background:
-            'radial-gradient(circle, rgba(0,229,255,0.18) 0%, rgba(0,229,255,0.04) 46%, transparent 72%)',
-        }}
-      />
-
-      <div
-        className="mx-auto grid min-h-[calc(100dvh-7rem)] max-w-7xl grid-cols-1 items-start gap-8 px-6 py-10 md:gap-14 md:px-8 md:py-16 lg:grid-cols-12 lg:gap-10 lg:px-10 lg:pt-24 xl:px-12"
-      >
-        {/* LEFT SIDE */}
-        <div className="lg:col-span-5">
-          <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 backdrop-blur-sm">
-            <KoyaMark size={20} id="hero-badge" />
-            <span className="text-xs font-medium uppercase tracking-[0.18em] text-white/70">
-              Built in Kenya. Works globally.
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 pt-4 pb-12 sm:px-6 md:px-8 md:pt-6 md:pb-16 lg:grid-cols-[minmax(0,1fr)_minmax(380px,1fr)] lg:items-center lg:gap-10 lg:px-10 lg:pt-8 lg:pb-20 xl:px-12">
+        {/* Left — copy */}
+        <div className="max-w-[560px]">
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease }}
+            className="inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.05] px-3.5 py-1.5 backdrop-blur-md"
+          >
+            <KoyaMark size={18} id="hero-badge" />
+            <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/65">
+              Multi-currency account
             </span>
-          </div>
+          </motion.div>
 
-          <h1
-            className="max-w-2xl font-display text-4xl font-extrabold leading-[1.02] tracking-tight text-white sm:text-5xl md:text-6xl xl:text-7xl"
+          <motion.h1
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.04, ease }}
+            className="mt-4 font-display text-[2rem] font-extrabold leading-[1.05] tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[3.4rem] xl:text-[4rem]"
           >
-            Your money,
-            <span className="block text-gold">
-              every currency,
+            Fund via M-Pesa.{' '}
+            <span className="text-transparent [background-image:linear-gradient(180deg,#F3D971_0%,#D4AF37_58%,#8B6914_100%)] bg-clip-text">
+              Convert, hold, and spend globally.
             </span>
-            one platform.
-          </h1>
+          </motion.h1>
 
-          <p
-            className="mt-6 max-w-xl text-base leading-7 text-white/64 md:text-lg"
+          <motion.p
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.1, ease }}
+            className="mt-4 max-w-lg text-sm leading-6 text-white/54 sm:text-base sm:leading-7 md:text-lg md:leading-8"
           >
-            Deposit via M-Pesa. Convert to dollars. Hold stablecoins. Buy Bitcoin.
-            Invest globally. Spend with a premium card. All from one Koya account.
-          </p>
+            Multi-currency wallets, live Bitcoin conversion, and premium cards — all from one Koya account.
+          </motion.p>
 
-          <div
-            className="mt-8 flex flex-wrap items-center gap-3"
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.16, ease }}
+            className="mt-5 flex flex-wrap items-center gap-3"
           >
-            <Button size="lg" className="group" asChild>
+            <Button size="lg" asChild>
               <Link href="/convert">
-                Convert KES to BTC
-                <ChevronRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+                Start a conversion
+                <ChevronRight className="h-4 w-4" />
               </Link>
             </Button>
-
-            <Button variant="outline" size="lg" className="border-white/12 bg-white/[0.02] text-white hover:bg-white/[0.06]">
-              See How It Works
+            <Button variant="outline" size="lg" asChild>
+              <Link href="#how-it-works">See how it works</Link>
             </Button>
-          </div>
+          </motion.div>
 
-          <div
-            className="mt-8 flex flex-wrap items-center gap-2"
+          {/* Value props */}
+          <motion.div
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.22, ease }}
+            className="mt-6 flex flex-wrap gap-5"
           >
-            {currencies.map((c) => (
-              <span
-                key={c}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[11px] font-medium tracking-[0.14em] text-white/62 uppercase"
-              >
-                {c}
-              </span>
-            ))}
-          </div>
+            {valueProps.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.title} className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-gold/18 bg-gold/10 text-gold">
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white/84">{item.title}</p>
+                    <p className="text-[11px] text-white/40">{item.detail}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
 
-          <div
-            className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
-          >
-            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
-              <span className="text-xs text-white/52">Kenya-based</span>
-            </div>
-
-            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
-              <span className="text-xs text-white/52">Regulated</span>
-            </div>
-
-            <div className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-[rgba(212,175,55,0.95)]" />
-              <span className="text-xs text-white/52">Your funds, your control</span>
-            </div>
-          </div>
+          {/* Mobile card only — no swap here */}
+          <MobileHeroVisual />
         </div>
 
-        {/* RIGHT SIDE */}
-        <div
-          className="relative lg:col-span-7"
-        >
-          <div className="relative mx-auto h-[620px] w-full max-w-[760px]">
-            {/* ambient ring */}
-            <div className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(212,175,55,0.12)] opacity-70" />
-            <div className="absolute left-1/2 top-1/2 h-[540px] w-[540px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5 opacity-40" />
-
-            {/* Main dashboard card */}
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute left-1/2 top-1/2 z-20 w-[92%] max-w-[560px] -translate-x-1/2 -translate-y-1/2"
-            >
-              <div className="relative rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.04))] p-5 shadow-[0_30px_120px_rgba(0,0,0,0.58)] backdrop-blur-md">
-                <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(212,175,55,0.10),transparent_25%)]" />
-
-                <div className="relative">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.18em] text-white/45">
-                        Total portfolio
-                      </div>
-                      <div className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">
-                        $24,860.42
-                      </div>
-                      <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300">
-                        <TrendingUp className="h-3.5 w-3.5" />
-                        +4.82% in the last 24h
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2 text-right">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-white/42">
-                        Status
-                      </div>
-                      <div className="mt-1 flex items-center justify-end gap-2 text-sm font-medium text-white/78">
-                        <span className="h-2 w-2 rounded-full bg-[rgba(212,175,55,0.95)] shadow-[0_0_18px_rgba(212,175,55,0.55)]" />
-                        Settlement synced
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 space-y-3">
-                    <MetricRow label="KES Wallet" value="KES 124,560" delta="+1.8%" />
-                    <MetricRow label="USD Wallet" value="$820.10" delta="+0.6%" />
-                    <MetricRow label="BTC Wallet" value="0.0184 BTC" delta="+3.2%" />
-                    <MetricRow label="USDC Wallet" value="2,400 USDC" delta="+0.1%" />
-                  </div>
-
-                  <div className="mt-5 grid grid-cols-4 gap-2">
-                    {[
-                      { label: 'Convert', icon: ArrowRightLeft },
-                      { label: 'Deposit', icon: Wallet },
-                      { label: 'Card', icon: CreditCard },
-                      { label: 'Rewards', icon: Sparkles },
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.label}
-                          className="rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-3 text-left transition-all duration-300 hover:bg-white/[0.07]"
-                        >
-                          <Icon className="mb-2 h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                          <div className="text-xs font-medium text-white/74">{item.label}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Conversion card */}
-            <motion.div
-              variants={floatSoft}
-              animate="animate"
-              className="absolute left-[2%] top-[10%] z-30 hidden w-[260px] md:block"
-            >
-              <GlassCard className="relative p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.18em] text-white/42">
-                      Live conversion
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-white">KES → BTC</div>
-                  </div>
-                  <div className="rounded-full border border-cyan-400/15 bg-cyan-400/10 px-2 py-1 text-[10px] font-medium text-cyan-300">
-                    Quote locked
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-white/38">From</div>
-                    <div className="mt-1 flex items-center justify-between text-sm text-white">
-                      <span>KES</span>
-                      <span>35,000</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-center">
-                    <div className="rounded-full border border-white/8 bg-white/[0.04] p-2">
-                      <ArrowRightLeft className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.14em] text-white/38">To</div>
-                    <div className="mt-1 flex items-center justify-between text-sm text-white">
-                      <span>BTC</span>
-                      <span>0.00482</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between text-[11px] text-white/48">
-                  <span>Rate 1 BTC = KES {btcKesDisplay}</span>
-                  <span>27s</span>
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            {/* Premium card */}
-            <motion.div
-              animate={{
-                y: [0, -10, 0],
-                rotate: [-5, -3.8, -5],
-              }}
-              transition={{
-                duration: 9,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              className="absolute right-[1%] top-[14%] z-30 w-[290px]"
-            >
-              <div className="relative overflow-hidden rounded-[28px] border border-[rgba(212,175,55,0.24)] bg-[linear-gradient(135deg,#0A0A0A_0%,#111111_45%,#171717_100%)] p-5 shadow-[0_24px_90px_rgba(0,0,0,0.55)]">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(240,208,96,0.20),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(212,175,55,0.18),transparent_30%)]" />
-                <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.08)_48%,transparent_74%)]" />
-
-                <div className="relative flex h-[168px] flex-col justify-between">
-                  <div className="flex items-start justify-between">
-                    <KoyaMark size={20} id="hero-card" />
-                    <div className="rounded-full border border-white/10 bg-white/[0.05] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-white/55">
-                      Virtual
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="font-mono text-lg tracking-[0.28em] text-white/88">
-                      •••• •••• •••• 4021
-                    </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-white/42">
-                          Funded by
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <KesIcon size={20} />
-                          <UsdIcon size={20} />
-                          <BtcIcon size={20} />
-                          <UsdcIcon size={20} />
-                        </div>
-                      </div>
-
-                      <MastercardLogo className="h-8 w-auto" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Activity chip */}
-            <motion.div
-              animate={{ y: [0, -6, 0] }}
-              transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
-              className="absolute bottom-[12%] left-[6%] z-30 hidden w-[220px] md:block"
-            >
-              <GlassCard className="relative p-4">
-                <div className="text-[10px] uppercase tracking-[0.18em] text-white/42">
-                  Activity
-                </div>
-                <div className="mt-2 text-sm font-medium text-white/86">
-                  M-Pesa deposit successful
-                </div>
-                <div className="mt-1 text-xs text-white/48">
-                  KES 18,500 settled to primary wallet
-                </div>
-                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/6">
-                  <div className="h-full w-[78%] rounded-full bg-[linear-gradient(90deg,#D4AF37_0%,#F0D060_100%)]" />
-                </div>
-              </GlassCard>
-            </motion.div>
-
-            {/* Yield / markets chip — removed to reduce visual noise */}
-          </div>
-        </div>
+        {/* Right — visual */}
+        <DesktopHeroVisual />
       </div>
     </section>
   );

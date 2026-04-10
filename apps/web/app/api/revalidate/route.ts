@@ -2,14 +2,12 @@ import { revalidatePath } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
- * On-demand revalidation endpoint for Directus CMS webhooks.
+ * On-demand revalidation endpoint for CMS content changes.
  *
- * When content changes in Directus, a webhook POSTs here with the secret.
+ * When content changes, a webhook POSTs here with the secret.
  * This purges the ISR cache so the next request gets fresh data instantly.
  *
- * Setup: Create a Directus Flow with trigger "Event Hook" on
- * items.create / items.update / items.delete for all CMS collections,
- * with a "Webhook / Request URL" operation pointing to:
+ * Setup: Configure a webhook pointing to:
  *   POST https://koyabank.com/api/revalidate
  *   Body: { "secret": "<REVALIDATION_SECRET>" }
  */

@@ -80,6 +80,34 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+/* ── Market ribbon — pure CSS compositor-thread scroll ─────────── */
+@keyframes ribbon-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ── Holographic foil shift — card shimmer ─────────────────────── */
+@keyframes holo-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-ribbon-scroll {
+  animation: ribbon-scroll var(--ribbon-duration, 40s) linear infinite;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Pause when user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-ribbon-scroll {
+    animation: none;
+    transform: none;
+  }
+}
+
 /* ─── CSS Custom Properties (for non-Tailwind usage) ──────────────── */
 
 :root {

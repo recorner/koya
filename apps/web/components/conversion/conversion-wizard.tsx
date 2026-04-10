@@ -54,6 +54,8 @@ const DEFAULT_STATE: WizardState = {
 export function ConversionWizard() {
   const searchParams = useSearchParams();
   const initialAmount = searchParams.get('amount') ?? undefined;
+  const initialFrom = searchParams.get('from') ?? 'KES';
+  const initialTo = searchParams.get('to') ?? 'BTC';
   const trackingRef = searchParams.get('ref') ?? undefined;
 
   const [state, setState] = useState<WizardState>(DEFAULT_STATE);
@@ -119,10 +121,7 @@ export function ConversionWizard() {
 
   return (
     <div className="mx-auto w-full max-w-[520px]">
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-3xl sm:p-7">
-        {/* ambient glow */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:rounded-3xl sm:p-7">
 
         {/* Progress indicator */}
         <StepProgress
@@ -154,6 +153,8 @@ export function ConversionWizard() {
             {state.step === 'amount' && (
               <AmountStep
                 initialAmount={initialAmount}
+                initialFrom={initialFrom}
+                initialTo={initialTo}
                 onQuoteReady={(quote) =>
                   goForward((s) => ({ ...s, step: 'quote', quote }))
                 }
@@ -290,7 +291,7 @@ function StepProgress({
               }`}
             />
             <span
-              className={`text-[9px] font-semibold uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-300 ${
+              className={`hidden text-[9px] font-semibold uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-300 sm:block ${
                 i <= currentIndex ? 'text-white/70' : 'text-white/25'
               }`}
             >
@@ -299,6 +300,10 @@ function StepProgress({
           </div>
         ))}
       </div>
+      {/* Mobile: show current step label below the bar */}
+      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:hidden">
+        Step {currentIndex + 1} of {STEPS.length} — {STEP_LABELS[currentStep]}
+      </p>
     </div>
   );
 }
@@ -437,9 +442,7 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
 
   return (
     <div className="mx-auto w-full max-w-[520px]">
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 shadow-[0_28px_100px_rgba(0,0,0,0.45)] backdrop-blur-md sm:rounded-3xl sm:p-7">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:rounded-3xl sm:p-7">
         {content()}
       </div>
     </div>

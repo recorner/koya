@@ -1,4 +1,4 @@
-import type { PageSection } from '@/lib/directus/types';
+import type { PageSection } from '@/lib/cms/types';
 import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
 
 /**

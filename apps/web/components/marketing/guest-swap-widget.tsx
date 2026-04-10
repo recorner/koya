@@ -331,9 +331,16 @@ export function GuestSwapWidget() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/36">
               Quote
             </p>
-            <p className="mt-0.5 font-mono text-xs text-white/62">
-              {rateDisplay || 'Enter an amount'}
-            </p>
+            {rateDisplay ? (
+              <p className="mt-0.5 font-mono text-xs text-white/62">
+                {rateDisplay}
+              </p>
+            ) : (
+              <p className="mt-0.5 flex items-center gap-2 text-xs text-white/40">
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-gold/60" />
+                Connecting to live rates…
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -357,8 +364,8 @@ export function GuestSwapWidget() {
           <Link
             href={
               hasAmount
-                ? `/convert?amount=${encodeURIComponent(sourceAmount)}`
-                : '/convert'
+                ? `/convert?amount=${encodeURIComponent(sourceAmount)}&from=${source.symbol}&to=${dest.symbol}`
+                : `/convert?from=${source.symbol}&to=${dest.symbol}`
             }
           >
             {hasAmount ? 'Convert Now — No Account Needed' : 'Start a Conversion'}

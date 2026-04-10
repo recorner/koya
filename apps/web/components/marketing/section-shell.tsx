@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const bgVariants = {
@@ -23,13 +24,22 @@ export function SectionShell({
   className?: string;
   noPadding?: boolean;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  });
+  // Subtle parallax — inner content drifts 20px over the scroll range
+  const y = useTransform(scrollYProgress, [0, 1], [20, -20]);
+
   return (
     <motion.section
+      ref={ref}
       id={id}
-      initial={{ opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
       viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, ease: 'easeOut' }}
+      transition={{ duration: 0.7, ease: 'easeOut' }}
       style={{ contentVisibility: 'auto', containIntrinsicSize: 'auto 600px' }}
       className={cn(
         bgVariants[bg],
@@ -37,9 +47,12 @@ export function SectionShell({
         className,
       )}
     >
-      <div className={cn('mx-auto max-w-7xl px-6', noPadding && 'px-0')}>
+      <motion.div
+        style={{ y }}
+        className={cn('mx-auto max-w-7xl px-6', noPadding && 'px-0')}
+      >
         {children}
-      </div>
+      </motion.div>
     </motion.section>
   );
 }

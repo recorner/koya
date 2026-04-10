@@ -1,62 +1,97 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { AssetIcon } from '@/components/marketing/asset-icons';
+import { AssetIcon, BtcIcon } from '@/components/marketing/asset-icons';
 import { TICKER_INSTRUMENTS } from '@/components/marketing/asset-metadata';
 import { useTickerUpdates } from '@/lib/hooks/use-realtime-rates';
 
-/** Pixels per second. */
-const SPEED = 35;
+const LOOP_DURATION = 30;
 
-function TickerItem({ pair, baseSymbol }: { pair: string; baseSymbol: string }) {
+/* ── Standard pair ticker item ─────────────────────────────────── */
+function TickerItem({
+  pair,
+  baseSymbol,
+  price,
+  change,
+  positive,
+}: {
+  pair: string;
+  baseSymbol: string;
+  price?: string;
+  change?: string;
+  positive?: boolean;
+}) {
   return (
-    <div className="flex shrink-0 items-center gap-3 px-5">
-      <AssetIcon symbol={baseSymbol} size={16} />
-      <span className="text-xs font-medium text-white-40">{pair}</span>
-      <span data-ticker-price={pair} className="font-mono text-xs font-medium text-white-80">—</span>
-      <span data-ticker-change={pair} className="font-mono text-[10px] font-semibold text-emerald" />
+    <div className="grid min-w-[240px] shrink-0 grid-cols-[22px_68px_1fr_56px] items-center gap-2.5 border-r border-white/6 px-4 py-1.5">
+      <AssetIcon symbol={baseSymbol} size={22} />
+      <span className="text-[10px] font-semibold tracking-[0.12em] whitespace-nowrap uppercase text-white/45">
+        {pair}
+      </span>
+      <span
+        data-ticker-price={pair}
+        className="min-w-[80px] text-right font-mono text-[13px] font-semibold tabular-nums text-white/80"
+      >
+        {price || '—'}
+      </span>
+      <span
+        data-ticker-change={pair}
+        className={cn(
+          'text-right font-mono text-[10px] font-semibold tabular-nums',
+          positive === false ? 'text-red' : 'text-emerald',
+        )}
+      >
+        {change || ''}
+      </span>
     </div>
   );
 }
 
-export function MarketRibbon() {
+/* ── Koya BTC buy/sell spread item ─────────────────────────────── */
+function KoyaBtcSpreadItem() {
+  return (
+    <div className="flex shrink-0 items-center gap-4 border-r border-white/6 px-5 py-1.5">
+      <BtcIcon size={22} />
+      <div className="flex items-center gap-3">
+        <div>
+          <p className="text-[8px] font-semibold uppercase tracking-[0.14em] text-emerald/70">Koya Buy</p>
+          <p
+            data-ticker-price="BTC / KES"
+            className="font-mono text-[13px] font-semibold tabular-nums text-white/80"
+          >
+            —
+          </p>
+        </div>
+        <div className="h-5 w-px bg-white/8" />
+        <div>
+          <p className="text-[8px] font-semibold uppercase tracking-[0.14em] text-gold/70">Koya Sell</p>
+          <p
+            data-koya-sell="BTC / KES"
+            className="font-mono text-[13px] font-semibold tabular-nums text-white/80"
+          >
+            —
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export interface RibbonRate {
+  pair: string;
+  price: string;
+  change: string;
+  positive: boolean;
+}
+
+export function MarketRibbon({ initialRates }: { initialRates?: RibbonRate[] }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const xRef = useRef(0);
-  const rafRef = useRef(0);
-  const prevRef = useRef(0);
-  const pausedRef = useRef(false);
-  const widthRef = useRef(0);
 
-  /* ── animation loop ──────────────────────────────────────────── */
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
+  const initialMap = new Map<string, RibbonRate>();
+  if (initialRates) {
+    for (const r of initialRates) initialMap.set(r.pair, r);
+  }
 
-    // Observe the first set to get its pixel width without forcing layout.
-    const firstSet = track.children[0] as HTMLElement;
-    const ro = new ResizeObserver(([entry]) => {
-      if (entry) widthRef.current = entry.contentRect.width;
-    });
-    ro.observe(firstSet);
-
-    const frame = (t: number) => {
-      if (prevRef.current && !pausedRef.current && widthRef.current > 0) {
-        const dt = Math.min((t - prevRef.current) / 1000, 0.1);
-        xRef.current += SPEED * dt;
-        if (xRef.current >= widthRef.current) xRef.current -= widthRef.current;
-        track.style.transform = `translate3d(${-xRef.current}px,0,0)`;
-      }
-      prevRef.current = t;
-      rafRef.current = requestAnimationFrame(frame);
-    };
-
-    rafRef.current = requestAnimationFrame(frame);
-    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
-  }, []);
-
-  /* ── price updates (DOM-only, no React re-render, no layout read) ─ */
   useTickerUpdates((tickers) => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -73,26 +108,50 @@ export function MarketRibbon() {
           );
         }
       });
+      // Update the Koya sell price (slightly lower than market for spread)
+      if (t.pair === 'BTC / KES' && t.price) {
+        el.querySelectorAll<HTMLSpanElement>('[data-koya-sell="BTC / KES"]').forEach((s) => {
+          const raw = parseFloat(t.price.replace(/,/g, ''));
+          if (raw > 0) {
+            const sell = (raw * 0.985).toLocaleString('en-US', { maximumFractionDigits: 0 });
+            if (s.textContent !== sell) s.textContent = sell;
+          }
+        });
+      }
     }
   });
 
   return (
     <div
       ref={wrapperRef}
-      className="relative z-40 bg-cell/80 backdrop-blur-sm overflow-hidden"
-      onMouseEnter={() => { pausedRef.current = true; }}
-      onMouseLeave={() => { pausedRef.current = false; }}
+      className="relative z-40 overflow-hidden border-b border-white/6 bg-[linear-gradient(180deg,rgba(10,10,12,0.94),rgba(6,6,8,0.98))] backdrop-blur-xl"
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.22),transparent)]" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 bg-gradient-to-r from-[#0a0a0c] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-[#0a0a0c] to-transparent" />
+
       <div
-        ref={trackRef}
-        className="flex will-change-transform py-2.5"
-        style={{ transform: 'translate3d(0,0,0)' }}
+        className="flex w-max animate-ribbon-scroll py-2"
+        style={{ ['--ribbon-duration' as string]: `${LOOP_DURATION}s` }}
       >
-        {['a', 'b', 'c'].map((key) => (
-          <div key={key} className="flex shrink-0 items-center">
-            {TICKER_INSTRUMENTS.map((item) => (
-              <TickerItem key={`${key}-${item.pair}`} pair={item.pair} baseSymbol={item.baseSymbol} />
-            ))}
+        {['a', 'b'].map((key) => (
+          <div key={key} className="flex shrink-0 items-center" aria-hidden={key !== 'a'}>
+            {/* Koya BTC buy/sell spread — featured first */}
+            <KoyaBtcSpreadItem />
+            {/* Regular pairs */}
+            {TICKER_INSTRUMENTS.map((item) => {
+              const initial = initialMap.get(item.pair);
+              return (
+                <TickerItem
+                  key={`${key}-${item.pair}`}
+                  pair={item.pair}
+                  baseSymbol={item.baseSymbol}
+                  price={initial?.price}
+                  change={initial?.change}
+                  positive={initial?.positive}
+                />
+              );
+            })}
           </div>
         ))}
       </div>

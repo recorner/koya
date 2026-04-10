@@ -1,8 +1,7 @@
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { ConversionWizard } from '@/components/conversion/conversion-wizard';
-import { getWhatsAppPreviewLink } from '@/lib/directus/queries';
-import { assetUrl } from '@/lib/directus/client';
+import { getWhatsAppPreviewLink } from '@/lib/cms';
 
 export async function generateMetadata({
   searchParams,
@@ -17,7 +16,7 @@ export async function generateMetadata({
     const description =
       preview?.og_description ??
       'View real-time status of your KES → BTC conversion on Koya.';
-    const image = assetUrl(preview?.og_image);
+    const image = preview?.og_image ?? null;
 
     return {
       title,
@@ -39,10 +38,6 @@ export async function generateMetadata({
 export default function ConvertPage() {
   return (
     <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-6 sm:py-16 md:py-24">
-      {/* Background effects */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-[radial-gradient(ellipse,rgba(212,175,55,0.06),transparent_70%)] blur-3xl" />
-      </div>
 
       <div className="relative mx-auto max-w-7xl">
         {/* Header — compact on mobile so wizard fits in viewport */}

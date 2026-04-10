@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getLegalPage, getSeoDefaults } from '@/lib/directus';
+import { getLegalPage, getSeoDefaults } from '@/lib/cms';
 import { SectionShell } from '@/components/marketing/section-shell';
 
 export const revalidate = 60;

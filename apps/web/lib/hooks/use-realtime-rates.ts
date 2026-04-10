@@ -41,18 +41,30 @@ function computeChange(current: number, base: number): { change: string; positiv
 
 /**
  * React hook: live-updating rate map via shared SSE singleton.
+ * Bootstraps instantly via REST fetch, then SSE takes over.
  */
 export function useRealtimeRates() {
   const [rates, setRates] = useState<RateMap>({});
 
   useEffect(() => {
-    if (typeof EventSource === 'undefined') {
-      fetchRates().then((s) => { if (s.length) setRates(snapshotsToRateMap(s)); });
-      return;
-    }
-    return subscribeRates((snapshots) => {
-      setRates(snapshotsToRateMap(snapshots));
+    let mounted = true;
+
+    // 1. Instant bootstrap from REST so rates appear immediately
+    fetchRates().then((s) => {
+      if (mounted && s.length) setRates(snapshotsToRateMap(s));
     });
+
+    // 2. SSE takes over for live streaming updates
+    if (typeof EventSource === 'undefined') return () => { mounted = false; };
+
+    const unsub = subscribeRates((snapshots) => {
+      if (mounted) setRates(snapshotsToRateMap(snapshots));
+    });
+
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   return rates;
@@ -98,4 +110,35 @@ export function useTickerUpdates(onUpdate: (tickers: TickerInstrument[]) => void
 export function useLiveRate(source: string, dest: string) {
   const rates = useRealtimeRates();
   return useMemo(() => rates[source]?.[dest] ?? 0, [rates, source, dest]);
+}
+
+/**
+ * DOM-only live rate — patches a ref'd element directly, zero React re-renders.
+ * Returns a ref to attach to the element that should display the formatted rate.
+ */
+export function useLiveRateRef(
+  source: string,
+  dest: string,
+  format: (value: number) => string = (v) => Math.round(v).toLocaleString('en-US'),
+) {
+  const elRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const handle = (snapshots: RateSnapshot[]) => {
+      const map = snapshotsToRateMap(snapshots);
+      const rate = map[source]?.[dest];
+      if (rate != null && elRef.current) {
+        const text = format(rate);
+        if (elRef.current.textContent !== text) elRef.current.textContent = text;
+      }
+    };
+
+    if (typeof EventSource === 'undefined') {
+      fetchRates().then((s) => { if (s.length) handle(s); });
+      return;
+    }
+    return subscribeRates(handle);
+  }, [source, dest, format]);
+
+  return elRef;
 }

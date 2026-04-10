@@ -27,7 +27,7 @@ export function SiteHeader({ navItems }: { navItems?: NavLink[] }) {
   const ctaItem = navItems?.find((n) => n.is_cta);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(window.scrollY > 48);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -37,31 +37,34 @@ export function SiteHeader({ navItems }: { navItems?: NavLink[] }) {
       className={cn(
         'fixed inset-x-0 top-0 z-50 transition-all duration-500',
         scrolled
-          ? 'bg-vault-black/90 shadow-[0_4px_24px_rgba(0,0,0,0.4)] backdrop-blur-lg'
-          : 'bg-transparent',
+          ? 'bg-vault-black/92 shadow-[0_4px_28px_rgba(0,0,0,0.55)] backdrop-blur-xl'
+          : 'bg-[linear-gradient(180deg,rgba(10,10,12,0.96),rgba(7,7,8,0.88))] backdrop-blur-md',
       )}
     >
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:h-16 sm:px-6">
-        {/* Logo */}
-        <a href="/" aria-label="Koya Home">
-          <KoyaWordmark markSize={24} textSize="text-xl" id="header" />
+      {/* Gold accent line — matches ribbon top line for visual continuity */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.32),transparent)]" />
+
+      <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-5 sm:h-14 sm:px-6 lg:px-10">
+        {/* Logo — larger */}
+        <a href="/" aria-label="Koya Home" className="shrink-0">
+          <KoyaWordmark markSize={26} textSize="text-xl" id="header" />
         </a>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        {/* Desktop nav — premium feel */}
+        <nav className="hidden items-center gap-10 md:flex">
           {links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-white-60 transition-colors hover:text-white-95"
+              className="text-[13px] font-semibold uppercase tracking-[0.1em] text-white/48 transition-colors duration-300 hover:text-white/90"
             >
               {link.label}
             </a>
           ))}
         </nav>
 
-        {/* Desktop actions */}
-        <div className="hidden items-center gap-2 md:flex">
+        {/* Desktop CTA */}
+        <div className="hidden items-center gap-3 md:flex">
           <Button size="sm" asChild>
             <a href={ctaItem?.href ?? '#'}>{ctaItem?.label ?? 'Join Waitlist'}</a>
           </Button>
@@ -77,10 +80,20 @@ export function SiteHeader({ navItems }: { navItems?: NavLink[] }) {
         </button>
       </div>
 
+      {/* Bottom separator — matches ribbon border for unified look */}
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-x-0 bottom-0 h-px transition-opacity duration-500',
+          scrolled
+            ? 'bg-white/8 opacity-100'
+            : 'bg-[linear-gradient(90deg,transparent,rgba(212,175,55,0.2),transparent)] opacity-100',
+        )}
+      />
+
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="border-t border-white-5/50 bg-vault-black/95 backdrop-blur-lg md:hidden">
-          <nav className="flex flex-col gap-1 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="border-t border-white/6 bg-vault-black/95 backdrop-blur-xl md:hidden">
+          <nav className="flex flex-col gap-1 px-4 py-3 sm:px-6">
             {links.map((link) => (
               <a
                 key={link.href}

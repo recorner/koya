@@ -358,6 +358,15 @@ Never pack multiple services (API + frontend + workers) into one container. Each
 
 When a provider has multiple implementations (mock, bria, future dfns), use NestJS `useFactory` with `ConfigService` to select at startup:
 
+---
+
+## Landing Page Copy And Currency Symbols Must Stay Product-True
+
+- Hero copy must describe Koya's actual product value: M-Pesa funding, multi-currency wallets, cards, conversion, and investing.
+- Do not write meta design copy like "real depth" or talk about visual treatment inside customer-facing marketing headlines.
+- For currencies without a universal symbol like KES, do not use country-flag imagery as a stand-in. Use a clean currency monogram/badge instead.
+- When a desktop hero has several visual artifacts, prefer one focused rotating stage over burying multiple panels in one scene.
+
 ```ts
 {
   provide: 'BTC_DELIVERY_PROVIDER',

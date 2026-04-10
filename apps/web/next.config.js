@@ -2,6 +2,8 @@
 
 const { composePlugins, withNx } = require('@nx/next');
 
+const path = require('path');
+
 /**
  * @type {import('@nx/next/plugins/with-nx').WithNxOptions}
  **/
@@ -9,14 +11,14 @@ const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
   nx: {},
+  // Standalone output for Docker deployment (Vercel ignores this)
+  output: 'standalone',
+  outputFileTracingRoot: path.join(__dirname, '../..'),
+  turbopack: {
+    root: path.join(__dirname, '../..'),
+  },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'cms.koyabank.com',
-        pathname: '/assets/**',
-      },
-    ],
+    // No remote patterns needed — all media served from public/uploads/
   },
   async redirects() {
     return [

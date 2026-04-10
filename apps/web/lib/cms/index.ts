@@ -1,6 +1,4 @@
-export { directus, publicDirectusUrl, assetUrl } from './client';
 export type {
-  CmsSchema,
   Page,
   PageSection,
   SectionType,
@@ -11,6 +9,7 @@ export type {
   FaqItem,
   LegalPage,
   SeoDefaults,
+  WhatsAppPreviewLink,
 } from './types';
 export {
   getGlobalSettings,
@@ -21,4 +20,5 @@ export {
   getFaqItems,
   getLegalPage,
   getLegalPages,
+  getWhatsAppPreviewLink,
 } from './queries';

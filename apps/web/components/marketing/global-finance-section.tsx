@@ -3,6 +3,7 @@
 import { SectionShell } from '@/components/marketing/section-shell';
 import {
   FadeUp,
+  GlowPulse,
 } from '@/components/marketing/motion-wrapper';
 import { StockIcon } from '@/components/marketing/asset-icons';
 import { STOCK_TICKERS } from '@/components/marketing/asset-metadata';
@@ -105,8 +106,8 @@ export function GlobalFinanceSection() {
         {/* RIGHT: investing surface */}
         <FadeUp delay={0.12} className="lg:col-span-7">
           <div className="relative mx-auto w-full max-w-[700px]">
-            {/* ambient glow */}
-            <div className="pointer-events-none absolute left-1/2 top-[38%] h-[360px] w-[360px] -translate-x-1/2 rounded-full bg-[rgba(212,175,55,0.08)] blur-3xl" />
+            {/* ambient glow — breathing */}
+            <GlowPulse className="left-1/2 top-[38%] h-[360px] w-[360px] -translate-x-1/2" />
             <div className="pointer-events-none absolute right-[4%] top-[8%] h-[180px] w-[180px] rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
 
             <div className="grid gap-4 md:grid-cols-12">

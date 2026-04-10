@@ -27,32 +27,8 @@ export function PaymentPendingStep({
   const checkoutRequestIdRef = useRef<string | null>(null);
   const waitingStartRef = useRef<number>(0);
 
-  // Initiate STK push on mount
-  useEffect(() => {
-    if (initiatedRef.current) return;
-    initiatedRef.current = true;
-
-    (async () => {
-      try {
-        const result = await conversionApi.initiatePayment(sessionId);
-        checkoutRequestIdRef.current = result.checkoutRequestId;
-        setPhase('waiting');
-        waitingStartRef.current = Date.now();
-        startPolling();
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to initiate payment',
-        );
-        setPhase('error');
-      }
-    })();
-
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, []);
-
   const startPolling = useCallback(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
     pollingRef.current = setInterval(async () => {
       try {
         const status = await conversionApi.getStatus(sessionId);
@@ -63,20 +39,40 @@ export function PaymentPendingStep({
           onComplete();
           return;
         }
-
-        // After 15 seconds, show manual reference option
-        if (
-          waitingStartRef.current &&
-          Date.now() - waitingStartRef.current > 15000 &&
-          phase === 'waiting'
-        ) {
-          setPhase('manual');
-        }
       } catch {
         // Silently retry on network errors
       }
     }, 3000);
-  }, [sessionId, onComplete, phase]);
+  }, [sessionId, onComplete]);
+
+  const initiatePayment = useCallback(async () => {
+    setPhase('initiating');
+    setError('');
+
+    try {
+      const result = await conversionApi.initiatePayment(sessionId);
+      checkoutRequestIdRef.current = result.checkoutRequestId;
+      setPhase('waiting');
+      waitingStartRef.current = Date.now();
+      startPolling();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to initiate payment',
+      );
+      setPhase('error');
+    }
+  }, [sessionId, startPolling]);
+
+  // Initiate STK push on mount
+  useEffect(() => {
+    if (initiatedRef.current) return;
+    initiatedRef.current = true;
+    initiatePayment();
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [initiatePayment]);
 
   // Show manual input after 15s timeout
   useEffect(() => {
@@ -168,11 +164,7 @@ export function PaymentPendingStep({
         <Button
           size="lg"
           className="mt-5 h-11 w-full text-sm font-medium"
-          onClick={() => {
-            setPhase('initiating');
-            setError('');
-            initiatedRef.current = false;
-          }}
+          onClick={initiatePayment}
         >
           Retry Payment
         </Button>

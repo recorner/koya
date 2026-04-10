@@ -4,12 +4,13 @@
   "outputDirectory": "apps/web/.next",
   "installCommand": "pnpm install",
   "framework": "nextjs",
-  "alias": ["koyabank.com", "www.koyabank.com"],
+  "alias": ["koyabank.com", "www.koyabank.com", "tina.koyabank.com"],
   "build": {
     "env": {
       "NODE_ENV": "production",
       "NEXT_PUBLIC_APP_VERSION": "1.1.001",
-      "NEXT_PUBLIC_RELEASE_NAME": "euclide"
+      "NEXT_PUBLIC_RELEASE_NAME": "euclide",
+      "TINA_PUBLIC_IS_LOCAL": "false"
     }
   }
 }

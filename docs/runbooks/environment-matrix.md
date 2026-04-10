@@ -22,8 +22,9 @@
 |----------|-------|---------|------------|--------|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3333/api/v1` | `https://api.koyabank.com/api/v1` | `https://api.koyabank.com/api/v1` | Vercel env |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Preview URL | `https://koyabank.com` | Vercel env |
-| `DIRECTUS_URL` | `http://localhost:8055` | `https://cms.koyabank.com` | `https://cms.koyabank.com` | Vercel env |
-| `DIRECTUS_TOKEN` | local token | Secrets Manager → Vercel | Secrets Manager → Vercel | Secret |
+| `NEXT_PUBLIC_TINA_CLIENT_ID` | _(empty for local)_ | Tina Cloud client ID | Tina Cloud client ID | Vercel env |
+| `TINA_TOKEN` | _(empty for local)_ | Tina Cloud token | Tina Cloud token | Secret |
+| `TINA_BRANCH` | `main` | `main` | `main` | Vercel env |
 
 ---
 

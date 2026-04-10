@@ -1,0 +1,6 @@
+{
+  "question": "What payment methods are supported?",
+  "answer": "Currently, Koya supports M-Pesa (STK Push) for KES payments. We are working on expanding to additional payment methods.",
+  "sort": 3,
+  "category": "payments"
+}

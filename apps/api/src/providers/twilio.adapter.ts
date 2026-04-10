@@ -17,8 +17,6 @@ export class RealTwilioAdapter implements TwilioAdapter {
   private readonly accountSid: string;
   private readonly fromNumber: string;
   private readonly authToken: string;
-  private readonly directusUrl: string;
-  private readonly directusToken: string;
   private readonly contentCache = new Map<
     string,
     { signature: string; contentSid: string }
@@ -28,8 +26,6 @@ export class RealTwilioAdapter implements TwilioAdapter {
     this.accountSid = this.config.getOrThrow<string>('TWILIO_ACCOUNT_SID');
     this.authToken = this.config.getOrThrow<string>('TWILIO_AUTH_TOKEN');
     this.fromNumber = this.config.getOrThrow<string>('TWILIO_WHATSAPP_NUMBER');
-    this.directusUrl = this.config.get<string>('DIRECTUS_URL', '').trim();
-    this.directusToken = this.config.get<string>('DIRECTUS_TOKEN', '').trim();
     this.client = new Twilio(this.accountSid, this.authToken);
   }
 
@@ -194,33 +190,9 @@ export class RealTwilioAdapter implements TwilioAdapter {
     contentSid: string,
     signature: string,
   ): Promise<void> {
-    if (
-      !interactive.directusItemId ||
-      !this.directusUrl ||
-      !this.directusToken
-    ) {
-      return;
-    }
-
-    const response = await fetch(
-      `${this.directusUrl}/items/whatsapp_message_templates/${interactive.directusItemId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${this.directusToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          twilio_content_sid: contentSid,
-          twilio_content_hash: signature,
-        }),
-      },
+    // No-op: Directus persistence removed. Content SID is cached in-memory only.
+    this.logger.debug(
+      `Skipping persistence for template ${interactive.templateKey} (contentSid=${contentSid})`,
     );
-
-    if (!response.ok) {
-      this.logger.warn(
-        `Failed to persist Twilio content metadata for template ${interactive.templateKey}: ${response.status}`,
-      );
-    }
   }
 }

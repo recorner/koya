@@ -148,7 +148,7 @@ Standard Next.js on Vercel. Not Build Output API v3 — Koya has no exotic outpu
 
 | Tier | Routes | Cache-Control |
 |------|--------|---------------|
-| Public informational | `/`, `/legal/*`, CMS slugs | `public, max-age=0, s-maxage=60, stale-while-revalidate=30` |
+| Public informational | `/`, `/legal/*`, content slugs | `public, max-age=0, s-maxage=60, stale-while-revalidate=30` |
 | Transaction-sensitive | `/convert/*`, `/login/*`, `/overview/*` | `private, no-store` |
 | Hashed static assets | `/_next/static/*` | `public, max-age=31536000, immutable` |
 

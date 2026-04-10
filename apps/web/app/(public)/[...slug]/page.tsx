@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPageBySlug, getSeoDefaults } from '@/lib/directus';
-import type { PageSection } from '@/lib/directus';
-import { SectionRenderer } from '@/lib/directus/section-renderer';
+import { getPageBySlug, getSeoDefaults } from '@/lib/cms';
+import type { PageSection } from '@/lib/cms';
+import { SectionRenderer } from '@/lib/cms/section-renderer';
 
 export const revalidate = 60;
 

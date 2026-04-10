@@ -1,0 +1,28 @@
+{
+  "columns": [
+    {
+      "title": "Product",
+      "sort": 0,
+      "links": [
+        { "label": "Convert", "href": "/convert", "sort": 0 },
+        { "label": "How It Works", "href": "/#how-it-works", "sort": 1 }
+      ]
+    },
+    {
+      "title": "Company",
+      "sort": 1,
+      "links": [
+        { "label": "About", "href": "/about", "sort": 0 },
+        { "label": "Security", "href": "/security", "sort": 1 }
+      ]
+    },
+    {
+      "title": "Legal",
+      "sort": 2,
+      "links": [
+        { "label": "Privacy Policy", "href": "/legal/privacy-policy", "sort": 0 },
+        { "label": "Terms of Service", "href": "/legal/terms-of-service", "sort": 1 }
+      ]
+    }
+  ]
+}

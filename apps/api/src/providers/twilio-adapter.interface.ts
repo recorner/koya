@@ -5,7 +5,7 @@ export interface WhatsAppQuickReplyButton {
 
 export interface WhatsAppInteractiveTemplate {
   templateKey: string;
-  directusItemId?: string | number | null;
+  cmsItemId?: string | number | null;
   bodyTemplate: string;
   buttons: WhatsAppQuickReplyButton[];
   contentSid?: string | null;

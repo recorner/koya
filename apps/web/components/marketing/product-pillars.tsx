@@ -11,6 +11,7 @@ import { SectionShell } from '@/components/marketing/section-shell';
 import {
   StaggerContainer,
   StaggerItem,
+  GlowPulse,
 } from '@/components/marketing/motion-wrapper';
 
 const pillars = [
@@ -51,7 +52,8 @@ const pillars = [
 export function ProductPillars() {
   return (
     <SectionShell id="products">
-      <div className="mx-auto max-w-3xl text-center">
+      <div className="relative mx-auto max-w-3xl text-center">
+        <GlowPulse className="-top-20 left-1/2 h-60 w-60 -translate-x-1/2" />
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
           Platform pillars
         </p>

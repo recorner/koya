@@ -4,7 +4,7 @@ import {
   getNavigation,
   getFooterColumns,
   getGlobalSettings,
-} from '@/lib/directus';
+} from '@/lib/cms';
 
 export default async function PublicLayout({
   children,
@@ -37,7 +37,7 @@ export default async function PublicLayout({
           is_cta: n.is_cta,
         }))}
       />
-      <div className="overflow-x-hidden pt-16">{children}</div>
+      <div className="overflow-x-hidden pt-12 sm:pt-14">{children}</div>
       <SiteFooter footerColumns={footerCols} settings={settings ?? undefined} />
     </>
   );
