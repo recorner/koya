@@ -1,6 +1,6 @@
 # Environment Matrix
 
-**Last updated:** 2026-04-06  
+**Last updated:** 2026-04-19  
 **Release:** Euclide v1.1.001
 
 ---
@@ -22,9 +22,13 @@
 |----------|-------|---------|------------|--------|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3333/api/v1` | `https://api.koyabank.com/api/v1` | `https://api.koyabank.com/api/v1` | Vercel env |
 | `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` | Preview URL | `https://koyabank.com` | Vercel env |
-| `NEXT_PUBLIC_TINA_CLIENT_ID` | _(empty for local)_ | Tina Cloud client ID | Tina Cloud client ID | Vercel env |
-| `TINA_TOKEN` | _(empty for local)_ | Tina Cloud token | Tina Cloud token | Secret |
-| `TINA_BRANCH` | `main` | `main` | `main` | Vercel env |
+| `PAYLOAD_API_URL` | `http://localhost:3000/api` | `https://payload.koyabank.com/api` | `https://payload.koyabank.com/api` | Vercel env |
+| `PAYLOAD_TIMEOUT_MS` | `5000` | `5000` | `5000` | Vercel env |
+| `PAYLOAD_PREVIEW_USER_EMAIL` | local preview user | Secrets-backed | Secrets-backed | Vercel env |
+| `PAYLOAD_PREVIEW_USER_PASSWORD` | local preview password | Secrets-backed | Secrets-backed | Vercel env |
+| `KOYA_PREVIEW_SECRET` | local secret | Secrets-backed | Secrets-backed | Vercel env |
+| `KOYA_REVALIDATE_WEBHOOK_SECRET` | local secret | Secrets-backed | Secrets-backed | Vercel env |
+| `KOYA_REVALIDATE_MAX_SKEW_MS` | `300000` | `300000` | `300000` | Vercel env |
 
 ---
 
@@ -171,7 +175,10 @@
 | `/koya/bria/apiKey` | API (ECS), Bria | Bria gRPC API key |
 | `/koya/twilio/accountSid` | API (ECS) | Twilio account SID |
 | `/koya/twilio/authToken` | API (ECS) | Twilio auth token |
-| `/koya/directus/token` | Web (Vercel) | Directus CMS static token |
+| `/koya/payload/previewUserEmail` | Web (Vercel) | Payload preview service account email |
+| `/koya/payload/previewUserPassword` | Web (Vercel) | Payload preview service account password |
+| `/koya/web/previewSecret` | Web (Vercel) | Preview endpoint secret (`/api/preview`) |
+| `/koya/web/revalidateWebhookSecret` | Web (Vercel) | Signed revalidation webhook HMAC secret (`/api/revalidate`) |
 
 ---
 

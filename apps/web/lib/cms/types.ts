@@ -14,6 +14,7 @@ export type SectionType =
   | 'rich_text'
   | 'final_cta'
   | 'swap_widget'
+  | 'trust_footer_items'
   | 'market_ribbon';
 
 export interface PageSection {
@@ -41,6 +42,7 @@ export interface Page {
   status: 'published' | 'draft' | 'archived';
   meta_title: string | null;
   meta_description: string | null;
+  og_image: string | null;
   sections: PageSection[] | number[];
 }
 
@@ -117,4 +119,16 @@ export interface WhatsAppPreviewLink {
   og_image: string | null;
   url_path: string;
   is_active: boolean;
+}
+
+export interface Branding {
+  logo_mark: string | null;
+  logo_icon: string | null;
+  apple_icon: string | null;
+  og_default_image: string | null;
+  primary_color: string | null;
+  background_color: string | null;
+  theme_color: string | null;
+  company_name: string | null;
+  tagline: string | null;
 }

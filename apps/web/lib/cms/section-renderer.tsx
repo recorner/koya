@@ -12,7 +12,6 @@
 import type { PageSection } from '@/lib/cms/types';
 import { MarketRibbon, type RibbonRate } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
-import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
 import { TrustStrip } from '@/components/marketing/trust-strip';
 import { ProductPillars } from '@/components/marketing/product-pillars';
 import { HowItWorks } from '@/components/marketing/how-it-works';
@@ -50,6 +49,7 @@ function buildRegistry(initialRates?: RibbonRate[]): Record<
     swap_widget: CmsSwapSection,
     rich_text: CmsRichText,
     cta: CmsCta,
+    trust_footer_items: () => null,
   };
 }
 

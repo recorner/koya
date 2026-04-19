@@ -1,9 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getLegalPage, getSeoDefaults } from '@/lib/cms';
+import { getLegalPage, getSeoDefaults, getBranding } from '@/lib/cms';
 import { SectionShell } from '@/components/marketing/section-shell';
-
-export const revalidate = 60;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -11,19 +9,26 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const [page, seo] = await Promise.all([
+  const [page, seo, branding] = await Promise.all([
     getLegalPage(slug),
     getSeoDefaults(),
+    getBranding(),
   ]);
 
   if (!page) return {};
 
   const title = page.meta_title || page.title;
   const description = page.meta_description || seo?.fallback_description || '';
+  const ogImage = branding?.og_default_image || seo?.fallback_og_image || null;
 
   return {
     title: seo?.title_suffix ? `${title}${seo.title_suffix}` : title,
     description,
+    openGraph: {
+      title,
+      description,
+      ...(ogImage ? { images: [{ url: ogImage, width: 1200, height: 630 }] } : {}),
+    },
   };
 }
 

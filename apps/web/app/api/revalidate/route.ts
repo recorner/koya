@@ -1,36 +1,75 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextRequest, NextResponse } from 'next/server';
 
-/**
- * On-demand revalidation endpoint for CMS content changes.
- *
- * When content changes, a webhook POSTs here with the secret.
- * This purges the ISR cache so the next request gets fresh data instantly.
- *
- * Setup: Configure a webhook pointing to:
- *   POST https://koyabank.com/api/revalidate
- *   Body: { "secret": "<REVALIDATION_SECRET>" }
- */
+import {
+  resolveRevalidationTargets,
+  type RevalidatePayload,
+  verifyWebhookSignature,
+} from '@/lib/cms/revalidate';
 
-const secret = process.env.REVALIDATION_SECRET;
+const WEBHOOK_SECRET = process.env.KOYA_REVALIDATE_WEBHOOK_SECRET;
+const MAX_SKEW_MS = Number(process.env.KOYA_REVALIDATE_MAX_SKEW_MS || 5 * 60 * 1000);
+
+function badRequest(message: string, status = 400) {
+  return NextResponse.json({ message }, { status });
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-
-    if (!secret || body.secret !== secret) {
-      return NextResponse.json({ message: 'Invalid secret' }, { status: 401 });
-    }
-
-    // Revalidate the entire public layout tree — covers homepage,
-    // dynamic pages, legal pages, and shared header/footer data.
-    revalidatePath('/(public)', 'layout');
-
-    return NextResponse.json({ revalidated: true, now: Date.now() });
-  } catch {
-    return NextResponse.json(
-      { message: 'Error revalidating' },
-      { status: 500 },
-    );
+  if (!WEBHOOK_SECRET) {
+    return badRequest('Webhook secret is not configured', 500);
   }
+
+  const eventHeader = request.headers.get('x-koya-event') || '';
+  const timestampHeader = request.headers.get('x-koya-timestamp') || '';
+  const signatureHeader = request.headers.get('x-koya-signature') || '';
+
+  const rawBody = await request.text();
+  if (!rawBody) {
+    return badRequest('Missing body');
+  }
+
+  const verified = verifyWebhookSignature({
+    rawBody,
+    secret: WEBHOOK_SECRET,
+    signature: signatureHeader,
+    timestamp: timestampHeader,
+    maxSkewMs: MAX_SKEW_MS,
+  });
+
+  if (!verified.ok) {
+    return badRequest(`Signature verification failed: ${verified.reason}`, 401);
+  }
+
+  let payload: RevalidatePayload;
+  try {
+    payload = JSON.parse(rawBody) as RevalidatePayload;
+  } catch {
+    return badRequest('Invalid JSON payload');
+  }
+
+  if (!payload?.eventType || !payload.resource?.slug || !payload.resource?.type) {
+    return badRequest('Invalid revalidation payload schema');
+  }
+
+  if (eventHeader && eventHeader !== payload.eventType) {
+    return badRequest('Event header mismatch', 401);
+  }
+
+  const { paths, tags } = resolveRevalidationTargets(payload);
+
+  for (const tag of tags) {
+    revalidateTag(tag, 'max');
+  }
+
+  for (const path of paths) {
+    revalidatePath(path);
+  }
+
+  return NextResponse.json({
+    acknowledged: true,
+    eventType: payload.eventType,
+    paths,
+    resource: payload.resource,
+    tags,
+  });
 }
