@@ -4,7 +4,7 @@ set -euo pipefail
 # render-task-definitions.sh — Render ECS task definition JSON from templates.
 #
 # Usage:
-#   ./scripts/render-task-definitions.sh <environment> [image-tag]
+#   ./scripts/render-task-definitions.sh <environment> [image-tag] [--live-ecs] [--cluster <name>] [--service <name>]
 #
 # Reads:
 #   - env/<environment>.env (non-secret config)
@@ -20,10 +20,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 KOYA_ENV="${1:-}"
-IMAGE_TAG="${2:-latest}"
+IMAGE_TAG="latest"
+LIVE_ECS_MODE=false
+LIVE_CLUSTER="${LIVE_ECS_CLUSTER:-}"
+LIVE_SERVICE="${LIVE_ECS_SERVICE:-}"
+
+shift || true
+
+if [[ $# -gt 0 ]] && [[ "${1:-}" != --* ]]; then
+  IMAGE_TAG="${1}"
+  shift
+fi
+
+while [[ $# -gt 0 ]]; do
+  case "${1}" in
+    --live-ecs)
+      LIVE_ECS_MODE=true
+      shift
+      ;;
+    --cluster)
+      LIVE_CLUSTER="${2:-}"
+      shift 2
+      ;;
+    --service)
+      LIVE_SERVICE="${2:-}"
+      shift 2
+      ;;
+    *)
+      echo "Unknown option: ${1}"
+      exit 1
+      ;;
+  esac
+done
 
 if [[ -z "${KOYA_ENV}" ]]; then
-  echo "Usage: ./scripts/render-task-definitions.sh <staging|production> [image-tag]"
+  echo "Usage: ./scripts/render-task-definitions.sh <staging|production> [image-tag] [--live-ecs] [--cluster <name>] [--service <name>]"
   exit 1
 fi
 
@@ -42,10 +73,68 @@ if ! command -v envsubst &>/dev/null; then
   exit 1
 fi
 
-# ── Resolve Terraform outputs ────────────────────────────────────
+normalize_ecr_repo_url() {
+  local image="$1"
+  local repo="${image%@*}"
+  if [[ "${repo}" == *:* ]]; then
+    repo="${repo%:*}"
+  fi
+  echo "${repo}"
+}
 
-echo ""
-echo "=== Resolving Terraform outputs ==="
+resolve_live_task_definition_arn() {
+  local running_task_arns
+  running_task_arns=$(aws ecs list-tasks \
+    --cluster "${LIVE_CLUSTER}" \
+    --service-name "${LIVE_SERVICE}" \
+    --desired-status RUNNING \
+    --region "${AWS_REGION}" \
+    --query 'taskArns' \
+    --output text 2>/dev/null || true)
+
+  if [[ -n "${running_task_arns}" ]] && [[ "${running_task_arns}" != "None" ]]; then
+    local running_task_def_arn
+    running_task_def_arn=$(aws ecs describe-tasks \
+      --cluster "${LIVE_CLUSTER}" \
+      --tasks ${running_task_arns} \
+      --region "${AWS_REGION}" \
+      --query 'sort_by(tasks, &startedAt)[0].taskDefinitionArn' \
+      --output text 2>/dev/null || true)
+    if [[ -n "${running_task_def_arn}" ]] && [[ "${running_task_def_arn}" != "None" ]]; then
+      echo "${running_task_def_arn}"
+      return
+    fi
+  fi
+
+  aws ecs describe-services \
+    --cluster "${LIVE_CLUSTER}" \
+    --services "${LIVE_SERVICE}" \
+    --region "${AWS_REGION}" \
+    --query 'services[0].taskDefinition' \
+    --output text 2>/dev/null || true
+}
+
+set_from_current_env() {
+  local key="$1"
+  local mode="${2:-if-missing}"
+  local existing="${!key:-}"
+  if [[ "${mode}" == "if-missing" ]] && [[ -n "${existing}" ]]; then
+    return
+  fi
+
+  local value
+  value=$(jq -r --arg key "${key}" '.containerDefinitions[0].environment[]? | select(.name == $key) | .value' <<< "${CURRENT_TASK_DEF_JSON}" | head -n1)
+  if [[ -n "${value}" ]] && [[ "${value}" != "null" ]]; then
+    export "${key}=${value}"
+    if [[ "${mode}" == "force" ]]; then
+      echo "  Carrying forward ${key} from live runtime"
+    else
+      echo "  Carrying forward ${key} from live runtime (missing in env file)"
+    fi
+  fi
+}
+
+# ── Resolve infrastructure values ────────────────────────────────
 
 TF_FOUNDATION_DIR="${REPO_ROOT}/terraform/aws/foundation"
 TF_PLATFORM_DIR="${REPO_ROOT}/terraform/aws/platform"
@@ -56,21 +145,84 @@ get_tf_output() {
   terraform -chdir="${dir}" output -raw "${key}" 2>/dev/null || echo ""
 }
 
-# Foundation outputs
-EXECUTION_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "ecs_execution_role_arn")
-API_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_task_role_arn")
-MIGRATE_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "migrate_task_role_arn")
-LOG_GROUP_NAME=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_log_group_name")
+if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
+  echo ""
+  echo "=== Resolving infrastructure from live ECS service ==="
 
-# Platform outputs
-ECR_REPO_URL=$(get_tf_output "${TF_PLATFORM_DIR}" "ecr_repository_url")
+  if [[ -z "${LIVE_CLUSTER}" || -z "${LIVE_SERVICE}" ]]; then
+    echo "ERROR: --live-ecs requires cluster/service (flags or LIVE_ECS_CLUSTER/LIVE_ECS_SERVICE)."
+    exit 1
+  fi
+
+  CURRENT_TASK_DEF_ARN=$(resolve_live_task_definition_arn)
+
+  if [[ -z "${CURRENT_TASK_DEF_ARN}" ]] || [[ "${CURRENT_TASK_DEF_ARN}" == "None" ]]; then
+    echo "ERROR: Could not resolve current task definition from ${LIVE_CLUSTER}/${LIVE_SERVICE}."
+    exit 1
+  fi
+
+  CURRENT_TASK_DEF_JSON=$(aws ecs describe-task-definition \
+    --task-definition "${CURRENT_TASK_DEF_ARN}" \
+    --region "${AWS_REGION}" \
+    --query 'taskDefinition' \
+    --output json)
+
+  EXECUTION_ROLE_ARN=$(jq -r '.executionRoleArn // empty' <<< "${CURRENT_TASK_DEF_JSON}")
+  API_TASK_ROLE_ARN=$(jq -r '.taskRoleArn // empty' <<< "${CURRENT_TASK_DEF_JSON}")
+  MIGRATE_TASK_ROLE_ARN="${LIVE_MIGRATE_TASK_ROLE_ARN:-${API_TASK_ROLE_ARN}}"
+  LOG_GROUP_NAME=$(jq -r '.containerDefinitions[0].logConfiguration.options["awslogs-group"] // empty' <<< "${CURRENT_TASK_DEF_JSON}")
+  CURRENT_IMAGE=$(jq -r '.containerDefinitions[0].image // empty' <<< "${CURRENT_TASK_DEF_JSON}")
+  CURRENT_FAMILY=$(jq -r '.family // empty' <<< "${CURRENT_TASK_DEF_JSON}")
+  ECR_REPO_URL=$(normalize_ecr_repo_url "${CURRENT_IMAGE}")
+
+  if [[ "${LIVE_USE_SERVICE_TASK_FAMILIES:-true}" == "true" ]] && [[ -n "${CURRENT_FAMILY}" ]]; then
+    export API_TASK_FAMILY="${CURRENT_FAMILY}"
+    export MIGRATE_TASK_FAMILY="${CURRENT_FAMILY}-migrate"
+    echo "  Using live task families: API=${API_TASK_FAMILY} MIGRATE=${MIGRATE_TASK_FAMILY}"
+  fi
+
+  # Drift-safe live mode:
+  # Preserve runtime connectivity/payment values from the currently running task
+  # so deploys can roll forward safely even if env/<env>.env differs.
+  for key in \
+    REDIS_HOST \
+    REDIS_PORT \
+    REDIS_TLS \
+    REDIS_DB \
+    MPESA_ENVIRONMENT \
+    BTC_DELIVERY_DRIVER \
+    BRIA_API_HOST \
+    BRIA_API_PORT \
+    BRIA_WALLET_NAME \
+    BRIA_XPUB_REF \
+    DFNS_API_URL \
+    DFNS_APP_ID \
+    DFNS_WALLET_ID \
+    BRIA_PAYOUT_QUEUE \
+    BRIA_PAYOUT_QUEUE_NAME \
+    DFNS_SERVICE_ACCOUNT; do
+    set_from_current_env "${key}" "force"
+  done
+else
+  echo ""
+  echo "=== Resolving Terraform outputs ==="
+
+  # Foundation outputs
+  EXECUTION_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "ecs_execution_role_arn")
+  API_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_task_role_arn")
+  MIGRATE_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "migrate_task_role_arn")
+  LOG_GROUP_NAME=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_log_group_name")
+
+  # Platform outputs
+  ECR_REPO_URL=$(get_tf_output "${TF_PLATFORM_DIR}" "ecr_repository_url")
+fi
 
 # Build image URI
 export IMAGE_URI="${ECR_REPO_URL}:${IMAGE_TAG}"
 
 for var_name in EXECUTION_ROLE_ARN API_TASK_ROLE_ARN MIGRATE_TASK_ROLE_ARN LOG_GROUP_NAME ECR_REPO_URL; do
   if [[ -z "${!var_name}" ]]; then
-    echo "ERROR: Missing required Terraform output: ${var_name}"
+    echo "ERROR: Missing required infrastructure value: ${var_name}"
     exit 1
   fi
 done

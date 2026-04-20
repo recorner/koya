@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { WhatsAppCloudProvider } from '../providers/whatsapp-cloud.provider';
-import { WebhookSignatureError } from '../messaging.errors';
+import { PayloadValidationError, WebhookSignatureError } from '../messaging.errors';
 
 describe('WhatsAppCloudProvider', () => {
   const provider = new WhatsAppCloudProvider(
@@ -36,5 +36,42 @@ describe('WhatsAppCloudProvider', () => {
         rawBody,
       }),
     ).toThrow(WebhookSignatureError);
+  });
+
+  it('accepts status-only webhook payloads as no-op', () => {
+    const payload = {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                statuses: [
+                  {
+                    id: 'wamid.status.1',
+                    status: 'delivered',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      provider.normalizeInbound({
+        payload,
+        rawBody: JSON.stringify(payload),
+      }),
+    ).toEqual([]);
+  });
+
+  it('rejects malformed payloads without webhook envelope', () => {
+    expect(() =>
+      provider.normalizeInbound({
+        payload: {},
+        rawBody: '{}',
+      }),
+    ).toThrow(PayloadValidationError);
   });
 });

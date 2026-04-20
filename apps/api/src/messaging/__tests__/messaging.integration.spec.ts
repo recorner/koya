@@ -89,6 +89,44 @@ describe('Messaging Webhooks (Integration)', () => {
     expect(handleInboundMessage).toHaveBeenCalled();
   });
 
+  it('accepts WhatsApp status-only webhook payloads as no-op', async () => {
+    const payload = {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                metadata: { phone_number_id: '123456' },
+                statuses: [
+                  {
+                    id: `wamid.status.${Date.now()}`,
+                    status: 'delivered',
+                    timestamp: `${Math.floor(Date.now() / 1000)}`,
+                    recipient_id: '+254700000001',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    const body = JSON.stringify(payload);
+    const sig = createHmac('sha256', 'test-app-secret').update(body).digest('hex');
+    const callsBefore = handleInboundMessage.mock.calls.length;
+
+    const res = await request(app.getHttpServer())
+      .post('/messaging/webhooks/whatsapp-cloud')
+      .set('x-hub-signature-256', `sha256=${sig}`)
+      .set('content-type', 'application/json')
+      .send(payload);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('accepted');
+    expect(handleInboundMessage.mock.calls.length).toBe(callsBefore);
+  });
+
   it('rejects WhatsApp webhook with bad signature', async () => {
     const payload = {
       entry: [

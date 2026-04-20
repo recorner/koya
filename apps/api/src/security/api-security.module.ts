@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import type Redis from 'ioredis';
 import { RedisThrottlerStorage } from './redis-throttler.storage';
 import { KoyaThrottlerGuard } from './koya-throttler.guard';
 import { CacheModule } from '../cache/cache.module';
+import { REDIS_CLIENT } from '../cache/cache.constants';
 
 /**
  * API Security Module
@@ -20,10 +22,10 @@ import { CacheModule } from '../cache/cache.module';
   imports: [
     CacheModule,
     ThrottlerModule.forRootAsync({
-      inject: [ConfigService, RedisThrottlerStorage],
+      inject: [ConfigService, REDIS_CLIENT],
       useFactory: (
         config: ConfigService,
-        storage: RedisThrottlerStorage,
+        redis: Redis,
       ) => ({
         throttlers: [
           {
@@ -32,12 +34,16 @@ import { CacheModule } from '../cache/cache.module';
             ttl: config.get<number>('THROTTLE_DEFAULT_TTL_SECONDS', 60) * 1000,
           },
         ],
-        storage,
+        storage: new RedisThrottlerStorage(redis),
       }),
     }),
   ],
   providers: [
-    RedisThrottlerStorage,
+    {
+      provide: RedisThrottlerStorage,
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis) => new RedisThrottlerStorage(redis),
+    },
     {
       provide: APP_GUARD,
       useClass: KoyaThrottlerGuard,

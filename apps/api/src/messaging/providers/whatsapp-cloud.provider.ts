@@ -97,6 +97,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     const entry = Array.isArray(input.payload['entry'])
       ? (input.payload['entry'] as Array<Record<string, unknown>>)
       : [];
+    const hasWebhookEnvelope = entry.some((e) => Array.isArray(e['changes']));
     const events: NormalizedInboundEvent[] = [];
 
     for (const e of entry) {
@@ -145,6 +146,10 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     }
 
     if (events.length === 0) {
+      if (hasWebhookEnvelope) {
+        // Meta can deliver status-only/non-message updates; treat as acknowledged no-op.
+        return [];
+      }
       throw new PayloadValidationError('No inbound WhatsApp messages found in payload');
     }
 
