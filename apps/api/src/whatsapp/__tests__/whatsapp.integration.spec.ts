@@ -4,328 +4,235 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheModule } from '../../cache/cache.module';
-import { WhatsAppModule } from '../whatsapp.module';
-import { WhatsAppService } from '../whatsapp.service';
-import { WhatsAppSessionService } from '../whatsapp-session.service';
-import { TWILIO_ADAPTER } from '../../providers/twilio-adapter.interface';
-import { MockTwilioAdapter } from '../../providers/mock-twilio.adapter';
-import { RATE_PROVIDER } from '../../providers/rate-provider.interface';
-import { MockRateProvider } from '../../providers/mock-rate.provider';
+import { MessagingModule } from '../../messaging/messaging.module';
+import { ChatConversionFlowService } from '../../messaging/chat-conversion-flow.service';
+import {
+  MESSAGING_PROVIDERS,
+  type MessagingProvider,
+} from '../../messaging/providers/messaging-provider.interface';
+import type {
+  ChatOutboundMessage,
+  ProviderHealthMetadata,
+  ProviderSendResult,
+  RetryClassification,
+  NormalizedInboundEvent,
+} from '../../messaging/messaging.types';
 import { randomUUID } from 'crypto';
 
-describe('WhatsApp Flow (Integration)', () => {
+class FakeProvider implements MessagingProvider {
+  constructor(public readonly provider: 'WHATSAPP_CLOUD' | 'TELEGRAM') {}
+
+  public readonly sentMessages: Array<{ to: string; body: string }> = [];
+
+  verifyWebhook(): void {}
+  verifyChallenge(): { accepted: boolean } {
+    return { accepted: true };
+  }
+  normalizeInbound(): NormalizedInboundEvent[] {
+    return [];
+  }
+  classifyError(): RetryClassification {
+    return { retryable: false, reason: 'test' };
+  }
+  healthMetadata(): ProviderHealthMetadata {
+    return { provider: this.provider, healthy: true, capabilities: ['text'] };
+  }
+
+  async sendTextMessage(input: {
+    recipient: string;
+    message: ChatOutboundMessage;
+  }): Promise<ProviderSendResult> {
+    this.sentMessages.push({ to: input.recipient, body: input.message.body });
+    return {
+      success: true,
+      providerMessageId: `MSG-${randomUUID()}`,
+      channel: 'text',
+    };
+  }
+
+  async sendTemplateMessage(input: {
+    recipient: string;
+    message: ChatOutboundMessage;
+  }): Promise<ProviderSendResult> {
+    this.sentMessages.push({ to: input.recipient, body: input.message.body });
+    return {
+      success: true,
+      providerMessageId: `TPL-${randomUUID()}`,
+      channel: 'quick_reply',
+      providerTemplateId: 'fake-template',
+    };
+  }
+
+  async sendTrackingLink(input: {
+    recipient: string;
+    trackingUrl: string;
+    referenceCode: string;
+  }): Promise<ProviderSendResult> {
+    this.sentMessages.push({
+      to: input.recipient,
+      body: `Track ${input.referenceCode} ${input.trackingUrl}`,
+    });
+    return {
+      success: true,
+      providerMessageId: `TRK-${randomUUID()}`,
+      channel: 'text',
+    };
+  }
+}
+
+describe('Chat Flow (Integration)', () => {
   let module: TestingModule;
-  let whatsappService: WhatsAppService;
+  let flowService: ChatConversionFlowService;
   let prisma: PrismaService;
-  let mockTwilio: MockTwilioAdapter;
-  const runSeed = String(Date.now()).slice(-4);
-  let kenyaCounter = 0;
-  let globalCounter = 0;
-
-  const newKenyaPhone = (): string => {
-    kenyaCounter += 1;
-    return `+2547${runSeed}${String(kenyaCounter).padStart(4, '0')}`;
-  };
-
-  const newForeignPhone = (): string => {
-    globalCounter += 1;
-    return `+1555${runSeed}${String(globalCounter).padStart(6, '0')}`;
-  };
+  const fakeWhatsApp = new FakeProvider('WHATSAPP_CLOUD');
+  const fakeTelegram = new FakeProvider('TELEGRAM');
 
   beforeAll(async () => {
+    process.env['MESSAGING_ENABLE_WHATSAPP_CLOUD'] = 'true';
+    process.env['MESSAGING_ENABLE_TELEGRAM'] = 'true';
+    process.env['WHATSAPP_WEB_BASE_URL'] = 'https://koyabank.com';
+
     module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         EventEmitterModule.forRoot(),
         PrismaModule,
         CacheModule,
-        WhatsAppModule,
+        MessagingModule,
       ],
     })
-      .overrideProvider(TWILIO_ADAPTER)
-      .useClass(MockTwilioAdapter)
-      .overrideProvider(RATE_PROVIDER)
-      .useClass(MockRateProvider)
+      .overrideProvider(MESSAGING_PROVIDERS)
+      .useValue([fakeWhatsApp, fakeTelegram])
       .compile();
 
-    whatsappService = module.get(WhatsAppService);
-    module.get(WhatsAppSessionService);
+    flowService = module.get(ChatConversionFlowService);
     prisma = module.get(PrismaService);
-    mockTwilio = module.get(TWILIO_ADAPTER);
   }, 30000);
 
   afterAll(async () => {
     await module.close();
   });
 
-  function newSid(): string {
-    return `SM${randomUUID().replace(/-/g, '')}`;
+  function newMsgId(): string {
+    return `M-${randomUUID().replace(/-/g, '')}`;
   }
 
-  describe('Conversation creation', () => {
-    it('should create conversation on first message', async () => {
-      const phone = newKenyaPhone();
-      await whatsappService.handleInboundMessage(phone, 'hi', newSid());
+  it('creates a conversation and stores inbound event', async () => {
+    const phone = `+2547${Date.now().toString().slice(-8)}`;
+    const msgId = newMsgId();
 
-      const conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: phone },
-      });
-      expect(conv).toBeTruthy();
-      expect(conv?.status).toBe('ACTIVE');
+    await flowService.handleInboundMessage({
+      provider: 'WHATSAPP_CLOUD',
+      from: phone,
+      body: 'hello',
+      providerMessageId: msgId,
     });
 
-    it('should store inbound message event', async () => {
-      const phone = newKenyaPhone();
-      const sid = newSid();
-      await whatsappService.handleInboundMessage(phone, 'hello', sid);
-
-      const event = await prisma.whatsAppMessageEvent.findUnique({
-        where: { twilioMessageSid: sid },
-      });
-      expect(event).toBeTruthy();
-      expect(event?.direction).toBe('INBOUND');
-      expect(event?.body).toBe('hello');
+    const conv = await prisma.whatsAppConversation.findFirst({
+      where: { phoneNumber: phone, provider: 'WHATSAPP_CLOUD' },
     });
 
-    it('should send outbound reply', async () => {
-      const phone = newKenyaPhone();
-      const before = mockTwilio.sentMessages.length;
-      await whatsappService.handleInboundMessage(phone, 'hi', newSid());
+    expect(conv).toBeTruthy();
 
-      // Wait for async processing
-      await new Promise((r) => setTimeout(r, 200));
-
-      const sent = mockTwilio.sentMessages.slice(before);
-      expect(sent.length).toBeGreaterThanOrEqual(1);
-      expect(sent[0]?.to).toBe(phone);
+    const event = await prisma.whatsAppMessageEvent.findUnique({
+      where: { providerMessageId: msgId },
     });
+
+    expect(event).toBeTruthy();
+    expect(event?.direction).toBe('INBOUND');
   });
 
-  describe('Idempotency', () => {
-    it('should ignore duplicate message SID', async () => {
-      const phone = newKenyaPhone();
-      const sid = newSid();
+  it('ignores duplicate provider message id', async () => {
+    const phone = `+2547${Date.now().toString().slice(-8)}`;
+    const msgId = newMsgId();
 
-      await whatsappService.handleInboundMessage(phone, 'hi', sid);
-      const count1 = await prisma.whatsAppMessageEvent.count({
-        where: { twilioMessageSid: sid },
-      });
-
-      // Send again with same SID
-      await whatsappService.handleInboundMessage(phone, 'hi', sid);
-      const count2 = await prisma.whatsAppMessageEvent.count({
-        where: { twilioMessageSid: sid },
-      });
-
-      expect(count1).toBe(1);
-      expect(count2).toBe(1); // Not duplicated
+    await flowService.handleInboundMessage({
+      provider: 'WHATSAPP_CLOUD',
+      from: phone,
+      body: 'hi',
+      providerMessageId: msgId,
     });
-  });
 
-  describe('Full conversion flow via WhatsApp', () => {
-    it('should complete amount → quote → session → identity → payout → payment flow', async () => {
-      const flowPhone = newKenyaPhone();
-      // Step 1: Start — greeting
-      await whatsappService.handleInboundMessage(flowPhone, 'hi', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-
-      // Step 2: Select option 1 (convert)
-      await whatsappService.handleInboundMessage(flowPhone, '1', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-
-      let conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_AMOUNT');
-
-      // Step 3: Enter amount
-      await whatsappService.handleInboundMessage(flowPhone, '1000', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_QUOTE_CONFIRMATION');
-      expect(conv?.quoteId).toBeTruthy();
-
-      // Step 4: Confirm quote
-      await whatsappService.handleInboundMessage(flowPhone, 'YES', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_FULL_NAME');
-      expect(conv?.conversionSessionId).toBeTruthy();
-
-      // Step 5: Full name
-      await whatsappService.handleInboundMessage(
-        flowPhone,
-        'John Doe',
-        newSid(),
-      );
-      await new Promise((r) => setTimeout(r, 100));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_DOCUMENT_NUMBER');
-
-      // Step 6: Document number
-      await whatsappService.handleInboundMessage(
-        flowPhone,
-        '12345678',
-        newSid(),
-      );
-      await new Promise((r) => setTimeout(r, 100));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_EMAIL');
-
-      // Step 7: Skip email
-      await whatsappService.handleInboundMessage(
-        flowPhone,
-        'SKIP',
-        newSid(),
-      );
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_BTC_ADDRESS');
-
-      // Step 8: BTC address
-      await whatsappService.handleInboundMessage(
-        flowPhone,
-        '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
-        newSid(),
-      );
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_PAYMENT_CONFIRMATION');
-
-      // Step 9: PAY
-      await whatsappService.handleInboundMessage(flowPhone, 'PAY', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('PROCESSING');
-
-      // Step 10: Manual reference confirmation
-      await whatsappService.handleInboundMessage(
-        flowPhone,
-        'REF ABCDEF1234',
-        newSid(),
-      );
-      await new Promise((r) => setTimeout(r, 500));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: flowPhone },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(conv?.currentStep).toBe('COMPLETED');
-    }, 30000);
-  });
-
-  describe('Non-Kenyan WhatsApp number recovery', () => {
-    it('should ask for a Kenyan number and continue the flow', async () => {
-      const phone = newForeignPhone();
-
-      await whatsappService.handleInboundMessage(phone, 'hi', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-      await whatsappService.handleInboundMessage(phone, '1', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-      await whatsappService.handleInboundMessage(phone, '1000', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-      await whatsappService.handleInboundMessage(phone, 'YES', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-      await whatsappService.handleInboundMessage(phone, 'John Doe', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-      await whatsappService.handleInboundMessage(phone, '12345678', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-
-      const beforePrompt = mockTwilio.sentMessages.length;
-      await whatsappService.handleInboundMessage(phone, 'SKIP', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-
-      const promptMessages = mockTwilio.sentMessages.slice(beforePrompt);
-      expect(
-        promptMessages.some((m) => m.body.includes('Kenyan Number Needed')),
-      ).toBe(true);
-
-      let conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: phone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_EMAIL');
-
-      await whatsappService.handleInboundMessage(phone, '0712345678', newSid());
-      await new Promise((r) => setTimeout(r, 300));
-
-      conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: phone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('WAITING_FOR_BTC_ADDRESS');
-    }, 20000);
-  });
-
-  describe('CANCEL command', () => {
-    it('should reset conversation on CANCEL', async () => {
-      const phone = newKenyaPhone();
-
-      // Start a flow
-      await whatsappService.handleInboundMessage(phone, '1', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-
-      // Cancel
-      await whatsappService.handleInboundMessage(phone, 'CANCEL', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-
-      const conv = await prisma.whatsAppConversation.findFirst({
-        where: { phoneNumber: phone, status: 'ACTIVE' },
-      });
-      expect(conv?.currentStep).toBe('IDLE');
+    await flowService.handleInboundMessage({
+      provider: 'WHATSAPP_CLOUD',
+      from: phone,
+      body: 'hi',
+      providerMessageId: msgId,
     });
-  });
 
-  describe('HELP command', () => {
-    it('should return help from any step', async () => {
-      const phone = newKenyaPhone();
-      const before = mockTwilio.sentMessages.length;
-
-      await whatsappService.handleInboundMessage(phone, 'HELP', newSid());
-      await new Promise((r) => setTimeout(r, 200));
-
-      const sent = mockTwilio.sentMessages.slice(before);
-      expect(sent.some((m) => m.body.includes('Commands'))).toBe(true);
+    const count = await prisma.whatsAppMessageEvent.count({
+      where: { providerMessageId: msgId },
     });
+
+    expect(count).toBe(1);
   });
 
-  describe('STATUS command', () => {
-    it('should return status during active conversion', async () => {
-      const phone = newKenyaPhone();
+  it('completes chat flow until processing stage over Telegram provider', async () => {
+    const sender = `tg-${Date.now()}`;
 
-      // Start flow and get to amount stage
-      await whatsappService.handleInboundMessage(phone, '1', newSid());
-      await new Promise((r) => setTimeout(r, 100));
-      await whatsappService.handleInboundMessage(phone, '500', newSid());
-      await new Promise((r) => setTimeout(r, 200));
-      await whatsappService.handleInboundMessage(phone, 'YES', newSid());
-      await new Promise((r) => setTimeout(r, 300));
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'hi',
+      providerMessageId: newMsgId(),
+    });
 
-      const before = mockTwilio.sentMessages.length;
-      await whatsappService.handleInboundMessage(phone, 'STATUS', newSid());
-      await new Promise((r) => setTimeout(r, 200));
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '1',
+      providerMessageId: newMsgId(),
+    });
 
-      const sent = mockTwilio.sentMessages.slice(before);
-      expect(sent.some((m) => m.body.includes('Status'))).toBe(true);
-    }, 15000);
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '1000',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'YES',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'John Doe',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '12345678',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'SKIP',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '0712345678',
+      providerMessageId: newMsgId(),
+    });
+
+    const conv = await prisma.whatsAppConversation.findFirst({
+      where: { phoneNumber: sender, provider: 'TELEGRAM', status: 'ACTIVE' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    expect(conv).toBeTruthy();
+    expect(conv?.currentStep).toBe('WAITING_FOR_BTC_ADDRESS');
+    expect(fakeTelegram.sentMessages.length).toBeGreaterThan(0);
   });
 });

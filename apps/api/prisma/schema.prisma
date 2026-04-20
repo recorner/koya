@@ -29,6 +29,7 @@ enum ConversionState {
 enum Channel {
   WEB
   WHATSAPP
+  TELEGRAM
 }
 
 enum GuestStatus {
@@ -106,6 +107,31 @@ enum WhatsAppConversationStatus {
 enum MessageDirection {
   INBOUND
   OUTBOUND
+}
+
+enum MessagingProvider {
+  WHATSAPP_CLOUD
+  TELEGRAM
+}
+
+enum MessagingEventType {
+  INBOUND_MESSAGE
+  PROVIDER_STATUS
+  SYSTEM
+}
+
+enum MessagingEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  DEAD_LETTER
+}
+
+enum MessagingDeliveryState {
+  SENT
+  FAILED
+  RETRYING
+  DEAD_LETTER
 }
 
 // ─── Models ───────────────────────────────────────────────────────
@@ -242,6 +268,7 @@ model ConversionStateEvent {
 model WhatsAppConversation {
   id                  String                     @id @default(uuid())
   phoneNumber         String                     @map("phone_number")
+  provider            MessagingProvider          @default(WHATSAPP_CLOUD)
   status              WhatsAppConversationStatus  @default(ACTIVE)
   currentStep         WhatsAppFlowStep            @default(IDLE) @map("current_step")
   conversionSessionId String?                    @unique @map("conversion_session_id")
@@ -256,7 +283,7 @@ model WhatsAppConversation {
   conversionSession ConversionSession? @relation(fields: [conversionSessionId], references: [id])
   messages          WhatsAppMessageEvent[]
 
-  @@index([phoneNumber, status])
+  @@index([provider, phoneNumber, status])
   @@map("whatsapp_conversations")
 }
 
@@ -264,9 +291,10 @@ model WhatsAppMessageEvent {
   id               String           @id @default(uuid())
   conversationId   String           @map("conversation_id")
   direction        MessageDirection
-  twilioMessageSid String           @unique @map("twilio_message_sid")
+  providerMessageId String          @unique @map("provider_message_id")
   body             String
   messageType      String           @default("text") @map("message_type")
+  provider         MessagingProvider @default(WHATSAPP_CLOUD)
   rawPayload       Json?            @map("raw_payload")
   createdAt        DateTime         @default(now()) @map("created_at")
 
@@ -274,6 +302,112 @@ model WhatsAppMessageEvent {
 
   @@index([conversationId])
   @@map("whatsapp_message_events")
+}
+
+model MessagingEvent {
+  id                   String               @id @default(uuid())
+  provider             MessagingProvider
+  providerAccountId    String?              @map("provider_account_id")
+  providerEventId      String               @map("provider_event_id")
+  providerMessageId    String?              @map("provider_message_id")
+  conversationExternalId String             @map("conversation_external_id")
+  senderExternalId     String               @map("sender_external_id")
+  eventType            MessagingEventType   @map("event_type")
+  eventStatus          MessagingEventStatus @default(RECEIVED) @map("event_status")
+  occurredAt           DateTime             @map("occurred_at")
+  checksum             String
+  idempotencyKey       String               @unique @map("idempotency_key")
+  correlationId        String?              @map("correlation_id")
+  causationId          String?              @map("causation_id")
+  payloadJson          Json                 @map("payload_json")
+  rawPayloadRef        String               @map("raw_payload_ref")
+  retryCount           Int                  @default(0) @map("retry_count")
+  nextRetryAt          DateTime?            @map("next_retry_at")
+  lastErrorType        String?              @map("last_error_type")
+  lastErrorMessage     String?              @map("last_error_message")
+  processedAt          DateTime?            @map("processed_at")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  deliveryAttempts MessagingDeliveryAttempt[]
+  deadLetters      MessagingDeadLetter[]
+
+  @@unique([provider, providerEventId], name: "messaging_event_provider_provider_event_id_key")
+  @@index([provider, providerMessageId])
+  @@index([eventStatus, nextRetryAt])
+  @@map("messaging_events")
+}
+
+model MessagingDeliveryAttempt {
+  id                String                @id @default(uuid())
+  messagingEventId  String                @map("messaging_event_id")
+  provider          MessagingProvider
+  conversationId    String?               @map("conversation_id")
+  correlationId     String?               @map("correlation_id")
+  attemptNumber     Int                   @map("attempt_number")
+  retryable         Boolean               @default(false)
+  errorType         String?               @map("error_type")
+  errorMessage      String?               @map("error_message")
+  providerMessageId String?               @map("provider_message_id")
+  state             MessagingDeliveryState @default(SENT)
+  nextRetryAt       DateTime?             @map("next_retry_at")
+  createdAt         DateTime              @default(now()) @map("created_at")
+
+  messagingEvent MessagingEvent @relation(fields: [messagingEventId], references: [id], onDelete: Cascade)
+
+  @@index([messagingEventId, attemptNumber])
+  @@map("messaging_delivery_attempts")
+}
+
+model MessagingDeadLetter {
+  id                String   @id @default(uuid())
+  messagingEventId  String   @map("messaging_event_id")
+  provider          MessagingProvider
+  conversationId    String?  @map("conversation_id")
+  correlationId     String   @map("correlation_id")
+  payloadRef        String   @map("payload_ref")
+  lastErrorType     String   @map("last_error_type")
+  lastErrorMessage  String   @map("last_error_message")
+  replayHint        String?  @map("replay_hint")
+  status            String   @default("OPEN")
+  resolvedAt        DateTime? @map("resolved_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  messagingEvent MessagingEvent @relation(fields: [messagingEventId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("messaging_dead_letters")
+}
+
+model MessagingTemplateDispatch {
+  id                 String            @id @default(uuid())
+  provider           MessagingProvider
+  conversationId     String?           @map("conversation_id")
+  templateKey        String            @map("template_key")
+  providerTemplateId String?           @map("provider_template_id")
+  providerMessageId  String?           @map("provider_message_id")
+  correlationId      String?           @map("correlation_id")
+  payloadJson        Json?             @map("payload_json")
+  createdAt          DateTime          @default(now()) @map("created_at")
+
+  @@index([provider, conversationId, createdAt])
+  @@map("messaging_template_dispatches")
+}
+
+model TrackingLinkDispatch {
+  id                String            @id @default(uuid())
+  provider          MessagingProvider
+  conversationId    String?           @map("conversation_id")
+  conversionSessionId String?         @map("conversion_session_id")
+  referenceCode     String            @map("reference_code")
+  trackingUrl       String            @map("tracking_url")
+  providerMessageId String?           @map("provider_message_id")
+  correlationId     String?           @map("correlation_id")
+  status            String            @default("SENT")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  @@index([conversionSessionId, createdAt])
+  @@map("tracking_link_dispatches")
 }
 
 // ─── Daraja & DFNS Tracking Models ────────────────────────────────

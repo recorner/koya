@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { WhatsAppQuickReplyButton } from '../providers/twilio-adapter.interface';
+import type { WhatsAppQuickReplyButton } from '../messaging/messaging.types';
 
 type TemplateTokenValue = string | number | boolean | null | undefined;
 
@@ -9,8 +9,8 @@ export interface WhatsAppTemplateDefinition {
   key: string;
   body: string;
   buttons: WhatsAppQuickReplyButton[] | null;
-  twilioContentSid?: string | null;
-  twilioContentHash?: string | null;
+  providerTemplateId?: string | null;
+  providerTemplateSignature?: string | null;
 }
 
 /**

@@ -18,7 +18,7 @@
 | 7 | **Next.js Web** | all | Frontend | HTTP 200 on `/` | Vercel in staging/prod, `next dev` local |
 | 8 | **Daraja / M-Pesa** | staging, prod | External | OAuth token fetch | Safaricom sandbox/production |
 | 9 | **Directus CMS** | staging, prod | Platform | `GET /server/health` | SQLite backend, Docker |
-| 10 | **Twilio / WhatsApp** | staging, prod | External | — | Webhook-driven |
+| 10 | **Meta WhatsApp Cloud + Telegram** | staging, prod | External | — | Webhook-driven messaging providers |
 | 11 | **Binance/Kraken** (rates) | all | External | `GET /api/v1/health/rates` | Rate providers with fallback |
 | 12 | **GitHub Actions** | CI | DevOps | — | CI/CD pipeline |
 | 13 | **Self-Hosted Runner** | CI | DevOps | — | EC2 t3.medium for nightly DFNS integration |
@@ -73,7 +73,8 @@ API ──► Safaricom Daraja (M-Pesa STK push + callbacks)
 API ──► Binance API (BTC/USD, BTC/USDT rates)
 API ──► Kraken API (BTC/USD rates)
 API ──► FX API (KES/USD rate)
-API ──► Twilio (WhatsApp messaging)
+API ──► Meta WhatsApp Cloud API (messaging + webhook)
+API ──► Telegram Bot API (messaging + webhook)
 API ──► DFNS API (PSBT signing, webhook)
 API ──► Bria (gRPC: payout, address, events)
 ```

@@ -8,15 +8,18 @@ export class WhatsAppIdempotencyService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Check if a Twilio message SID has already been processed
+   * Check if an inbound provider message id has already been processed.
    */
-  async isDuplicate(twilioMessageSid: string): Promise<boolean> {
+  async isDuplicate(
+    providerMessageId: string,
+    provider: 'WHATSAPP_CLOUD' | 'TELEGRAM' = 'WHATSAPP_CLOUD',
+  ): Promise<boolean> {
     const existing = await this.prisma.whatsAppMessageEvent.findUnique({
-      where: { twilioMessageSid },
+      where: { providerMessageId },
       select: { id: true },
     });
     if (existing) {
-      this.logger.debug(`Duplicate message SID: ${twilioMessageSid}`);
+      this.logger.debug(`Duplicate message id: ${providerMessageId} provider=${provider}`);
     }
     return !!existing;
   }

@@ -8,7 +8,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { CacheModule } from '../cache/cache.module';
 import { ApiSecurityModule } from '../security/api-security.module';
 import { ConversionModule } from '../conversion/conversion.module';
-import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { MessagingModule } from '../messaging/messaging.module';
 import { RatesModule } from '../rates/rates.module';
 import { DfnsModule } from '../dfns/dfns.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
@@ -23,7 +23,7 @@ import { OpsModule } from '../ops/ops.module';
     CacheModule,
     ApiSecurityModule,
     ConversionModule,
-    WhatsAppModule,
+    MessagingModule,
     RatesModule,
     DfnsModule,
     WebhooksModule,

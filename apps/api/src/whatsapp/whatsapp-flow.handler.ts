@@ -5,7 +5,7 @@ import { WhatsAppSessionService } from './whatsapp-session.service';
 import { WhatsAppParserService, type ParsedCommand } from './whatsapp-parser.service';
 import { WhatsAppTemplateService } from './whatsapp-template.service';
 import type { WhatsAppConversation } from '@prisma/client';
-import type { WhatsAppOutboundMessage } from '../providers/twilio-adapter.interface';
+import type { WhatsAppOutboundMessage } from '../messaging/messaging.types';
 
 interface ConversationMetadata {
   fullName?: string;

@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { Channel } from '@koya/types';
 
 export class QuoteRequestDto {
   @IsString()
@@ -15,6 +16,6 @@ export class QuoteRequestDto {
 
   @IsString()
   @IsNotEmpty()
-  @IsEnum(['WEB', 'WHATSAPP'])
+  @IsEnum(Channel)
   channel!: string;
 }

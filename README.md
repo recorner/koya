@@ -19,8 +19,8 @@ Koya converts KES to BTC via M-Pesa (Daraja STK push), with Bitcoin custody and 
 └──────────────┘          │              ┌─────┴──────┐                 │
                           │              ▼            ▼                 │
 ┌──────────────┐          │         PostgreSQL     Redis               │
-│  WhatsApp    │──Twilio─▶│              │                             │
-│  (Twilio)    │          │         Secrets Manager                    │
+│ WhatsApp +   │──Webhooks▶│              │                             │
+│ Telegram     │          │         Secrets Manager                    │
 └──────────────┘          │         CloudWatch / SNS / Alarms          │
                           └──────────────────────────────────────────────┘
                                          │
@@ -300,7 +300,7 @@ pnpm format                                 # Prettier
 | Cache | Redis (ioredis) |
 | BTC Custody | Bria (gRPC) + DFNS (signing) |
 | Payments | Safaricom M-Pesa Daraja |
-| Messaging | Twilio (WhatsApp) |
+| Messaging | Meta WhatsApp Cloud API + Telegram |
 | Infra | Terraform, ECS Fargate, ALB, WAF, CloudWatch |
 | CI/CD | GitHub Actions, Vercel CLI |
 

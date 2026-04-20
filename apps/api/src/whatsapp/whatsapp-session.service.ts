@@ -5,6 +5,7 @@ import type {
   WhatsAppConversation,
   WhatsAppFlowStep,
   WhatsAppConversationStatus,
+  MessagingProvider,
 } from '@prisma/client';
 
 @Injectable()
@@ -27,9 +28,10 @@ export class WhatsAppSessionService {
    */
   async findOrCreateConversation(
     phoneNumber: string,
+    provider: MessagingProvider = 'WHATSAPP_CLOUD',
   ): Promise<WhatsAppConversation> {
     const existing = await this.prisma.whatsAppConversation.findFirst({
-      where: { phoneNumber, status: 'ACTIVE' },
+      where: { phoneNumber, provider, status: 'ACTIVE' },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -37,17 +39,21 @@ export class WhatsAppSessionService {
       return existing;
     }
 
-    return this.createConversation(phoneNumber);
+    return this.createConversation(phoneNumber, provider);
   }
 
   /**
    * Create a fresh conversation
    */
-  async createConversation(phoneNumber: string): Promise<WhatsAppConversation> {
+  async createConversation(
+    phoneNumber: string,
+    provider: MessagingProvider = 'WHATSAPP_CLOUD',
+  ): Promise<WhatsAppConversation> {
     const now = new Date();
     return this.prisma.whatsAppConversation.create({
       data: {
         phoneNumber,
+        provider,
         status: 'ACTIVE',
         currentStep: 'IDLE',
         lastInboundAt: now,
@@ -166,9 +172,10 @@ export class WhatsAppSessionService {
    */
   async findBySessionId(
     conversionSessionId: string,
+    provider?: MessagingProvider,
   ): Promise<WhatsAppConversation | null> {
     return this.prisma.whatsAppConversation.findFirst({
-      where: { conversionSessionId, status: 'ACTIVE' },
+      where: { conversionSessionId, status: 'ACTIVE', ...(provider ? { provider } : {}) },
     });
   }
 

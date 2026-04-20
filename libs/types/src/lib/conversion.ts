@@ -21,6 +21,7 @@ export enum ConversionState {
 export enum Channel {
   WEB = 'WEB',
   WHATSAPP = 'WHATSAPP',
+  TELEGRAM = 'TELEGRAM',
 }
 
 /** Pay-in method */

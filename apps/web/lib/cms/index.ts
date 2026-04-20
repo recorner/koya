@@ -13,6 +13,7 @@ export type {
 } from './types';
 export {
   getGlobalSettings,
+  getBranding,
   getNavigation,
   getFooterColumns,
   getPageBySlug,

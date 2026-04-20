@@ -51,8 +51,11 @@ This checks:
 - [ ] `/koya/bria/signerEncryptionKey` — generated 32-byte hex
 - [ ] `/koya/bria/pgConnection` — real Bria PG connection
 - [ ] `/koya/bria/apiKey` — real Bria API key
-- [ ] `/koya/twilio/accountSid` — real Twilio SID
-- [ ] `/koya/twilio/authToken` — real Twilio token
+- [ ] `/koya/whatsapp/appSecret` — Meta app secret
+- [ ] `/koya/whatsapp/verifyToken` — Meta webhook verify token
+- [ ] `/koya/whatsapp/accessToken` — Meta Cloud API access token
+- [ ] `/koya/telegram/botToken` — Telegram bot token (if enabled)
+- [ ] `/koya/telegram/webhookSecret` — Telegram webhook secret (if enabled)
 - [ ] `/koya/directus/token` — real Directus token
 
 ### Compute & Networking

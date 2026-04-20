@@ -14,7 +14,7 @@ Internet → Route53 → ALB (443/HTTPS) → WAF → ECS Fargate Service → Con
 
 1. **AWS WAF:** Managed rules (OWASP, bad inputs, IP reputation) + rate-based rules
 2. **App-level throttling:** Redis-backed `@nestjs/throttler` per IP per endpoint class
-3. **Webhook signature verification:** DFNS HMAC, M-Pesa idempotency, Twilio validation
+3. **Webhook signature verification:** DFNS HMAC, M-Pesa idempotency, WhatsApp Cloud signature, Telegram webhook secret
 
 ### Container Startup
 

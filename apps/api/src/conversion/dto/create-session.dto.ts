@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum } from 'class-validator';
+import { Channel } from '@koya/types';
 
 export class CreateSessionDto {
   @IsString()
@@ -7,5 +8,6 @@ export class CreateSessionDto {
 
   @IsString()
   @IsNotEmpty()
+  @IsEnum(Channel)
   channel!: string;
 }

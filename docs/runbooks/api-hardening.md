@@ -42,7 +42,8 @@ Rate limiting is implemented in two layers:
 | **Status Polling** | `GET /guest-conversion/:id/status`, `/by-reference/:ref/status` | 60 req/min/IP | 500/5min/IP | MEDIUM | Frequent polling expected |
 | **M-Pesa Callback** | `POST /payments/mpesa/callback` | 120 req/min/IP | 1000/5min/IP | MEDIUM | Provider traffic, signature verified |
 | **DFNS Webhook** | `POST /dfns/webhook` | 120 req/min/IP | 1000/5min/IP | MEDIUM | Provider traffic, signature verified |
-| **WhatsApp Webhook** | `POST /whatsapp/webhook` | 120 req/min/IP | 1000/5min/IP | MEDIUM | Provider traffic |
+| **WhatsApp Cloud Webhook** | `POST /messaging/webhooks/whatsapp-cloud` | 120 req/min/IP | 1000/5min/IP | MEDIUM | Provider traffic, signature verified |
+| **Telegram Webhook** | `POST /messaging/webhooks/telegram` | 120 req/min/IP | 1000/5min/IP | MEDIUM | Provider traffic, secret-token verified |
 | **Health** | `GET /health`, `/health/*` | Skipped | 2000/5min/IP | LOW | ALB health checks |
 | **DFNS Internal Health** | `GET /internal/health/dfns` | Skipped | N/A | LOW | Internal route |
 

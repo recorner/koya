@@ -2,7 +2,7 @@ import { WhatsAppFlowHandler } from '../whatsapp-flow.handler';
 import { WhatsAppParserService } from '../whatsapp-parser.service';
 import { WhatsAppTemplateService } from '../whatsapp-template.service';
 import type { WhatsAppConversation } from '@prisma/client';
-import type { WhatsAppOutboundMessage } from '../../providers/twilio-adapter.interface';
+import type { WhatsAppOutboundMessage } from '../../messaging/messaging.types';
 
 describe('WhatsAppFlowHandler', () => {
   let handler: WhatsAppFlowHandler;
@@ -19,6 +19,7 @@ describe('WhatsAppFlowHandler', () => {
   const baseConversation: WhatsAppConversation = {
     id: 'conv-1',
     phoneNumber: '+254712345678',
+    provider: 'WHATSAPP_CLOUD',
     status: 'ACTIVE',
     currentStep: 'IDLE',
     conversionSessionId: null,

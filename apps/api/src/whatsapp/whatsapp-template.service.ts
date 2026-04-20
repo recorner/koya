@@ -4,7 +4,7 @@ import type { RateSnapshot } from '../rates/rates.types';
 import type {
   WhatsAppOutboundMessage,
   WhatsAppQuickReplyButton,
-} from '../providers/twilio-adapter.interface';
+} from '../messaging/messaging.types';
 import { WhatsAppCmsCopyService } from './whatsapp-cms-copy.service';
 
 const DEFAULT_TEMPLATES = {
@@ -477,8 +477,8 @@ export class WhatsAppTemplateService {
         cmsItemId: template?.id ?? null,
         bodyTemplate,
         buttons,
-        contentSid: template?.twilioContentSid ?? null,
-        contentSignature: template?.twilioContentHash ?? null,
+        providerTemplateId: template?.providerTemplateId ?? null,
+        providerTemplateSignature: template?.providerTemplateSignature ?? null,
       },
     };
   }

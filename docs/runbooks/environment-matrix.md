@@ -98,16 +98,22 @@
 | `FX_API_URL` | mock | Real API | Real API | ECS task def |
 | `FX_API_KEY` | mock | Secrets Manager | Secrets Manager | Secret |
 
-### WhatsApp / Twilio
+### Messaging Providers (WhatsApp Cloud + Telegram)
 
 | Variable | Local | Staging | Production | Source |
 |----------|-------|---------|------------|--------|
-| `TWILIO_ACCOUNT_SID` | mock | Secrets Manager | Secrets Manager | Secret |
-| `TWILIO_AUTH_TOKEN` | mock | Secrets Manager | Secrets Manager | Secret |
-| `TWILIO_WHATSAPP_NUMBER` | — | Twilio number | Twilio number | ECS task def |
+| `MESSAGING_ENABLE_WHATSAPP_CLOUD` | `true` | `true` | `true` | ECS task def |
+| `MESSAGING_ENABLE_TELEGRAM` | `true` | `true` | `true` | ECS task def |
+| `WHATSAPP_APP_SECRET` | local secret | Secrets Manager | Secrets Manager | Secret |
+| `WHATSAPP_VERIFY_TOKEN` | local token | Secrets Manager | Secrets Manager | Secret |
+| `WHATSAPP_ACCESS_TOKEN` | local token | Secrets Manager | Secrets Manager | Secret |
+| `WHATSAPP_PHONE_NUMBER_ID` | local id | Meta phone id | Meta phone id | ECS task def |
 | `WHATSAPP_SESSION_TTL_MINUTES` | `10` | `10` | `10` | ECS task def |
 | `WHATSAPP_RATE_LIMIT_PER_MINUTE` | `20` | `20` | `20` | ECS task def |
 | `WHATSAPP_WEB_BASE_URL` | `http://localhost:3000` | Preview URL | `https://koyabank.com` | ECS task def |
+| `TELEGRAM_BOT_TOKEN` | local token | Secrets Manager | Secrets Manager | Secret |
+| `TELEGRAM_WEBHOOK_SECRET` | local token | Secrets Manager | Secrets Manager | Secret |
+| `TELEGRAM_ALLOWED_IPS` | empty | optional allowlist | optional allowlist | ECS task def |
 
 ### Ops / AWS
 
@@ -173,8 +179,11 @@
 | `/koya/bria/signerEncryptionKey` | Bria | Signer encryption key (32-byte hex) |
 | `/koya/bria/pgConnection` | Bria | Bria PostgreSQL connection string |
 | `/koya/bria/apiKey` | API (ECS), Bria | Bria gRPC API key |
-| `/koya/twilio/accountSid` | API (ECS) | Twilio account SID |
-| `/koya/twilio/authToken` | API (ECS) | Twilio auth token |
+| `/koya/whatsapp/appSecret` | API (ECS) | Meta WhatsApp app secret |
+| `/koya/whatsapp/verifyToken` | API (ECS) | Meta WhatsApp verify token |
+| `/koya/whatsapp/accessToken` | API (ECS) | Meta WhatsApp Cloud API token |
+| `/koya/telegram/botToken` | API (ECS) | Telegram bot token |
+| `/koya/telegram/webhookSecret` | API (ECS) | Telegram webhook secret token |
 | `/koya/payload/previewUserEmail` | Web (Vercel) | Payload preview service account email |
 | `/koya/payload/previewUserPassword` | Web (Vercel) | Payload preview service account password |
 | `/koya/web/previewSecret` | Web (Vercel) | Preview endpoint secret (`/api/preview`) |

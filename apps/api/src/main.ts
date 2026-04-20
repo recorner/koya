@@ -25,8 +25,23 @@ async function bootstrap() {
   // Use express json/urlencoded with limits
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const express = require('express');
-  app.use(express.json({ limit: jsonLimit }));
-  app.use(express.urlencoded({ extended: true, limit: urlencodedLimit }));
+  app.use(
+    express.json({
+      limit: jsonLimit,
+      verify: (req: Request & { rawBody?: Buffer }, _res: Response, buf: Buffer) => {
+        req.rawBody = Buffer.from(buf);
+      },
+    }),
+  );
+  app.use(
+    express.urlencoded({
+      extended: true,
+      limit: urlencodedLimit,
+      verify: (req: Request & { rawBody?: Buffer }, _res: Response, buf: Buffer) => {
+        req.rawBody = Buffer.from(buf);
+      },
+    }),
+  );
 
   // ── Request correlation ID ───────────────────────────────────
   app.use((req: Request, res: Response, next: NextFunction) => {
