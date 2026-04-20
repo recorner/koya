@@ -24,6 +24,14 @@
         { "name": "MPESA_DRIVER", "value": "${MPESA_DRIVER}" },
         { "name": "MPESA_ENVIRONMENT", "value": "${MPESA_ENVIRONMENT}" },
         { "name": "BTC_DELIVERY_DRIVER", "value": "${BTC_DELIVERY_DRIVER}" },
+        { "name": "MESSAGING_ENABLE_WHATSAPP_CLOUD", "value": "${MESSAGING_ENABLE_WHATSAPP_CLOUD}" },
+        { "name": "MESSAGING_ENABLE_TELEGRAM", "value": "${MESSAGING_ENABLE_TELEGRAM}" },
+        { "name": "MESSAGING_MAX_RETRIES", "value": "${MESSAGING_MAX_RETRIES}" },
+        { "name": "MESSAGING_RETRY_BASE_MS", "value": "${MESSAGING_RETRY_BASE_MS}" },
+        { "name": "WHATSAPP_PHONE_NUMBER_ID", "value": "${WHATSAPP_PHONE_NUMBER_ID}" },
+        { "name": "WHATSAPP_CLOUD_API_VERSION", "value": "${WHATSAPP_CLOUD_API_VERSION}" },
+        { "name": "WHATSAPP_WEB_BASE_URL", "value": "${WHATSAPP_WEB_BASE_URL}" },
+        { "name": "TELEGRAM_ALLOWED_IPS", "value": "${TELEGRAM_ALLOWED_IPS}" },
         { "name": "CORS_ORIGINS", "value": "${CORS_ORIGINS}" },
         { "name": "REDIS_HOST", "value": "${REDIS_HOST}" },
         { "name": "REDIS_PORT", "value": "${REDIS_PORT}" },
@@ -59,7 +67,12 @@
         { "name": "DFNS_API_KEY", "valueFrom": "${SECRET_ARN_DFNS_API_KEY}" },
         { "name": "DFNS_WEBHOOK_SECRET", "valueFrom": "${SECRET_ARN_DFNS_WEBHOOK_SECRET}" },
         { "name": "BRIA_API_KEY", "valueFrom": "${SECRET_ARN_BRIA_API_KEY}" },
-        { "name": "FX_API_KEY", "valueFrom": "${SECRET_ARN_FX_API_KEY}" }
+        { "name": "FX_API_KEY", "valueFrom": "${SECRET_ARN_FX_API_KEY}" },
+        { "name": "WHATSAPP_APP_SECRET", "valueFrom": "${SECRET_ARN_WHATSAPP_APP_SECRET}" },
+        { "name": "WHATSAPP_VERIFY_TOKEN", "valueFrom": "${SECRET_ARN_WHATSAPP_VERIFY_TOKEN}" },
+        { "name": "WHATSAPP_ACCESS_TOKEN", "valueFrom": "${SECRET_ARN_WHATSAPP_ACCESS_TOKEN}" },
+        { "name": "TELEGRAM_BOT_TOKEN", "valueFrom": "${SECRET_ARN_TELEGRAM_BOT_TOKEN}" },
+        { "name": "TELEGRAM_WEBHOOK_SECRET", "valueFrom": "${SECRET_ARN_TELEGRAM_WEBHOOK_SECRET}" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",

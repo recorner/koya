@@ -37,6 +37,14 @@ resource "aws_ecs_task_definition" "api" {
         { name = "MPESA_DRIVER", value = var.mpesa_driver },
         { name = "MPESA_ENVIRONMENT", value = var.mpesa_environment },
         { name = "BTC_DELIVERY_DRIVER", value = var.btc_delivery_driver },
+        { name = "MESSAGING_ENABLE_WHATSAPP_CLOUD", value = var.messaging_enable_whatsapp_cloud },
+        { name = "MESSAGING_ENABLE_TELEGRAM", value = var.messaging_enable_telegram },
+        { name = "MESSAGING_MAX_RETRIES", value = var.messaging_max_retries },
+        { name = "MESSAGING_RETRY_BASE_MS", value = var.messaging_retry_base_ms },
+        { name = "WHATSAPP_PHONE_NUMBER_ID", value = var.whatsapp_phone_number_id },
+        { name = "WHATSAPP_CLOUD_API_VERSION", value = var.whatsapp_cloud_api_version },
+        { name = "WHATSAPP_WEB_BASE_URL", value = var.whatsapp_web_base_url },
+        { name = "TELEGRAM_ALLOWED_IPS", value = var.telegram_allowed_ips },
         { name = "CORS_ORIGINS", value = var.cors_origins },
         { name = "REDIS_HOST", value = var.redis_host },
         { name = "REDIS_PORT", value = var.redis_port },
@@ -72,6 +80,11 @@ resource "aws_ecs_task_definition" "api" {
         { name = "DFNS_WEBHOOK_SECRET", valueFrom = local.secrets["/koya/dfns/webhookSecret"] },
         { name = "BRIA_API_KEY", valueFrom = local.secrets["/koya/bria/apiKey"] },
         { name = "FX_API_KEY", valueFrom = local.secrets["/koya/api/FX_API_KEY"] },
+        { name = "WHATSAPP_APP_SECRET", valueFrom = local.secrets["/koya/whatsapp/appSecret"] },
+        { name = "WHATSAPP_VERIFY_TOKEN", valueFrom = local.secrets["/koya/whatsapp/verifyToken"] },
+        { name = "WHATSAPP_ACCESS_TOKEN", valueFrom = local.secrets["/koya/whatsapp/accessToken"] },
+        { name = "TELEGRAM_BOT_TOKEN", valueFrom = local.secrets["/koya/telegram/botToken"] },
+        { name = "TELEGRAM_WEBHOOK_SECRET", valueFrom = local.secrets["/koya/telegram/webhookSecret"] },
       ]
 
       logConfiguration = {

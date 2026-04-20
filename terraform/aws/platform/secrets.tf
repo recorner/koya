@@ -26,12 +26,20 @@ locals {
     "/koya/bria/pgConnection"        = "Bria PostgreSQL connection string"
     "/koya/bria/apiKey"              = "Bria API key"
 
-    # Twilio
-    "/koya/twilio/accountSid" = "Twilio account SID"
-    "/koya/twilio/authToken"  = "Twilio auth token"
+    # WhatsApp Cloud API
+    "/koya/whatsapp/appSecret"   = "Meta WhatsApp app secret for webhook signature verification"
+    "/koya/whatsapp/verifyToken" = "Meta WhatsApp webhook verify token"
+    "/koya/whatsapp/accessToken" = "Meta WhatsApp Cloud API access token"
 
-    # Directus
-    "/koya/directus/token" = "Directus CMS API token"
+    # Telegram Bot API
+    "/koya/telegram/botToken"      = "Telegram bot API token"
+    "/koya/telegram/webhookSecret" = "Telegram webhook secret token"
+
+    # Web / Payload preview
+    "/koya/payload/previewUserEmail"    = "Payload preview service account email for web draft mode fetches"
+    "/koya/payload/previewUserPassword" = "Payload preview service account password for web draft mode fetches"
+    "/koya/web/previewSecret"           = "Koya web preview endpoint secret"
+    "/koya/web/revalidateWebhookSecret" = "HMAC secret for signed Payload publish revalidation webhooks"
   }
 }
 

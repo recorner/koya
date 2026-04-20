@@ -37,6 +37,11 @@ if ! command -v jq &>/dev/null; then
   exit 1
 fi
 
+if ! command -v envsubst &>/dev/null; then
+  echo "ERROR: envsubst is required."
+  exit 1
+fi
+
 # ── Resolve Terraform outputs ────────────────────────────────────
 
 echo ""
@@ -56,7 +61,6 @@ EXECUTION_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "ecs_execution_role_ar
 API_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_task_role_arn")
 MIGRATE_TASK_ROLE_ARN=$(get_tf_output "${TF_FOUNDATION_DIR}" "migrate_task_role_arn")
 LOG_GROUP_NAME=$(get_tf_output "${TF_FOUNDATION_DIR}" "api_log_group_name")
-AWS_ACCOUNT_ID=$(get_tf_output "${TF_FOUNDATION_DIR}" "aws_account_id")
 
 # Platform outputs
 ECR_REPO_URL=$(get_tf_output "${TF_PLATFORM_DIR}" "ecr_repository_url")
@@ -64,11 +68,23 @@ ECR_REPO_URL=$(get_tf_output "${TF_PLATFORM_DIR}" "ecr_repository_url")
 # Build image URI
 export IMAGE_URI="${ECR_REPO_URL}:${IMAGE_TAG}"
 
+for var_name in EXECUTION_ROLE_ARN API_TASK_ROLE_ARN MIGRATE_TASK_ROLE_ARN LOG_GROUP_NAME ECR_REPO_URL; do
+  if [[ -z "${!var_name}" ]]; then
+    echo "ERROR: Missing required Terraform output: ${var_name}"
+    exit 1
+  fi
+done
+
 # ── Resolve secret ARNs ─────────────────────────────────────────
 
 echo "=== Resolving secret ARNs ==="
 
 SECRETS_MAP="${REPO_ROOT}/infra/secrets-map.json"
+
+if [[ ! -f "${SECRETS_MAP}" ]]; then
+  echo "ERROR: Secrets map not found: ${SECRETS_MAP}"
+  exit 1
+fi
 
 resolve_secret_arn() {
   local logical_name="$1"
@@ -80,22 +96,43 @@ resolve_secret_arn() {
     return 1
   fi
 
-  aws secretsmanager describe-secret \
+  local arn
+  arn=$(aws secretsmanager describe-secret \
     --secret-id "${path}" \
     --region "${AWS_REGION}" \
     --query 'ARN' \
-    --output text 2>/dev/null || echo ""
+    --output text 2>/dev/null || true)
+
+  if [[ -z "${arn}" ]] || [[ "${arn}" == "None" ]]; then
+    echo "ERROR: Could not resolve ARN for ${logical_name} at path ${path}" >&2
+    return 1
+  fi
+
+  echo "${arn}"
 }
 
-export SECRET_ARN_DATABASE_URL=$(resolve_secret_arn "DATABASE_URL")
-export SECRET_ARN_REDIS_PASSWORD=$(resolve_secret_arn "REDIS_PASSWORD")
-export SECRET_ARN_MPESA_CONSUMER_KEY=$(resolve_secret_arn "MPESA_CONSUMER_KEY")
-export SECRET_ARN_MPESA_CONSUMER_SECRET=$(resolve_secret_arn "MPESA_CONSUMER_SECRET")
-export SECRET_ARN_MPESA_PASSKEY=$(resolve_secret_arn "MPESA_PASSKEY")
-export SECRET_ARN_DFNS_API_KEY=$(resolve_secret_arn "DFNS_API_KEY")
-export SECRET_ARN_DFNS_WEBHOOK_SECRET=$(resolve_secret_arn "DFNS_WEBHOOK_SECRET")
-export SECRET_ARN_BRIA_API_KEY=$(resolve_secret_arn "BRIA_API_KEY")
-export SECRET_ARN_FX_API_KEY=$(resolve_secret_arn "FX_API_KEY")
+set_secret_arn_env() {
+  local logical_name="$1"
+  local env_name="$2"
+  local arn
+  arn=$(resolve_secret_arn "${logical_name}")
+  export "${env_name}=${arn}"
+}
+
+set_secret_arn_env "DATABASE_URL" "SECRET_ARN_DATABASE_URL"
+set_secret_arn_env "REDIS_PASSWORD" "SECRET_ARN_REDIS_PASSWORD"
+set_secret_arn_env "MPESA_CONSUMER_KEY" "SECRET_ARN_MPESA_CONSUMER_KEY"
+set_secret_arn_env "MPESA_CONSUMER_SECRET" "SECRET_ARN_MPESA_CONSUMER_SECRET"
+set_secret_arn_env "MPESA_PASSKEY" "SECRET_ARN_MPESA_PASSKEY"
+set_secret_arn_env "DFNS_API_KEY" "SECRET_ARN_DFNS_API_KEY"
+set_secret_arn_env "DFNS_WEBHOOK_SECRET" "SECRET_ARN_DFNS_WEBHOOK_SECRET"
+set_secret_arn_env "BRIA_API_KEY" "SECRET_ARN_BRIA_API_KEY"
+set_secret_arn_env "FX_API_KEY" "SECRET_ARN_FX_API_KEY"
+set_secret_arn_env "WHATSAPP_APP_SECRET" "SECRET_ARN_WHATSAPP_APP_SECRET"
+set_secret_arn_env "WHATSAPP_VERIFY_TOKEN" "SECRET_ARN_WHATSAPP_VERIFY_TOKEN"
+set_secret_arn_env "WHATSAPP_ACCESS_TOKEN" "SECRET_ARN_WHATSAPP_ACCESS_TOKEN"
+set_secret_arn_env "TELEGRAM_BOT_TOKEN" "SECRET_ARN_TELEGRAM_BOT_TOKEN"
+set_secret_arn_env "TELEGRAM_WEBHOOK_SECRET" "SECRET_ARN_TELEGRAM_WEBHOOK_SECRET"
 
 # ── Export all needed vars ───────────────────────────────────────
 

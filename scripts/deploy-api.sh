@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# deploy-api.sh — Build, push, migrate, and deploy the Koya API.
+# deploy-api.sh — Build, push, register task definitions, migrate, and deploy the Koya API.
 #
 # Usage:
 #   ./scripts/deploy-api.sh <environment> [image-tag] [--build] [--skip-migrate]
@@ -12,9 +12,10 @@ set -euo pipefail
 #   1. Loads environment config (no hardcoded values)
 #   2. Resolves Terraform outputs for subnets, SGs, cluster, service
 #   3. Optionally builds & pushes the Docker image
-#   4. Runs the migration task
-#   5. Waits for migration to complete
-#   6. Updates the ECS service (force new deployment)
+#   4. Renders task definitions from env + Terraform + secrets-map
+#   5. Registers new migrate/API task definition revisions
+#   6. Runs the migration task on the newly-registered migrate revision
+#   7. Updates the ECS service to the newly-registered API revision
 #
 # Prerequisites:
 #   - AWS CLI configured
@@ -74,6 +75,10 @@ CLUSTER=$(get_tf_output "${TF_PLATFORM}" "ecs_cluster_name")
 SERVICE=$(get_tf_output "${TF_APPLICATION}" "api_service_name")
 
 IMAGE_URI="${ECR_REPO_URL}:${IMAGE_TAG}"
+ASSIGN_PUBLIC_IP_MODE="ENABLED"
+if [[ "${ASSIGN_PUBLIC_IP:-true}" != "true" ]]; then
+  ASSIGN_PUBLIC_IP_MODE="DISABLED"
+fi
 
 echo "  Cluster:   ${CLUSTER}"
 echo "  Service:   ${SERVICE}"
@@ -106,17 +111,55 @@ if [[ "${BUILD_IMAGE}" == "true" ]]; then
   echo "Image pushed: ${IMAGE_URI}"
 fi
 
+# ── Render + register task definitions ──────────────────────────
+
+echo ""
+echo "=== Step 1: Render and register task definitions ==="
+
+"${SCRIPT_DIR}/render-task-definitions.sh" "${KOYA_ENV}" "${IMAGE_TAG}"
+
+RENDERED_DIR="${REPO_ROOT}/infra/rendered"
+API_TASK_DEF_PATH="${RENDERED_DIR}/ecs-task-definition.json"
+MIGRATE_TASK_DEF_PATH="${RENDERED_DIR}/ecs-migrate-task-definition.json"
+
+if [[ ! -f "${API_TASK_DEF_PATH}" ]] || [[ ! -f "${MIGRATE_TASK_DEF_PATH}" ]]; then
+  echo "ERROR: Rendered task definitions not found under ${RENDERED_DIR}"
+  exit 1
+fi
+
+MIGRATE_TASK_DEF_ARN=$(aws ecs register-task-definition \
+  --cli-input-json "file://${MIGRATE_TASK_DEF_PATH}" \
+  --region "${AWS_REGION}" \
+  --query 'taskDefinition.taskDefinitionArn' \
+  --output text)
+
+API_TASK_DEF_ARN=$(aws ecs register-task-definition \
+  --cli-input-json "file://${API_TASK_DEF_PATH}" \
+  --region "${AWS_REGION}" \
+  --query 'taskDefinition.taskDefinitionArn' \
+  --output text)
+
+for var_name in MIGRATE_TASK_DEF_ARN API_TASK_DEF_ARN; do
+  if [[ -z "${!var_name}" ]] || [[ "${!var_name}" == "None" ]]; then
+    echo "ERROR: Failed to register task definition (${var_name})"
+    exit 1
+  fi
+done
+
+echo "Registered migrate task definition: ${MIGRATE_TASK_DEF_ARN}"
+echo "Registered API task definition:     ${API_TASK_DEF_ARN}"
+
 # ── Run database migrations ──────────────────────────────────────
 
 if [[ "${SKIP_MIGRATE}" != "true" ]]; then
   echo ""
-  echo "=== Step 1: Run database migrations ==="
+  echo "=== Step 2: Run database migrations ==="
 
   TASK_ARN=$(aws ecs run-task \
     --cluster "${CLUSTER}" \
-    --task-definition "${MIGRATE_TASK_FAMILY}" \
+    --task-definition "${MIGRATE_TASK_DEF_ARN}" \
     --launch-type FARGATE \
-    --network-configuration "awsvpcConfiguration={subnets=[${SUBNETS}],securityGroups=[${SECURITY_GROUP}],assignPublicIp=ENABLED}" \
+    --network-configuration "awsvpcConfiguration={subnets=[${SUBNETS}],securityGroups=[${SECURITY_GROUP}],assignPublicIp=${ASSIGN_PUBLIC_IP_MODE}}" \
     --region "${AWS_REGION}" \
     --query 'tasks[0].taskArn' \
     --output text)
@@ -138,7 +181,7 @@ if [[ "${SKIP_MIGRATE}" != "true" ]]; then
 
   if [[ "${EXIT_CODE}" != "0" ]]; then
     echo "ERROR: Migration task failed with exit code ${EXIT_CODE}"
-    echo "Check CloudWatch logs for: ${MIGRATE_TASK_FAMILY}"
+    echo "Check CloudWatch logs for task definition: ${MIGRATE_TASK_DEF_ARN}"
     exit 1
   fi
 
@@ -148,18 +191,20 @@ fi
 # ── Update ECS service ───────────────────────────────────────────
 
 echo ""
-echo "=== Step 2: Update API service ==="
+echo "=== Step 3: Update API service ==="
 
 aws ecs update-service \
   --cluster "${CLUSTER}" \
   --service "${SERVICE}" \
+  --task-definition "${API_TASK_DEF_ARN}" \
   --force-new-deployment \
   --region "${AWS_REGION}" \
-  --query 'service.deployments[0].status' \
+  --query 'service.taskDefinition' \
   --output text
 
 echo ""
 echo "API service update triggered."
+echo "Service pinned to task definition: ${API_TASK_DEF_ARN}"
 echo ""
 echo "Monitor with:"
 echo "  aws ecs describe-services --cluster ${CLUSTER} --services ${SERVICE} --region ${AWS_REGION}"
@@ -169,7 +214,7 @@ echo ""
 
 if [[ -n "${API_SUBDOMAIN:-}" ]] && [[ -n "${DOMAIN_NAME:-}" ]]; then
   HEALTH_URL="https://${API_SUBDOMAIN}.${DOMAIN_NAME}/api/v1/health"
-  echo "=== Step 3: Verify health ==="
+  echo "=== Step 4: Verify health ==="
   echo "Waiting 30 seconds for new tasks to register..."
 
   sleep 30

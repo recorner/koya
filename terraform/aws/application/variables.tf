@@ -105,6 +105,46 @@ variable "btc_delivery_driver" {
   default = "dfns"
 }
 
+variable "messaging_enable_whatsapp_cloud" {
+  type    = string
+  default = "true"
+}
+
+variable "messaging_enable_telegram" {
+  type    = string
+  default = "true"
+}
+
+variable "messaging_max_retries" {
+  type    = string
+  default = "4"
+}
+
+variable "messaging_retry_base_ms" {
+  type    = string
+  default = "1200"
+}
+
+variable "whatsapp_phone_number_id" {
+  type    = string
+  default = ""
+}
+
+variable "whatsapp_cloud_api_version" {
+  type    = string
+  default = "v21.0"
+}
+
+variable "whatsapp_web_base_url" {
+  type    = string
+  default = "https://koyabank.com"
+}
+
+variable "telegram_allowed_ips" {
+  type    = string
+  default = ""
+}
+
 variable "cors_origins" {
   type    = string
   default = "https://koyabank.com,https://www.koyabank.com"

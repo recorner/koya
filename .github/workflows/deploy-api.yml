@@ -15,10 +15,6 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: koya/api
-  ECS_CLUSTER: koya
-  ECS_SERVICE: koya-api
-  TASK_FAMILY: koya-api
 
 jobs:
   deploy:
@@ -39,44 +35,5 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push image
-        env:
-          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -f apps/api/Dockerfile \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
-            .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Force new deployment
-        run: |
-          aws ecs update-service \
-            --cluster $ECS_CLUSTER \
-            --service $ECS_SERVICE \
-            --force-new-deployment \
-            --region $AWS_REGION
-
-      - name: Wait for deployment
-        run: |
-          echo "Waiting for ECS service to stabilize..."
-          aws ecs wait services-stable \
-            --cluster $ECS_CLUSTER \
-            --services $ECS_SERVICE \
-            --region $AWS_REGION
-          echo "Deployment complete."
-
-      - name: Verify health
-        run: |
-          # Give ALB time to register healthy target
-          sleep 10
-          HEALTH=$(curl -sf https://api.koyabank.com/api/v1/health 2>/dev/null || echo '{"status":"unreachable"}')
-          echo "Health: $HEALTH"
-          echo "$HEALTH" | grep -q '"status":"ok"' || echo "::warning::API health check returned unexpected response"
+      - name: Build, register task definitions, migrate, and deploy
+        run: ./scripts/deploy-api.sh production "${{ github.sha }}" --build

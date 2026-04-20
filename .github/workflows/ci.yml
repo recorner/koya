@@ -305,69 +305,8 @@ jobs:
           docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}"
           docker push "${{ steps.infra.outputs.ecr_repo_url }}:latest"
 
-      - name: Run database migrations
-        run: |
-          source scripts/load-env.sh staging
-
-          TASK_ARN=$(aws ecs run-task \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --task-definition "${MIGRATE_TASK_FAMILY}" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.infra.outputs.subnets }}],securityGroups=[${{ steps.infra.outputs.security_group }}],assignPublicIp=ENABLED}" \
-            --region us-east-1 \
-            --query 'tasks[0].taskArn' \
-            --output text)
-
-          echo "Migration task: ${TASK_ARN}"
-          aws ecs wait tasks-stopped \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --tasks "${TASK_ARN}" \
-            --region us-east-1
-
-          EXIT_CODE=$(aws ecs describe-tasks \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --tasks "${TASK_ARN}" \
-            --region us-east-1 \
-            --query 'tasks[0].containers[0].exitCode' \
-            --output text)
-
-          if [[ "${EXIT_CODE}" != "0" ]]; then
-            echo "::error::Migration failed with exit code ${EXIT_CODE}"
-            exit 1
-          fi
-          echo "Migrations completed successfully."
-
-      - name: Deploy ECS service
-        run: |
-          aws ecs update-service \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --service "${{ steps.infra.outputs.service }}" \
-            --force-new-deployment \
-            --region us-east-1 \
-            --query 'service.deployments[0].status' \
-            --output text
-
-      - name: Health check
-        run: |
-          echo "Waiting 60s for new tasks to register..."
-          sleep 60
-
-          HEALTH_URL="https://api.koyabank.com/api/v1/health"
-          MAX_RETRIES=5
-          RETRY_DELAY=15
-
-          for i in $(seq 1 ${MAX_RETRIES}); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || echo "000")
-            if [[ "${HTTP_CODE}" == "200" ]]; then
-              echo "Health check passed: ${HEALTH_URL} → ${HTTP_CODE}"
-              exit 0
-            fi
-            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_CODE}. Retrying in ${RETRY_DELAY}s..."
-            sleep ${RETRY_DELAY}
-          done
-
-          echo "::error::Health check failed after ${MAX_RETRIES} attempts"
-          exit 1
+      - name: Register task definitions, migrate, and deploy
+        run: ./scripts/deploy-api.sh staging "${{ github.sha }}"
 
   # ──────────────────────────────────────────────
   # API: Build, push, migrate, deploy (production)
@@ -437,69 +376,8 @@ jobs:
           docker push "${{ steps.infra.outputs.ecr_repo_url }}:${{ env.RELEASE_VERSION }}"
           docker push "${{ steps.infra.outputs.ecr_repo_url }}:latest"
 
-      - name: Run database migrations
-        run: |
-          source scripts/load-env.sh production
-
-          TASK_ARN=$(aws ecs run-task \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --task-definition "${MIGRATE_TASK_FAMILY}" \
-            --launch-type FARGATE \
-            --network-configuration "awsvpcConfiguration={subnets=[${{ steps.infra.outputs.subnets }}],securityGroups=[${{ steps.infra.outputs.security_group }}],assignPublicIp=ENABLED}" \
-            --region us-east-1 \
-            --query 'tasks[0].taskArn' \
-            --output text)
-
-          echo "Migration task: ${TASK_ARN}"
-          aws ecs wait tasks-stopped \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --tasks "${TASK_ARN}" \
-            --region us-east-1
-
-          EXIT_CODE=$(aws ecs describe-tasks \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --tasks "${TASK_ARN}" \
-            --region us-east-1 \
-            --query 'tasks[0].containers[0].exitCode' \
-            --output text)
-
-          if [[ "${EXIT_CODE}" != "0" ]]; then
-            echo "::error::Migration failed with exit code ${EXIT_CODE}"
-            exit 1
-          fi
-          echo "Migrations completed successfully."
-
-      - name: Deploy ECS service
-        run: |
-          aws ecs update-service \
-            --cluster "${{ steps.infra.outputs.cluster }}" \
-            --service "${{ steps.infra.outputs.service }}" \
-            --force-new-deployment \
-            --region us-east-1 \
-            --query 'service.deployments[0].status' \
-            --output text
-
-      - name: Health check
-        run: |
-          echo "Waiting 60s for new tasks to register..."
-          sleep 60
-
-          HEALTH_URL="https://api.koyabank.com/api/v1/health"
-          MAX_RETRIES=5
-          RETRY_DELAY=15
-
-          for i in $(seq 1 ${MAX_RETRIES}); do
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || echo "000")
-            if [[ "${HTTP_CODE}" == "200" ]]; then
-              echo "Health check passed: ${HEALTH_URL} → ${HTTP_CODE}"
-              exit 0
-            fi
-            echo "Attempt ${i}/${MAX_RETRIES}: HTTP ${HTTP_CODE}. Retrying in ${RETRY_DELAY}s..."
-            sleep ${RETRY_DELAY}
-          done
-
-          echo "::error::Health check failed after ${MAX_RETRIES} attempts"
-          exit 1
+      - name: Register task definitions, migrate, and deploy
+        run: ./scripts/deploy-api.sh production "${{ github.sha }}"
 
   # ──────────────────────────────────────────────
   # Infra: Terraform plan (apply is manual)

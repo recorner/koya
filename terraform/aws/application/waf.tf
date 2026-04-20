@@ -196,7 +196,22 @@ resource "aws_wafv2_web_acl" "api" {
             }
             statement {
               byte_match_statement {
-                search_string         = "/api/v1/whatsapp/webhook"
+                search_string         = "/api/v1/messaging/webhooks/whatsapp-cloud"
+                positional_constraint = "STARTS_WITH"
+
+                field_to_match {
+                  uri_path {}
+                }
+
+                text_transformation {
+                  priority = 0
+                  type     = "LOWERCASE"
+                }
+              }
+            }
+            statement {
+              byte_match_statement {
+                search_string         = "/api/v1/messaging/webhooks/telegram"
                 positional_constraint = "STARTS_WITH"
 
                 field_to_match {
