@@ -170,12 +170,41 @@ resource "aws_iam_role" "migrate_task" {
   }
 }
 
+# ── Bria Task Role ───────────────────────────────────────────────
+
+resource "aws_iam_role" "bria_task" {
+  name = "${var.project}-bria-task-role-${var.environment}"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Component = "iam"
+  }
+}
+
 # ── GitHub Actions Deploy Role (OIDC) ───────────────────────────
 
 data "aws_caller_identity" "current" {}
 
+data "aws_iam_openid_connect_provider" "github_existing" {
+  count = var.github_oidc_provider_arn != "" ? 1 : 0
+  arn   = var.github_oidc_provider_arn
+}
+
 resource "aws_iam_openid_connect_provider" "github" {
-  url = "https://token.actions.githubusercontent.com"
+  count = var.github_oidc_provider_arn == "" ? 1 : 0
+  url   = "https://token.actions.githubusercontent.com"
 
   client_id_list = ["sts.amazonaws.com"]
 
@@ -185,6 +214,10 @@ resource "aws_iam_openid_connect_provider" "github" {
   tags = {
     Component = "github-actions"
   }
+}
+
+locals {
+  github_oidc_provider_arn = var.github_oidc_provider_arn != "" ? data.aws_iam_openid_connect_provider.github_existing[0].arn : aws_iam_openid_connect_provider.github[0].arn
 }
 
 resource "aws_iam_role" "github_actions_deploy" {
@@ -197,7 +230,7 @@ resource "aws_iam_role" "github_actions_deploy" {
         Effect = "Allow"
         Action = "sts:AssumeRoleWithWebIdentity"
         Principal = {
-          Federated = aws_iam_openid_connect_provider.github.arn
+          Federated = local.github_oidc_provider_arn
         }
         Condition = {
           StringLike = {
@@ -258,7 +291,8 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
         Resource = [
           aws_iam_role.ecs_execution.arn,
           aws_iam_role.api_task.arn,
-          aws_iam_role.migrate_task.arn
+          aws_iam_role.migrate_task.arn,
+          aws_iam_role.bria_task.arn
         ]
       }
     ]

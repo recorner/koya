@@ -44,6 +44,11 @@ output "migrate_task_role_arn" {
   description = "Migrate task role ARN"
 }
 
+output "bria_task_role_arn" {
+  value       = aws_iam_role.bria_task.arn
+  description = "Bria task role ARN"
+}
+
 output "github_actions_role_arn" {
   value       = aws_iam_role.github_actions_deploy.arn
   description = "GitHub Actions deploy role ARN"
@@ -58,6 +63,11 @@ output "api_log_group_name" {
 output "migrate_log_group_name" {
   value       = aws_cloudwatch_log_group.migrate.name
   description = "Migrate task CloudWatch log group name"
+}
+
+output "bria_log_group_name" {
+  value       = aws_cloudwatch_log_group.bria.name
+  description = "Bria task CloudWatch log group name"
 }
 
 # Region & Account

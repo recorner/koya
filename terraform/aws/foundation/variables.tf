@@ -52,13 +52,13 @@ variable "private_subnet_cidrs" {
 
 variable "db_cidr_blocks" {
   type        = list(string)
-  default     = ["34.79.165.195/32"]
+  default     = ["34.62.75.187/32"]
   description = "CIDR blocks for external database access (e.g. GCP cassini)"
 }
 
 variable "redis_cidr_blocks" {
   type        = list(string)
-  default     = ["34.79.165.195/32"]
+  default     = ["34.62.75.187/32"]
   description = "CIDR blocks for external Redis access"
 }
 
@@ -68,4 +68,12 @@ variable "log_retention_days" {
   type        = number
   default     = 30
   description = "CloudWatch log group retention in days"
+}
+
+# ── IAM / OIDC ───────────────────────────────────────────────────
+
+variable "github_oidc_provider_arn" {
+  type        = string
+  default     = ""
+  description = "Existing GitHub OIDC provider ARN to reuse (optional)"
 }

@@ -17,3 +17,12 @@ resource "aws_cloudwatch_log_group" "migrate" {
     Component = "logs"
   }
 }
+
+resource "aws_cloudwatch_log_group" "bria" {
+  name              = "/ecs/${var.project}-bria-${var.environment}"
+  retention_in_days = var.log_retention_days
+
+  tags = {
+    Component = "logs"
+  }
+}

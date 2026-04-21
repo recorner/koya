@@ -73,6 +73,10 @@ if ! command -v envsubst &>/dev/null; then
   exit 1
 fi
 
+export BRIA_STREAM_RECONNECT_BASE_MS="${BRIA_STREAM_RECONNECT_BASE_MS:-1000}"
+export BRIA_STREAM_RECONNECT_MAX_MS="${BRIA_STREAM_RECONNECT_MAX_MS:-30000}"
+export BRIA_STREAM_RECONNECT_JITTER_MS="${BRIA_STREAM_RECONNECT_JITTER_MS:-500}"
+
 normalize_ecr_repo_url() {
   local image="$1"
   local repo="${image%@*}"
@@ -191,10 +195,16 @@ if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
     REDIS_DB \
     MPESA_ENVIRONMENT \
     BTC_DELIVERY_DRIVER \
+    BTC_NETWORK \
     BRIA_API_HOST \
     BRIA_API_PORT \
+    BRIA_NETWORK \
+    BRIA_ELECTRUM_URL \
     BRIA_WALLET_NAME \
     BRIA_XPUB_REF \
+    BRIA_STREAM_RECONNECT_BASE_MS \
+    BRIA_STREAM_RECONNECT_MAX_MS \
+    BRIA_STREAM_RECONNECT_JITTER_MS \
     DFNS_API_URL \
     DFNS_APP_ID \
     DFNS_WALLET_ID \

@@ -22,9 +22,12 @@ locals {
     "/koya/dfns/webhookSecret" = "DFNS webhook HMAC secret"
 
     # Bria
-    "/koya/bria/signerEncryptionKey" = "Bria signer encryption key"
-    "/koya/bria/pgConnection"        = "Bria PostgreSQL connection string"
-    "/koya/bria/apiKey"              = "Bria API key"
+    "/koya/bria/signerEncryptionKey"      = "Bria signer encryption key"
+    "/koya/bria/pgConnection"             = "Bria PostgreSQL connection string"
+    "/koya/bria/apiKey"                   = "Bria API key"
+    "/koya/bria/adminApiKey"              = "Bria admin API key"
+    "/koya/bria/walletDescriptorExternal" = "Bria signing descriptor for external receive path"
+    "/koya/bria/walletDescriptorInternal" = "Bria signing descriptor for internal change path"
 
     # WhatsApp Cloud API
     "/koya/whatsapp/appSecret"   = "Meta WhatsApp app secret for webhook signature verification"
@@ -58,7 +61,7 @@ resource "aws_secretsmanager_secret" "koya" {
 
 # Seed with placeholder value so ECS can start
 resource "aws_secretsmanager_secret_version" "koya_placeholder" {
-  for_each = local.secrets
+  for_each = var.environment == "production" ? {} : local.secrets
 
   secret_id     = aws_secretsmanager_secret.koya[each.key].id
   secret_string = "PLACEHOLDER_REPLACE_ME"

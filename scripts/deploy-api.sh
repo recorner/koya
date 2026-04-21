@@ -29,6 +29,8 @@ KOYA_ENV="${1:-}"
 IMAGE_TAG="latest"
 BUILD_IMAGE=false
 SKIP_MIGRATE=false
+WITH_BRIA=false
+BUILD_BRIA_IMAGE=false
 LIVE_ECS_MODE=false
 LIVE_CLUSTER="${LIVE_ECS_CLUSTER:-}"
 LIVE_SERVICE="${LIVE_ECS_SERVICE:-}"
@@ -48,6 +50,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-migrate)
       SKIP_MIGRATE=true
+      shift
+      ;;
+    --with-bria)
+      WITH_BRIA=true
+      shift
+      ;;
+    --build-bria)
+      BUILD_BRIA_IMAGE=true
       shift
       ;;
     --live-ecs)
@@ -70,7 +80,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "${KOYA_ENV}" ]]; then
-  echo "Usage: ./scripts/deploy-api.sh <staging|production> [image-tag] [--build] [--skip-migrate] [--live-ecs] [--cluster <name>] [--service <name>]"
+  echo "Usage: ./scripts/deploy-api.sh <staging|production> [image-tag] [--build] [--skip-migrate] [--with-bria] [--build-bria] [--live-ecs] [--cluster <name>] [--service <name>]"
   exit 1
 fi
 
@@ -159,7 +169,12 @@ resolve_from_terraform() {
     terraform -chdir="$1" output -raw "$2" 2>/dev/null || echo ""
   }
 
-  SUBNETS_JSON=$(terraform -chdir="${tf_foundation}" output -json public_subnet_ids 2>/dev/null || echo '[]')
+  local subnet_output_key="public_subnet_ids"
+  if [[ "${ASSIGN_PUBLIC_IP:-true}" != "true" ]]; then
+    subnet_output_key="private_subnet_ids"
+  fi
+
+  SUBNETS_JSON=$(terraform -chdir="${tf_foundation}" output -json "${subnet_output_key}" 2>/dev/null || echo '[]')
   SUBNETS=$(echo "${SUBNETS_JSON}" | jq -r 'join(",")')
   SECURITY_GROUP=$(get_tf_output "${tf_foundation}" "ecs_security_group_id")
   ECR_REPO_URL=$(get_tf_output "${tf_platform}" "ecr_repository_url")
@@ -244,6 +259,16 @@ else
 fi
 
 IMAGE_URI="${ECR_REPO_URL}:${IMAGE_TAG}"
+
+if [[ "${WITH_BRIA}" == "true" ]]; then
+  echo ""
+  echo "=== Step 0: Deploy private Bria service ==="
+  BRIA_ARGS=("${KOYA_ENV}" "${IMAGE_TAG}")
+  if [[ "${BUILD_BRIA_IMAGE}" == "true" ]]; then
+    BRIA_ARGS+=("--build")
+  fi
+  "${SCRIPT_DIR}/deploy-bria.sh" "${BRIA_ARGS[@]}"
+fi
 
 echo "  Cluster:   ${CLUSTER}"
 echo "  Service:   ${SERVICE}"

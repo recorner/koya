@@ -6,6 +6,11 @@ output "ecr_repository_url" {
   description = "ECR repository URL for API images"
 }
 
+output "ecr_bria_repository_url" {
+  value       = aws_ecr_repository.bria.repository_url
+  description = "ECR repository URL for Bria images"
+}
+
 # ECS
 output "ecs_cluster_name" {
   value       = aws_ecs_cluster.main.name

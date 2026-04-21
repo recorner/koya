@@ -109,6 +109,25 @@ EOF
   case "${layer_name}" in
     foundation)
       # Foundation needs VPC/subnet config (use defaults from variables.tf)
+      local github_oidc_arn=""
+      local oidc_arns
+      oidc_arns="$(aws iam list-open-id-connect-providers --query 'OpenIDConnectProviderList[].Arn' --output text 2>/dev/null || true)"
+      for arn in ${oidc_arns}; do
+        if [[ -z "${arn}" ]]; then
+          continue
+        fi
+        local provider_url
+        provider_url="$(aws iam get-open-id-connect-provider --open-id-connect-provider-arn "${arn}" --query 'Url' --output text 2>/dev/null || true)"
+        if [[ "${provider_url}" == "token.actions.githubusercontent.com" ]]; then
+          github_oidc_arn="${arn}"
+          break
+        fi
+      done
+      if [[ -n "${github_oidc_arn}" ]]; then
+        cat >> "${output_file}" <<EOF
+github_oidc_provider_arn = "${github_oidc_arn}"
+EOF
+      fi
       ;;
     platform)
       cat >> "${output_file}" <<EOF
@@ -122,17 +141,20 @@ EOF
       cat >> "${output_file}" <<EOF
 tf_state_bucket              = "${TF_STATE_BUCKET}"
 image_tag                    = "${IMAGE_TAG:-latest}"
+bria_image_tag               = "${BRIA_IMAGE_TAG:-latest}"
 api_cpu                      = ${API_CPU}
 api_memory                   = ${API_MEMORY}
 migrate_cpu                  = ${MIGRATE_CPU}
 migrate_memory               = ${MIGRATE_MEMORY}
 desired_count                = ${DESIRED_COUNT}
+assign_public_ip             = ${ASSIGN_PUBLIC_IP}
 node_env                     = "${NODE_ENV}"
 api_port                     = ${PORT}
 mpesa_shortcode              = "${MPESA_SHORTCODE}"
 mpesa_driver                 = "${MPESA_DRIVER}"
 mpesa_environment            = "${MPESA_ENVIRONMENT}"
 btc_delivery_driver          = "${BTC_DELIVERY_DRIVER}"
+btc_network                  = "${BTC_NETWORK}"
 messaging_enable_whatsapp_cloud = "${MESSAGING_ENABLE_WHATSAPP_CLOUD}"
 messaging_enable_telegram    = "${MESSAGING_ENABLE_TELEGRAM}"
 messaging_max_retries        = "${MESSAGING_MAX_RETRIES}"
@@ -148,14 +170,20 @@ redis_tls                    = "${REDIS_TLS}"
 redis_db                     = "${REDIS_DB}"
 bria_api_host                = "${BRIA_API_HOST}"
 bria_api_port                = "${BRIA_API_PORT}"
+bria_network                 = "${BRIA_NETWORK}"
+bria_electrum_url            = "${BRIA_ELECTRUM_URL}"
 dfns_api_url                 = "${DFNS_API_URL}"
 dfns_app_id                  = "${DFNS_APP_ID}"
+dfns_service_account         = "${DFNS_SERVICE_ACCOUNT}"
 dfns_wallet_id               = "${DFNS_WALLET_ID}"
 mpesa_callback_url           = "${MPESA_CALLBACK_URL}"
 dfns_webhook_url             = "${DFNS_WEBHOOK_URL}"
 bria_wallet_name             = "${BRIA_WALLET_NAME}"
 bria_payout_queue_name       = "${BRIA_PAYOUT_QUEUE_NAME}"
 bria_xpub_ref                = "${BRIA_XPUB_REF}"
+bria_stream_reconnect_base_ms = "${BRIA_STREAM_RECONNECT_BASE_MS}"
+bria_stream_reconnect_max_ms = "${BRIA_STREAM_RECONNECT_MAX_MS}"
+bria_stream_reconnect_jitter_ms = "${BRIA_STREAM_RECONNECT_JITTER_MS}"
 psbt_archive_s3_bucket       = "${PSBT_ARCHIVE_S3_BUCKET}"
 trust_proxy_hops             = "${TRUST_PROXY_HOPS}"
 json_body_limit              = "${JSON_BODY_LIMIT}"

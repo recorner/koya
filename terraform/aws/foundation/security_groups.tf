@@ -37,7 +37,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_ecs" {
   from_port                    = 3333
   to_port                      = 3333
   ip_protocol                  = "tcp"
-  description                  = "ALB → ECS API tasks"
+  description                  = "ALB to ECS API tasks"
 }
 
 # ── ECS Security Group ──────────────────────────────────────────
@@ -73,7 +73,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_db" {
   from_port         = 5432
   to_port           = 5432
   ip_protocol       = "tcp"
-  description       = "ECS → external PostgreSQL"
+  description       = "ECS to external PostgreSQL"
 }
 
 # Egress: external Redis
@@ -85,7 +85,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_to_redis" {
   from_port         = 6379
   to_port           = 6379
   ip_protocol       = "tcp"
-  description       = "ECS → external Redis"
+  description       = "ECS to external Redis"
 }
 
 # Egress: HTTPS (AWS APIs, Daraja, DFNS, rate providers, etc.)
@@ -95,19 +95,7 @@ resource "aws_vpc_security_group_egress_rule" "ecs_https" {
   from_port         = 443
   to_port           = 443
   ip_protocol       = "tcp"
-  description       = "ECS → HTTPS (AWS APIs, providers)"
-}
-
-# Egress: Bria gRPC
-resource "aws_vpc_security_group_egress_rule" "ecs_bria" {
-  count = length(var.db_cidr_blocks)
-
-  security_group_id = aws_security_group.ecs.id
-  cidr_ipv4         = var.db_cidr_blocks[count.index]
-  from_port         = 2742
-  to_port           = 2743
-  ip_protocol       = "tcp"
-  description       = "ECS → Bria gRPC"
+  description       = "ECS to HTTPS (AWS APIs, providers)"
 }
 
 # Egress: DNS resolution
