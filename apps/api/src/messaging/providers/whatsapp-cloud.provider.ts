@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
@@ -34,6 +34,7 @@ interface MetaMessage {
 @Injectable()
 export class WhatsAppCloudProvider implements MessagingProvider {
   readonly provider = 'WHATSAPP_CLOUD' as const;
+  private readonly logger = new Logger(WhatsAppCloudProvider.name);
 
   private readonly enabled: boolean;
   private readonly graphApiVersion: string;
@@ -237,11 +238,21 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
     if (!response.ok) {
-      const msg = String((json['error'] as Record<string, unknown> | undefined)?.['message'] ?? response.statusText);
+      const metaError = this.extractMetaError(json);
+      const msg = metaError.message ?? response.statusText;
+      const codePart = metaError.code != null ? ` code=${metaError.code}` : '';
+      const subcodePart = metaError.subcode != null ? ` subcode=${metaError.subcode}` : '';
+      const typePart = metaError.type ? ` type=${metaError.type}` : '';
+      const details = `status=${response.status}${codePart}${subcodePart}${typePart} message=${msg}`;
+
+      this.logger.warn(
+        `[${correlationId}] whatsapp.send_failed recipient=${recipient} ${details}`,
+      );
+
       if (response.status >= 500 || response.status === 429) {
-        throw new ProviderTransientError(`WhatsApp Cloud transient error: ${msg}`);
+        throw new ProviderTransientError(`WhatsApp Cloud transient error: ${details}`);
       }
-      throw new ProviderPermanentError(`WhatsApp Cloud permanent error: ${msg}`);
+      throw new ProviderPermanentError(`WhatsApp Cloud permanent error: ${details}`);
     }
 
     const messages = Array.isArray(json['messages'])
@@ -258,6 +269,23 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       providerMessageId,
       channel: message.interactive ? 'quick_reply' : 'text',
       providerTemplateId: message.interactive?.providerTemplateId ?? null,
+    };
+  }
+
+  private extractMetaError(payload: Record<string, unknown>): {
+    message?: string;
+    type?: string;
+    code?: number;
+    subcode?: number;
+  } {
+    const error = (payload['error'] as Record<string, unknown> | undefined) ?? {};
+    const rawCode = error['code'];
+    const rawSubcode = error['error_subcode'];
+    return {
+      message: typeof error['message'] === 'string' ? error['message'] : undefined,
+      type: typeof error['type'] === 'string' ? error['type'] : undefined,
+      code: typeof rawCode === 'number' ? rawCode : undefined,
+      subcode: typeof rawSubcode === 'number' ? rawSubcode : undefined,
     };
   }
 

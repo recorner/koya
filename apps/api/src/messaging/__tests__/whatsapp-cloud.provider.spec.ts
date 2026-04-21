@@ -1,7 +1,11 @@
 import { ConfigService } from '@nestjs/config';
 import { createHmac } from 'crypto';
 import { WhatsAppCloudProvider } from '../providers/whatsapp-cloud.provider';
-import { PayloadValidationError, WebhookSignatureError } from '../messaging.errors';
+import {
+  PayloadValidationError,
+  ProviderPermanentError,
+  WebhookSignatureError,
+} from '../messaging.errors';
 
 describe('WhatsAppCloudProvider', () => {
   const provider = new WhatsAppCloudProvider(
@@ -73,5 +77,38 @@ describe('WhatsAppCloudProvider', () => {
         rawBody: '{}',
       }),
     ).toThrow(PayloadValidationError);
+  });
+
+  it('surfaces Meta error code/subcode for outbound failures', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: async () => ({
+        error: {
+          message: 'Session has expired',
+          type: 'OAuthException',
+          code: 190,
+          error_subcode: 463,
+        },
+      }),
+    });
+    (global as typeof global & { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
+
+    await expect(
+      provider.sendTextMessage({
+        recipient: '254700000001',
+        message: { body: 'hello' },
+        correlationId: 'corr-wa-1',
+      }),
+    ).rejects.toThrow(ProviderPermanentError);
+
+    await expect(
+      provider.sendTextMessage({
+        recipient: '254700000001',
+        message: { body: 'hello' },
+        correlationId: 'corr-wa-2',
+      }),
+    ).rejects.toThrow(/code=190/);
   });
 });

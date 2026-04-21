@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppSessionService } from '../whatsapp/whatsapp-session.service';
@@ -300,10 +300,12 @@ export class ChatConversionFlowService {
         });
       }
     } catch (error) {
+      const classification = provider.classifyError(error);
       this.logger.error(
-        `[${input.correlationId}] failed to send reply provider=${input.provider} to=${input.to}`,
+        `[${input.correlationId}] failed to send reply provider=${input.provider} to=${input.to} retryable=${classification.retryable} reason=${classification.reason}`,
         error as Error,
       );
+      throw error;
     }
   }
 
