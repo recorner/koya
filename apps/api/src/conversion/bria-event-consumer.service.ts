@@ -90,7 +90,16 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     this.committedCursor = cursor;
     this.streamStatus.committedCursor = cursor;
 
-    await this.startSubscription('startup');
+    try {
+      await this.startSubscription('startup');
+    } catch (error) {
+      this.logger.error(
+        `Initial Bria stream subscription failed; entering reconnect loop from cursor=${this.committedCursor}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      this.markDisconnected(error);
+      this.scheduleReconnect();
+    }
   }
 
   onModuleDestroy() {
@@ -124,12 +133,17 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
       `Starting Bria event subscription (driver=${this.driver}, cursor=${this.committedCursor}, reason=${reason})`,
     );
 
-    const stream$ = this.briaClient.subscribeAll({
-      afterSequence: this.committedCursor,
-      augment: true,
-    });
-
-    this.markConnected();
+    const stream$ = (() => {
+      try {
+        return this.briaClient.subscribeAll({
+          afterSequence: this.committedCursor,
+          augment: true,
+        });
+      } catch (error) {
+        this.markDisconnected(error);
+        throw error;
+      }
+    })();
 
     this.subscription = stream$.subscribe({
       next: (event: BriaEvent) => {
@@ -148,6 +162,8 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
         void this.handleStreamFailure('stream_completed');
       },
     });
+
+    this.markConnected();
   }
 
   private markConnected(): void {

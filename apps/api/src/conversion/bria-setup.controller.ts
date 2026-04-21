@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { BriaSetupService } from './bria-setup.service';
 
-@Controller('api/v1/admin/bria')
+@Controller('admin/bria')
 export class BriaSetupController {
   private readonly logger = new Logger(BriaSetupController.name);
   private readonly adminApiKey: string | undefined;

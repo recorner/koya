@@ -14,8 +14,8 @@ import { ComplianceService } from '../kyc/compliance.service';
 import { GuestLimitService } from '../kyc/guest-limit.service';
 import { MpesaService } from '../payments/mpesa.service';
 import { RiskService } from '../risk/risk.service';
-import { BTC_DELIVERY_PROVIDER } from '../providers/btc-delivery.interface';
-import type { BtcDeliveryProvider } from '../providers/btc-delivery.interface';
+import { BTC_BACKEND_PROVIDER } from '../providers/btc-backend.interface';
+import type { BtcBackendProvider } from '../providers/btc-backend.interface';
 import { SWAP_PROVIDER } from '../providers/swap-provider.interface';
 import type { SwapProvider } from '../providers/swap-provider.interface';
 import { getRoutePolicy } from './route-policy';
@@ -40,6 +40,7 @@ export class ConversionService {
   private readonly logger = new Logger(ConversionService.name);
   private readonly btcDeliveryDriver: string;
   private readonly btcNetwork: string;
+  private readonly payoutRetryMaxAttempts: number;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -52,11 +53,12 @@ export class ConversionService {
     private readonly riskService: RiskService,
     private readonly eventEmitter: EventEmitter2,
     private readonly config: ConfigService,
-    @Inject(BTC_DELIVERY_PROVIDER) private readonly btcDelivery: BtcDeliveryProvider,
+    @Inject(BTC_BACKEND_PROVIDER) private readonly btcBackend: BtcBackendProvider,
     @Inject(SWAP_PROVIDER) private readonly swapProvider: SwapProvider,
   ) {
     this.btcDeliveryDriver = this.config.get<string>('BTC_DELIVERY_DRIVER', 'mock');
     this.btcNetwork = this.config.get<string>('BTC_NETWORK', 'bitcoin');
+    this.payoutRetryMaxAttempts = Number(this.config.get<string>('BTC_PAYOUT_RETRY_MAX_ATTEMPTS', '5'));
   }
 
   /**
@@ -384,65 +386,125 @@ export class ConversionService {
 
     if (payout) {
       const externalId = `koya:conversion:${session.referenceCode}`;
-      const deliveryResult = await this.btcDelivery.send({
-        address: payout.btcAddress,
-        amountSatoshis: session.quotedTargetAmountMinor ?? BigInt(0),
-        referenceCode: session.referenceCode,
-      });
-
-      if (!deliveryResult.success) {
-        await this.prisma.payoutInstruction.update({
-          where: { id: payout.id },
-          data: { externalId, status: 'FAILED', amountMinor: session.quotedTargetAmountMinor },
+      try {
+        const deliveryResult = await this.btcBackend.submitPayout({
+          address: payout.btcAddress,
+          amountSatoshis: session.quotedTargetAmountMinor ?? BigInt(0),
+          referenceCode: session.referenceCode,
         });
-        await this.sessionService.transitionState(
-          sessionId,
-          ConversionState.FAILED,
-          'btc_delivery_failed',
-        );
-        return;
-      }
 
-      if (this.btcDeliveryDriver === 'bria' || this.btcDeliveryDriver === 'dfns') {
-        // Async path: payout submitted but not yet on-chain.
-        // Store provider payout ID, stay in DELIVERY_PENDING.
-        // BriaEventConsumerService (bria) or DfnsController webhook (dfns) will advance to COMPLETED.
+        if (this.btcDeliveryDriver === 'bria' || this.btcDeliveryDriver === 'dfns') {
+          // Async path: payout submitted but not yet on-chain.
+          // Store provider payout ID, stay in DELIVERY_PENDING.
+          // BriaEventConsumerService (bria) or DfnsController webhook (dfns) will advance to COMPLETED.
+          await this.prisma.payoutInstruction.update({
+            where: { id: payout.id },
+            data: {
+              externalId,
+              providerPayoutId: deliveryResult.providerPayoutId || null,
+              amountMinor: session.quotedTargetAmountMinor,
+              dispatchAttempts: 0,
+              nextDispatchAt: null,
+              lastDispatchError: null,
+              status: 'PENDING',
+            },
+          });
+
+          this.logger.log(
+            `Payout submitted for ${sessionId}, awaiting on-chain confirmation via event consumer`,
+          );
+        } else {
+          // Mock / instant-complete path
+          await this.prisma.payoutInstruction.update({
+            where: { id: payout.id },
+            data: {
+              externalId,
+              providerPayoutId: deliveryResult.providerPayoutId,
+              txHash: deliveryResult.txId ?? deliveryResult.providerPayoutId,
+              amountMinor: session.quotedTargetAmountMinor,
+              dispatchAttempts: 0,
+              nextDispatchAt: null,
+              lastDispatchError: null,
+              status: 'CONFIRMED',
+            },
+          });
+
+          await this.sessionService.transitionState(
+            sessionId,
+            ConversionState.COMPLETED,
+            'btc_delivered',
+            { txHash: deliveryResult.txId ?? deliveryResult.providerPayoutId },
+          );
+
+          this.eventEmitter.emit('conversion.completed', {
+            sessionId,
+            channel: session.channel,
+          });
+        }
+      } catch (error) {
+        const classification = this.btcBackend.classifyError(error);
+        const nextAttempt = (payout.dispatchAttempts ?? 0) + 1;
+
+        if (!classification.retryable) {
+          await this.prisma.payoutInstruction.update({
+            where: { id: payout.id },
+            data: {
+              externalId,
+              amountMinor: session.quotedTargetAmountMinor,
+              lastDispatchError: classification.reason,
+              status: 'FAILED',
+            },
+          });
+
+          await this.sessionService.transitionState(
+            sessionId,
+            ConversionState.FAILED,
+            'btc_delivery_failed_permanent',
+            { reason: classification.reason },
+          );
+          return;
+        }
+
+        if (nextAttempt >= this.payoutRetryMaxAttempts) {
+          await this.prisma.payoutInstruction.update({
+            where: { id: payout.id },
+            data: {
+              externalId,
+              amountMinor: session.quotedTargetAmountMinor,
+              dispatchAttempts: nextAttempt,
+              nextDispatchAt: null,
+              lastDispatchError: classification.reason,
+              status: 'FAILED',
+            },
+          });
+
+          await this.sessionService.transitionState(
+            sessionId,
+            ConversionState.MANUAL_REVIEW,
+            'btc_delivery_retry_exhausted',
+            { reason: classification.reason, attempts: nextAttempt },
+          );
+          return;
+        }
+
+        const suggestedDelayMs = classification.suggestedDelayMs ?? 2000;
+        const nextDelayMs = Math.min(60_000, suggestedDelayMs * Math.pow(2, Math.max(0, nextAttempt - 1)));
+
         await this.prisma.payoutInstruction.update({
           where: { id: payout.id },
           data: {
             externalId,
-            providerPayoutId: deliveryResult.txHash || null,
             amountMinor: session.quotedTargetAmountMinor,
-            status: 'PENDING',
+            dispatchAttempts: nextAttempt,
+            nextDispatchAt: new Date(Date.now() + nextDelayMs),
+            lastDispatchError: classification.reason,
+            status: 'PENDING_DISPATCH',
           },
         });
 
-        this.logger.log(
-          `Payout submitted for ${sessionId}, awaiting on-chain confirmation via event consumer`,
+        this.logger.warn(
+          `BTC backend transient failure for session=${sessionId}; queued retry ${nextAttempt}/${this.payoutRetryMaxAttempts} in ${nextDelayMs}ms (${classification.reason})`,
         );
-      } else {
-        // Mock / instant-complete path
-        await this.prisma.payoutInstruction.update({
-          where: { id: payout.id },
-          data: {
-            externalId,
-            txHash: deliveryResult.txHash,
-            amountMinor: session.quotedTargetAmountMinor,
-            status: 'CONFIRMED',
-          },
-        });
-
-        await this.sessionService.transitionState(
-          sessionId,
-          ConversionState.COMPLETED,
-          'btc_delivered',
-          { txHash: deliveryResult.txHash },
-        );
-
-        this.eventEmitter.emit('conversion.completed', {
-          sessionId,
-          channel: session.channel,
-        });
       }
     }
   }
