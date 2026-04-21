@@ -15,6 +15,21 @@ output "api_service_name" {
   description = "ECS API service name"
 }
 
+output "bria_service_name" {
+  value       = aws_ecs_service.bria.name
+  description = "ECS Bria service name"
+}
+
+output "bria_task_definition_arn" {
+  value       = aws_ecs_task_definition.bria.arn
+  description = "Bria task definition ARN"
+}
+
+output "bria_private_host" {
+  value       = "${aws_service_discovery_service.bria.name}.${aws_service_discovery_private_dns_namespace.bria.name}"
+  description = "Private DNS host for Bria gRPC API"
+}
+
 output "waf_web_acl_arn" {
   value       = aws_wafv2_web_acl.api.arn
   description = "WAF web ACL ARN"

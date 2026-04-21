@@ -37,6 +37,7 @@ resource "aws_ecs_task_definition" "api" {
         { name = "MPESA_DRIVER", value = var.mpesa_driver },
         { name = "MPESA_ENVIRONMENT", value = var.mpesa_environment },
         { name = "BTC_DELIVERY_DRIVER", value = var.btc_delivery_driver },
+        { name = "BTC_NETWORK", value = var.btc_network },
         { name = "MESSAGING_ENABLE_WHATSAPP_CLOUD", value = var.messaging_enable_whatsapp_cloud },
         { name = "MESSAGING_ENABLE_TELEGRAM", value = var.messaging_enable_telegram },
         { name = "MESSAGING_MAX_RETRIES", value = var.messaging_max_retries },
@@ -54,14 +55,21 @@ resource "aws_ecs_task_definition" "api" {
         { name = "AWS_REGION", value = var.aws_region },
         { name = "BRIA_API_HOST", value = var.bria_api_host },
         { name = "BRIA_API_PORT", value = var.bria_api_port },
+        { name = "BRIA_NETWORK", value = var.bria_network },
+        { name = "BRIA_ELECTRUM_URL", value = var.bria_electrum_url },
         { name = "DFNS_API_URL", value = var.dfns_api_url },
         { name = "DFNS_APP_ID", value = var.dfns_app_id },
+        { name = "DFNS_SERVICE_ACCOUNT", value = var.dfns_service_account },
         { name = "DFNS_WALLET_ID", value = var.dfns_wallet_id },
         { name = "MPESA_CALLBACK_URL", value = var.mpesa_callback_url },
         { name = "DFNS_WEBHOOK_URL", value = var.dfns_webhook_url },
         { name = "BRIA_WALLET_NAME", value = var.bria_wallet_name },
+        { name = "BRIA_PAYOUT_QUEUE", value = var.bria_payout_queue_name },
         { name = "BRIA_PAYOUT_QUEUE_NAME", value = var.bria_payout_queue_name },
         { name = "BRIA_XPUB_REF", value = var.bria_xpub_ref },
+        { name = "BRIA_STREAM_RECONNECT_BASE_MS", value = var.bria_stream_reconnect_base_ms },
+        { name = "BRIA_STREAM_RECONNECT_MAX_MS", value = var.bria_stream_reconnect_max_ms },
+        { name = "BRIA_STREAM_RECONNECT_JITTER_MS", value = var.bria_stream_reconnect_jitter_ms },
         { name = "PSBT_ARCHIVE_S3_BUCKET", value = var.psbt_archive_s3_bucket },
         { name = "TRUST_PROXY_HOPS", value = var.trust_proxy_hops },
         { name = "JSON_BODY_LIMIT", value = var.json_body_limit },
@@ -97,7 +105,7 @@ resource "aws_ecs_task_definition" "api" {
       }
 
       healthCheck = {
-        command     = ["CMD-SHELL", "wget -qO- http://localhost:${var.api_port}/api/v1/health || exit 1"]
+        command     = ["CMD-SHELL", "wget -qO- http://127.0.0.1:${var.api_port}/api/v1/health || exit 1"]
         interval    = 30
         timeout     = 5
         retries     = 3
@@ -163,7 +171,7 @@ resource "aws_ecs_service" "api" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = local.foundation.public_subnet_ids
+    subnets          = local.foundation.private_subnet_ids
     security_groups  = [local.foundation.ecs_security_group_id]
     assign_public_ip = var.assign_public_ip
   }

@@ -59,6 +59,42 @@ variable "migrate_memory" {
   description = "Migrate task memory (MB)"
 }
 
+variable "bria_image_tag" {
+  type        = string
+  default     = "latest"
+  description = "Bria image tag to deploy"
+}
+
+variable "bria_cpu" {
+  type        = number
+  default     = 512
+  description = "Bria task CPU units"
+}
+
+variable "bria_memory" {
+  type        = number
+  default     = 1024
+  description = "Bria task memory (MB)"
+}
+
+variable "bria_desired_count" {
+  type        = number
+  default     = 1
+  description = "Desired Bria task count"
+}
+
+variable "bria_port" {
+  type        = number
+  default     = 2742
+  description = "Bria API gRPC port"
+}
+
+variable "bria_admin_port" {
+  type        = number
+  default     = 2743
+  description = "Bria admin gRPC port"
+}
+
 # ── Service ──────────────────────────────────────────────────────
 
 variable "desired_count" {
@@ -69,7 +105,7 @@ variable "desired_count" {
 
 variable "assign_public_ip" {
   type        = bool
-  default     = true
+  default     = false
   description = "Assign public IP to tasks (true if using public subnets)"
 }
 
@@ -103,6 +139,11 @@ variable "mpesa_environment" {
 variable "btc_delivery_driver" {
   type    = string
   default = "dfns"
+}
+
+variable "btc_network" {
+  type    = string
+  default = "bitcoin"
 }
 
 variable "messaging_enable_whatsapp_cloud" {
@@ -180,12 +221,27 @@ variable "bria_api_port" {
   default = "2742"
 }
 
+variable "bria_network" {
+  type    = string
+  default = "testnet4"
+}
+
+variable "bria_electrum_url" {
+  type    = string
+  default = "mempool.space:40002"
+}
+
 variable "dfns_api_url" {
   type    = string
   default = "https://api.dfns.ninja/v2"
 }
 
 variable "dfns_app_id" {
+  type    = string
+  default = ""
+}
+
+variable "dfns_service_account" {
   type    = string
   default = ""
 }
@@ -218,6 +274,51 @@ variable "bria_payout_queue_name" {
 variable "bria_xpub_ref" {
   type    = string
   default = "koya-testnet-xpub"
+}
+
+variable "bria_private_dns_namespace" {
+  type    = string
+  default = "koya.internal"
+}
+
+variable "bria_private_dns_name" {
+  type    = string
+  default = "koya-bria"
+}
+
+variable "bria_db_name" {
+  type    = string
+  default = "bria"
+}
+
+variable "bria_db_username" {
+  type    = string
+  default = "bria"
+}
+
+variable "bria_db_instance_class" {
+  type    = string
+  default = "db.t4g.micro"
+}
+
+variable "bria_db_allocated_storage" {
+  type    = number
+  default = 20
+}
+
+variable "bria_stream_reconnect_base_ms" {
+  type    = string
+  default = "1000"
+}
+
+variable "bria_stream_reconnect_max_ms" {
+  type    = string
+  default = "30000"
+}
+
+variable "bria_stream_reconnect_jitter_ms" {
+  type    = string
+  default = "500"
 }
 
 variable "psbt_archive_s3_bucket" {

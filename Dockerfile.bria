@@ -1,31 +1,28 @@
-# Bria — Bitcoin Custody/Payout Service
-# Multi-stage build: Rust release binary → Alpine runtime
-# Convention: mirrors apps/api/Dockerfile security patterns (non-root user)
+# Bria — private runtime wrapper image
+# Base the binary on upstream Galoy Bria image, then add runtime templating and entrypoint.
 
-# ─── Stage 1: Build ───────────────────────────────────────────
-FROM clux/muslrust:stable AS build
+FROM us.gcr.io/galoy-org/bria:0.1.131 AS upstream
 
-COPY bria/ /src
-WORKDIR /src
+FROM debian:bookworm-slim AS runtime
 
-# SQLX_OFFLINE uses cached query metadata from .sqlx/ directory (no DB at build time)
-RUN SQLX_OFFLINE=true cargo build --release --locked
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates gettext-base netcat-openbsd \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -g 1001 bria \
+    && useradd -u 1001 -g bria -d /bria -m -s /usr/sbin/nologin bria
 
-# ─── Stage 2: Runtime ─────────────────────────────────────────
-FROM alpine:3.19 AS runtime
-
-RUN apk add --no-cache ca-certificates netcat-openbsd \
-    && addgroup -g 1001 bria \
-    && adduser -u 1001 -G bria -D -h /bria bria
-
-COPY --from=build /src/target/x86_64-unknown-linux-musl/release/bria /usr/local/bin/bria
+COPY --from=upstream /usr/bin/bria /usr/local/bin/bria
+COPY config/bria.runtime.yml.tpl /etc/bria/bria.yml.tpl
+COPY docker/bria-entrypoint.sh /usr/local/bin/bria-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/bria \
+    && chmod +x /usr/local/bin/bria-entrypoint.sh \
     && mkdir -p /bria \
     && chown -R bria:bria /bria
 
 ENV BRIA_HOME=/bria
-ENV BRIA_CONFIG=/etc/bria/bria.yml
+ENV BRIA_CONFIG=/tmp/bria.yml
+ENV BRIA_CONFIG_TEMPLATE=/etc/bria/bria.yml.tpl
 ENV RUST_LOG=info
 
 EXPOSE 2742 2743
@@ -33,6 +30,5 @@ EXPOSE 2742 2743
 USER bria
 WORKDIR /bria
 
-# PG_CON, SIGNER_ENCRYPTION_KEY, and BRIA_CONFIG are read from env vars automatically.
-# The Bria CLI resolves: bria daemon [--config $BRIA_CONFIG] $PG_CON run $SIGNER_ENCRYPTION_KEY
-CMD ["bria", "daemon", "run"]
+# PG_CON and SIGNER_ENCRYPTION_KEY are injected from Secrets Manager at runtime.
+ENTRYPOINT ["/usr/local/bin/bria-entrypoint.sh"]

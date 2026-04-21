@@ -1,0 +1,56 @@
+{
+  "family": "${BRIA_TASK_FAMILY}",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "${BRIA_CPU}",
+  "memory": "${BRIA_MEMORY}",
+  "executionRoleArn": "${EXECUTION_ROLE_ARN}",
+  "taskRoleArn": "${BRIA_TASK_ROLE_ARN}",
+  "containerDefinitions": [
+    {
+      "name": "${PROJECT}-bria",
+      "image": "${BRIA_IMAGE_URI}",
+      "essential": true,
+      "command": ["bria", "daemon", "run"],
+      "portMappings": [
+        {
+          "containerPort": ${BRIA_PORT},
+          "protocol": "tcp"
+        },
+        {
+          "containerPort": ${BRIA_ADMIN_PORT},
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "BRIA_HOME", "value": "/bria" },
+        { "name": "BRIA_CONFIG_TEMPLATE", "value": "/etc/bria/bria.yml.tpl" },
+        { "name": "BRIA_CONFIG", "value": "/tmp/bria.yml" },
+        { "name": "BRIA_NETWORK", "value": "${BRIA_NETWORK}" },
+        { "name": "BRIA_ELECTRUM_URL", "value": "${BRIA_ELECTRUM_URL}" },
+        { "name": "BRIA_API_PORT", "value": "${BRIA_PORT}" },
+        { "name": "BRIA_ADMIN_PORT", "value": "${BRIA_ADMIN_PORT}" },
+        { "name": "RUST_LOG", "value": "info" }
+      ],
+      "secrets": [
+        { "name": "PG_CON", "valueFrom": "${SECRET_ARN_BRIA_PG_CONNECTION}" },
+        { "name": "SIGNER_ENCRYPTION_KEY", "valueFrom": "${SECRET_ARN_BRIA_SIGNER_ENCRYPTION_KEY}" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "${BRIA_LOG_GROUP_NAME}",
+          "awslogs-region": "${AWS_REGION}",
+          "awslogs-stream-prefix": "bria"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "nc -z 127.0.0.1 ${BRIA_PORT} || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
