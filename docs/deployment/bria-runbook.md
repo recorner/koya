@@ -6,12 +6,38 @@ Bria is the Bitcoin custody and payout service used by Koya for on-chain BTC ope
 
 ---
 
+## Architecture Note (Current vs Target)
+
+### Current brittle pattern (before this hardening pass)
+
+- API runtime pointed Bria to a public/external hostname, which caused startup/runtime `connection refused` when the endpoint was unavailable or firewalled.
+- Event ingestion subscribed once on startup and did not auto-reconnect after stream errors.
+- BTC payout address validation accepted mixed network formats without enforcing configured network family.
+
+### Target production shape (implemented)
+
+- Bria runs as a private ECS service in AWS (`koya-bria-service-<env>`), with no public ingress.
+- API talks to Bria over private service discovery (`koya-bria.koya.internal:2742`).
+- Bria data plane uses dedicated private PostgreSQL 16 in AWS.
+- API event consumer auto-reconnects with bounded exponential backoff and resumes from durable cursor.
+- BTC address validation is network-aware and enforced by `BTC_NETWORK` (testnet4 family for this rollout).
+
+### Integration mode summary
+
+- Koya submits payouts directly to Bria (`BTC_DELIVERY_DRIVER=bria` for this rollout).
+- DFNS path remains in code but is inactive unless explicitly re-enabled.
+
+---
+
 ## Required Environment Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `PG_CON` | PostgreSQL connection string. Uses local `bria-pg` container (PG 16) by default. Bria requires PG ≤16 due to uuid-ossp inlining issues in PG 18. | `postgres://bria:bria_dev_password@bria-pg:5432/bria` |
 | `SIGNER_ENCRYPTION_KEY` | 32-byte hex key for encrypting signing credentials at rest. Generate with `openssl rand -hex 32`. | `ab5846...` (64 hex chars) |
+| `BTC_NETWORK` | API network family enforcement (`bitcoin`, `testnet`, `testnet4`, `signet`, `regtest`). | `testnet4` |
+| `BRIA_NETWORK` | Bria daemon blockchain network. | `testnet4` |
+| `BRIA_ELECTRUM_URL` | Electrum backend endpoint for Bria. | `mempool.space:40002` |
 | `BRIA_HOME` | Directory for tokens + PID file. | `/bria` |
 | `BRIA_CONFIG` | Path to YAML config file. | `/etc/bria/bria.yml` |
 | `RUST_LOG` | Logging level (`error`, `warn`, `info`, `debug`, `trace`). | `info` |
@@ -20,7 +46,7 @@ Bria is the Bitcoin custody and payout service used by Koya for on-chain BTC ope
 
 ## Configuration (bria.yml)
 
-Key settings in `config/bria.yml`:
+Key settings in Bria runtime config (rendered from `config/bria.runtime.yml.tpl` in AWS, or `config/bria.yml` locally):
 
 | Setting | Purpose | Default |
 |---------|---------|---------|
@@ -203,7 +229,30 @@ For production, consider:
 
 ## Bootstrap Koya Account & Wallet
 
-After Bria is running and the admin key is saved, provision the Koya account, profile, and wallet. This can be done via the dev setup endpoint or manually via the Bria CLI.
+After Bria is running, provision the Koya account, profile, payout queue, and wallet.
+
+### Production one-shot provisioning (recommended)
+
+Use signer-capable descriptor secrets in Secrets Manager:
+
+- `/koya/bria/walletDescriptorExternal`
+- `/koya/bria/walletDescriptorInternal`
+
+Then run:
+
+```bash
+./scripts/provision-bria-wallet.sh production
+```
+
+This script is idempotent and will:
+
+1. Bootstrap admin (if needed)
+2. Ensure `koya` account exists
+3. Ensure service profile exists and rotate a fresh Bria API key
+4. Ensure configured wallet exists using signer-capable descriptors
+5. Ensure payout queue exists
+6. Generate a verification deposit address
+7. Store updated API key(s) back into Secrets Manager
 
 ### Via API Setup Endpoint (dev only)
 
@@ -261,9 +310,32 @@ Once the wallet is provisioned, the API needs these env vars to use the bria dri
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `BTC_DELIVERY_DRIVER` | Delivery provider selection | `bria` (default: `mock`) |
-| `BRIA_API_URL` | Bria gRPC API endpoint | `localhost:2742` |
+| `BTC_NETWORK` | Address network enforcement | `testnet4` |
+| `BRIA_API_HOST` | Bria private gRPC host | `koya-bria.koya.internal` |
+| `BRIA_API_PORT` | Bria private gRPC port | `2742` |
 | `BRIA_API_KEY` | Profile API key from step 3 | `bria_...` |
-| `BRIA_ADMIN_URL` | Bria admin gRPC endpoint | `localhost:2743` |
-| `BRIA_ADMIN_API_KEY` | Admin API key from bootstrap | `bria_admin_...` |
-| `BRIA_WALLET_NAME` | Wallet name for payouts | `koya-wallet` |
-| `BRIA_PAYOUT_QUEUE` | Payout queue name (optional) | `default` |
+| `BRIA_NETWORK` | Bria daemon blockchain network | `testnet4` |
+| `BRIA_ELECTRUM_URL` | Electrum endpoint | `mempool.space:40002` |
+| `BRIA_WALLET_NAME` | Wallet name for payouts | `koya-testnet4` |
+| `BRIA_PAYOUT_QUEUE` | Payout queue name | `koya-payouts` |
+
+---
+
+## Operator Validation Checklist
+
+1. Confirm private placement:
+`aws ecs describe-services --cluster koya-production --services koya-bria-service-production --region us-east-1`
+Ensure Bria service has no public load balancer and uses private subnets.
+2. Confirm API health:
+`curl -sS https://api.koyabank.com/api/v1/health`
+Expect HTTP `200` and Bria connectivity metadata present.
+3. Confirm Bria internal health:
+`curl -sS https://api.koyabank.com/api/v1/internal/health/bria`
+Expect status `ok`.
+4. Run provisioning:
+`./scripts/provision-bria-wallet.sh production`
+Capture the emitted verification address.
+5. Fund emitted testnet4 address from faucet (manual operator action).
+6. Watch Bria/API logs for event ingestion (`payout_broadcast`, `payout_settled`) and no reconnect storm.
+7. Submit a test payout through Koya conversion flow and verify lifecycle transitions to `COMPLETED`.
+8. Verify no immediate DLQ/retry burst and no network-mismatch address rejections for valid testnet4 addresses.
