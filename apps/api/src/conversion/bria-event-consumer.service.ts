@@ -16,11 +16,37 @@ import { ConversionState } from '@koya/types';
 
 const CURSOR_NAME = 'bria_event_consumer';
 
+interface BriaStreamHealthStatus {
+  enabled: boolean;
+  driver: string;
+  connected: boolean;
+  reconnecting: boolean;
+  reconnectAttempt: number;
+  committedCursor: number;
+  lastEventSequence: number | null;
+  lastEventAt: string | null;
+  lastConnectedAt: string | null;
+  lastDisconnectedAt: string | null;
+  lastError: string | null;
+  nextRetryDelayMs: number | null;
+}
+
 @Injectable()
 export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BriaEventConsumerService.name);
   private subscription: Subscription | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
+  private processingQueue: Promise<void> = Promise.resolve();
+  private shuttingDown = false;
+  private committedCursor = 0;
+
   private readonly driver: string;
+  private readonly enabled: boolean;
+  private readonly reconnectBaseMs: number;
+  private readonly reconnectMaxMs: number;
+  private readonly reconnectJitterMs: number;
+
+  private readonly streamStatus: BriaStreamHealthStatus;
 
   constructor(
     private readonly briaClient: BriaClientService,
@@ -32,34 +58,45 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
   ) {
     this.driver = this.config.get<string>('BTC_DELIVERY_DRIVER', 'mock');
+    this.enabled = this.driver === 'bria' || this.driver === 'dfns';
+
+    this.reconnectBaseMs = Number(this.config.get<string>('BRIA_STREAM_RECONNECT_BASE_MS', '1000'));
+    this.reconnectMaxMs = Number(this.config.get<string>('BRIA_STREAM_RECONNECT_MAX_MS', '30000'));
+    this.reconnectJitterMs = Number(this.config.get<string>('BRIA_STREAM_RECONNECT_JITTER_MS', '500'));
+
+    this.streamStatus = {
+      enabled: this.enabled,
+      driver: this.driver,
+      connected: false,
+      reconnecting: false,
+      reconnectAttempt: 0,
+      committedCursor: 0,
+      lastEventSequence: null,
+      lastEventAt: null,
+      lastConnectedAt: null,
+      lastDisconnectedAt: null,
+      lastError: null,
+      nextRetryDelayMs: null,
+    };
   }
 
   async onModuleInit() {
-    // Subscribe to Bria events for both 'bria' and 'dfns' drivers
-    // (dfns driver uses Bria for UTXO management + PSBT building)
-    if (this.driver !== 'bria' && this.driver !== 'dfns') {
+    if (!this.enabled) {
       this.logger.log('BTC_DELIVERY_DRIVER is not bria/dfns — skipping event subscription');
       return;
     }
 
     const cursor = await this.cursorStore.getCursor(CURSOR_NAME) ?? 0;
-    this.logger.log(`Starting Bria event subscription (driver=${this.driver}, cursor=${cursor})`);
-    // augment=true to get payout_info with batch_id
-    const stream$ = this.briaClient.subscribeAll({ afterSequence: cursor, augment: true });
+    this.committedCursor = cursor;
+    this.streamStatus.committedCursor = cursor;
 
-    this.subscription = stream$.subscribe({
-      next: (event: BriaEvent) => {
-        this.handleEvent(event).catch((err) => {
-          this.logger.error(`Error handling event seq=${event.sequence}`, err);
-        });
-      },
-      error: (err) => {
-        this.logger.error('Bria event stream error — will not auto-reconnect', err);
-      },
-    });
+    await this.startSubscription('startup');
   }
 
   onModuleDestroy() {
+    this.shuttingDown = true;
+    this.clearReconnectTimer();
+
     if (this.subscription) {
       this.logger.log('Unsubscribing from Bria event stream');
       this.subscription.unsubscribe();
@@ -67,15 +104,137 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private async handleEvent(event: BriaEvent): Promise<void> {
-    const { payload } = event;
+  getConnectivityStatus(): BriaStreamHealthStatus {
+    return { ...this.streamStatus };
+  }
 
-    try {
-      await this.processEvent(payload, event);
-    } finally {
-      // Persist cursor after processing (even on failure, to avoid infinite retry loops)
-      await this.cursorStore.setCursor(CURSOR_NAME, event.sequence);
+  private async startSubscription(reason: string): Promise<void> {
+    if (this.shuttingDown || !this.enabled) return;
+
+    this.clearReconnectTimer();
+
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = null;
     }
+
+    this.processingQueue = Promise.resolve();
+
+    this.logger.log(
+      `Starting Bria event subscription (driver=${this.driver}, cursor=${this.committedCursor}, reason=${reason})`,
+    );
+
+    const stream$ = this.briaClient.subscribeAll({
+      afterSequence: this.committedCursor,
+      augment: true,
+    });
+
+    this.markConnected();
+
+    this.subscription = stream$.subscribe({
+      next: (event: BriaEvent) => {
+        this.processingQueue = this.processingQueue
+          .then(async () => {
+            await this.handleEvent(event);
+          })
+          .catch(async (err) => {
+            await this.handleStreamFailure('event_processing_error', err, event.sequence);
+          });
+      },
+      error: (err) => {
+        void this.handleStreamFailure('stream_error', err);
+      },
+      complete: () => {
+        void this.handleStreamFailure('stream_completed');
+      },
+    });
+  }
+
+  private markConnected(): void {
+    this.streamStatus.connected = true;
+    this.streamStatus.reconnecting = false;
+    this.streamStatus.reconnectAttempt = 0;
+    this.streamStatus.nextRetryDelayMs = null;
+    this.streamStatus.lastConnectedAt = new Date().toISOString();
+  }
+
+  private markDisconnected(err?: unknown): void {
+    this.streamStatus.connected = false;
+    this.streamStatus.lastDisconnectedAt = new Date().toISOString();
+
+    if (!err) return;
+    if (err instanceof Error) {
+      this.streamStatus.lastError = err.message;
+      return;
+    }
+
+    this.streamStatus.lastError = String(err);
+  }
+
+  private async handleStreamFailure(kind: string, err?: unknown, sequence?: number): Promise<void> {
+    if (this.shuttingDown || !this.enabled) return;
+
+    if (sequence !== undefined) {
+      this.logger.error(
+        `Bria event stream processing failure at seq=${sequence} (${kind}) — reconnecting from cursor=${this.committedCursor}`,
+        err instanceof Error ? err.stack : undefined,
+      );
+    } else if (err) {
+      this.logger.error(`Bria stream failure (${kind}) — reconnecting from cursor=${this.committedCursor}`, err);
+    } else {
+      this.logger.warn(`Bria stream completed unexpectedly — reconnecting from cursor=${this.committedCursor}`);
+    }
+
+    this.markDisconnected(err);
+
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = null;
+    }
+
+    this.scheduleReconnect();
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimer || this.shuttingDown || !this.enabled) return;
+
+    const nextAttempt = this.streamStatus.reconnectAttempt + 1;
+    const baseDelay = Math.min(
+      this.reconnectMaxMs,
+      this.reconnectBaseMs * Math.pow(2, Math.max(0, nextAttempt - 1)),
+    );
+    const jitter = this.reconnectJitterMs > 0
+      ? Math.floor(Math.random() * this.reconnectJitterMs)
+      : 0;
+    const delayMs = Math.min(this.reconnectMaxMs, baseDelay + jitter);
+
+    this.streamStatus.reconnecting = true;
+    this.streamStatus.reconnectAttempt = nextAttempt;
+    this.streamStatus.nextRetryDelayMs = delayMs;
+
+    this.logger.warn(`Scheduling Bria stream reconnect attempt ${nextAttempt} in ${delayMs}ms`);
+
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      void this.startSubscription(`reconnect_${nextAttempt}`);
+    }, delayMs);
+  }
+
+  private clearReconnectTimer(): void {
+    if (!this.reconnectTimer) return;
+    clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+  }
+
+  private async handleEvent(event: BriaEvent): Promise<void> {
+    await this.processEvent(event.payload, event);
+
+    // Persist cursor only after successful processing.
+    await this.cursorStore.setCursor(CURSOR_NAME, event.sequence);
+    this.committedCursor = event.sequence;
+    this.streamStatus.committedCursor = event.sequence;
+    this.streamStatus.lastEventSequence = event.sequence;
+    this.streamStatus.lastEventAt = new Date().toISOString();
   }
 
   private async processEvent(payload: BriaEventPayload, event: BriaEvent): Promise<void> {
@@ -102,7 +261,6 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
         break;
 
       default:
-        // UTXO events and others — log only
         this.logger.debug(`Bria event: ${payload.type} seq=${event.sequence}`);
         break;
     }
@@ -117,7 +275,7 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
     event: BriaEvent,
   ): Promise<void> {
     if (this.driver !== 'dfns') {
-      return; // Only DFNS driver uses external PSBT signing
+      return;
     }
 
     const payout = await this.findPayoutByProviderId(payload.data.id);
@@ -126,14 +284,12 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    // Get batchId from augmented event data or from getPayout
     const augmentation = (event as unknown as Record<string, unknown>)['augmentation'] as
       | { payoutInfo?: { batchId?: string } }
       | undefined;
     let batchId = augmentation?.payoutInfo?.batchId;
 
     if (!batchId) {
-      // Fallback: fetch payout info to get batchId
       const payoutInfo = await this.briaClient.getPayout({ id: payload.data.id });
       batchId = payoutInfo.batchId;
     }
@@ -143,17 +299,11 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    try {
-      await this.psbtSigningService.handlePayoutCommitted(
-        payload.data.id,
-        payout.externalId,
-        batchId,
-      );
-    } catch (err) {
-      this.logger.error(
-        `PSBT signing failed for payout ${payload.data.id}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
+    await this.psbtSigningService.handlePayoutCommitted(
+      payload.data.id,
+      payout.externalId,
+      batchId,
+    );
   }
 
   private async handlePayoutBroadcast(payload: Extract<BriaEventPayload, { type: 'payout_broadcast' }>) {
@@ -174,7 +324,6 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(`Payout settled: ${payload.data.id} txId=${payload.data.txId}`);
 
-    // Idempotent: skip if already confirmed
     if (payout.status === 'CONFIRMED') {
       this.logger.debug(`Payout ${payout.id} already CONFIRMED, skipping`);
       return;
@@ -188,14 +337,12 @@ export class BriaEventConsumerService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    // Update PSBT record if tracking
     if (payout.externalId) {
       await this.psbtSigningService.markSettled(payout.externalId, payload.data.txId).catch((err) => {
         this.logger.debug(`PSBT settled update skipped: ${err instanceof Error ? err.message : String(err)}`);
       });
     }
 
-    // Advance session to COMPLETED if still in DELIVERY_PENDING
     const session = await this.prisma.conversionSession.findUnique({
       where: { id: payout.conversionSessionId },
     });

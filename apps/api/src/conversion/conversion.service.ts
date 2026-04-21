@@ -19,7 +19,7 @@ import type { BtcDeliveryProvider } from '../providers/btc-delivery.interface';
 import { SWAP_PROVIDER } from '../providers/swap-provider.interface';
 import type { SwapProvider } from '../providers/swap-provider.interface';
 import { getRoutePolicy } from './route-policy';
-import { isValidBtcAddress } from '../common/validation.utils';
+import { validateBtcAddressForNetwork } from '../common/btc-address.utils';
 import { ConversionState } from '@koya/types';
 import { formatMinorToDisplay } from '../common/validation.utils';
 
@@ -39,6 +39,7 @@ const POST_PAYMENT_STATES = new Set<string>([
 export class ConversionService {
   private readonly logger = new Logger(ConversionService.name);
   private readonly btcDeliveryDriver: string;
+  private readonly btcNetwork: string;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -55,6 +56,7 @@ export class ConversionService {
     @Inject(SWAP_PROVIDER) private readonly swapProvider: SwapProvider,
   ) {
     this.btcDeliveryDriver = this.config.get<string>('BTC_DELIVERY_DRIVER', 'mock');
+    this.btcNetwork = this.config.get<string>('BTC_NETWORK', 'bitcoin');
   }
 
   /**
@@ -236,7 +238,13 @@ export class ConversionService {
       );
     }
 
-    if (!isValidBtcAddress(btcAddress)) {
+    const addressValidation = validateBtcAddressForNetwork(btcAddress, this.btcNetwork);
+    if (!addressValidation.valid) {
+      if (addressValidation.reason === 'network_mismatch') {
+        throw new BadRequestException(
+          `Invalid BTC address for configured network (${this.btcNetwork})`,
+        );
+      }
       throw new BadRequestException('Invalid BTC address');
     }
 

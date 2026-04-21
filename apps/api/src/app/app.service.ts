@@ -1,30 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import { CacheService } from '../cache/cache.service';
 import { RatesService } from '../rates/rates.service';
+import { BriaEventConsumerService } from '../conversion/bria-event-consumer.service';
 
 @Injectable()
 export class AppService {
   constructor(
     private readonly cache: CacheService,
     private readonly rates: RatesService,
+    private readonly briaEventConsumer: BriaEventConsumerService,
   ) {}
 
   async getHealth() {
-    const cacheStatus = await this.cache.ping();
-    const ratesHealth = await this.rates.getHealthReport();
+    const briaStatus = this.briaEventConsumer.getConnectivityStatus();
+
+    let status: 'ok' | 'degraded' = 'ok';
+    if (briaStatus.enabled && !briaStatus.connected) {
+      status = 'degraded';
+    }
+
     return {
-      status: cacheStatus.ok ? 'ok' : 'degraded',
+      status,
       service: 'koya-api',
       release: process.env.RELEASE_FAMILY || 'unknown',
       version: process.env.RELEASE_VERSION || 'unknown',
       timestamp: new Date().toISOString(),
       cache: {
-        status: cacheStatus.ok ? 'ok' : 'down',
-        latencyMs: cacheStatus.latencyMs,
+        status: 'unknown',
+        latencyMs: null,
       },
       rates: {
-        status: ratesHealth.status,
+        status: 'unknown',
       },
+      bria: briaStatus,
     };
   }
 

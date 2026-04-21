@@ -22,6 +22,8 @@ describe('Conversion Flow (Integration)', () => {
   let prisma: PrismaService;
 
   beforeAll(async () => {
+    process.env['BTC_NETWORK'] = 'testnet4';
+
     module = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
@@ -261,7 +263,7 @@ describe('Conversion Flow (Integration)', () => {
 
       const result = await conversionService.submitPayoutDetails(
         session.sessionId,
-        '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
+        'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       );
 
       expect(result.currentState).toBe('PAYMENT_PENDING');
@@ -271,7 +273,7 @@ describe('Conversion Flow (Integration)', () => {
         where: { conversionSessionId: session.sessionId },
       });
       expect(payout).not.toBeNull();
-      expect(payout?.btcAddress).toBe('1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2');
+      expect(payout?.btcAddress).toBe('mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn');
     });
 
     it('should reject invalid BTC address', async () => {
@@ -296,6 +298,33 @@ describe('Conversion Flow (Integration)', () => {
       await expect(
         conversionService.submitPayoutDetails(session.sessionId, 'invalid-address'),
       ).rejects.toThrow('Invalid BTC address');
+    });
+
+    it('should reject network-mismatched BTC address', async () => {
+      const quote = await conversionService.createQuote({
+        sourceAsset: 'KES',
+        targetAsset: 'BTC',
+        sourceAmount: '1000',
+        channel: 'WEB',
+      });
+      const session = await conversionService.createSession({
+        quoteId: quote.quoteId,
+        channel: 'WEB',
+      });
+      await conversionService.submitIdentity(session.sessionId, {
+        fullName: 'Test User',
+        countryCode: 'KE',
+        documentType: 'NATIONAL_ID',
+        documentNumber: 'INVALID_BTC_2',
+        phone: '0712444444',
+      });
+
+      await expect(
+        conversionService.submitPayoutDetails(
+          session.sessionId,
+          'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        ),
+      ).rejects.toThrow('configured network (testnet4)');
     });
   });
 
@@ -442,7 +471,7 @@ describe('Conversion Flow (Integration)', () => {
       await expect(
         conversionService.submitPayoutDetails(
           session.sessionId,
-          '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
+          'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
         ),
       ).rejects.toThrow('order has expired');
     });
@@ -467,7 +496,7 @@ describe('Conversion Flow (Integration)', () => {
       });
       await conversionService.submitPayoutDetails(
         session.sessionId,
-        '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2',
+        'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       );
 
       // Session is now PAYMENT_PENDING — set expiresAt to the past

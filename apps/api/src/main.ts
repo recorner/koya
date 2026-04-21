@@ -85,9 +85,9 @@ async function bootstrap() {
 
   // ── Start listening ─────────────────────────────────────────
   const port = process.env.API_PORT || process.env.PORT || 3333;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   Logger.log(
-    `Koya API running on http://localhost:${port}/${globalPrefix}`,
+    `Koya API running on http://0.0.0.0:${port}/${globalPrefix}`,
   );
 }
 

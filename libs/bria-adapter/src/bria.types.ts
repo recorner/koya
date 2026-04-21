@@ -95,6 +95,24 @@ export interface NewAddressResult {
 
 // ─── Payout ────────────────────────────────────────────────
 
+export interface CreatePayoutQueueInput {
+  name: string;
+  description?: string;
+  intervalTrigger?: {
+    seconds?: number;
+  };
+}
+
+export interface CreatePayoutQueueResult {
+  id: string;
+}
+
+export interface PayoutQueueInfo {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface SubmitPayoutInput {
   walletName: string;
   payoutQueueName: string;

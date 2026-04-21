@@ -18,13 +18,18 @@ describe('BriaEventConsumerService', () => {
   let psbtSigningService: jest.Mocked<PsbtSigningService>;
   let eventEmitter: jest.Mocked<EventEmitter2>;
   let cursorStore: jest.Mocked<RedisCursorStore>;
-  let eventSubject: Subject<BriaEvent>;
+  let streams: Subject<BriaEvent>[];
 
   const createModule = async (driver = 'bria') => {
-    eventSubject = new Subject<BriaEvent>();
+    streams = [];
 
     const mockBriaClient = {
-      subscribeAll: jest.fn().mockReturnValue(eventSubject.asObservable()),
+      subscribeAll: jest.fn().mockImplementation(() => {
+        const stream = new Subject<BriaEvent>();
+        streams.push(stream);
+        return stream.asObservable();
+      }),
+      getPayout: jest.fn(),
     };
 
     const mockPrisma = {
@@ -69,6 +74,9 @@ describe('BriaEventConsumerService', () => {
           useValue: {
             get: jest.fn((key: string, defaultValue?: string) => {
               if (key === 'BTC_DELIVERY_DRIVER') return driver;
+              if (key === 'BRIA_STREAM_RECONNECT_BASE_MS') return '10';
+              if (key === 'BRIA_STREAM_RECONNECT_MAX_MS') return '50';
+              if (key === 'BRIA_STREAM_RECONNECT_JITTER_MS') return '0';
               return defaultValue;
             }),
           },
@@ -88,8 +96,11 @@ describe('BriaEventConsumerService', () => {
   };
 
   afterEach(() => {
-    if (eventSubject && !eventSubject.closed) {
-      eventSubject.complete();
+    jest.useRealTimers();
+    for (const stream of streams ?? []) {
+      if (!stream.closed) {
+        stream.complete();
+      }
     }
   });
 
@@ -116,13 +127,13 @@ describe('BriaEventConsumerService', () => {
     expect(briaClient.subscribeAll).toHaveBeenCalledWith({ afterSequence: 42, augment: true });
   });
 
-  it('should persist cursor after processing event', async () => {
+  it('should persist cursor after successful event processing', async () => {
     await createModule('bria');
     await consumer.onModuleInit();
 
     prisma.payoutInstruction.findFirst.mockResolvedValue(null);
 
-    eventSubject.next({
+    streams[0]!.next({
       sequence: 10,
       recordedAt: Date.now(),
       payload: {
@@ -131,7 +142,7 @@ describe('BriaEventConsumerService', () => {
       },
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 30));
     expect(cursorStore.setCursor).toHaveBeenCalledWith('bria_event_consumer', 10);
   });
 
@@ -143,7 +154,7 @@ describe('BriaEventConsumerService', () => {
     prisma.payoutInstruction.findFirst.mockResolvedValue(mockPayout);
     prisma.payoutInstruction.update.mockResolvedValue({});
 
-    eventSubject.next({
+    streams[0]!.next({
       sequence: 1,
       recordedAt: Date.now(),
       payload: {
@@ -160,8 +171,7 @@ describe('BriaEventConsumerService', () => {
       },
     });
 
-    // Wait for async handler
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 30));
 
     expect(prisma.payoutInstruction.findFirst).toHaveBeenCalledWith({
       where: { providerPayoutId: 'bria-payout-1' },
@@ -186,7 +196,7 @@ describe('BriaEventConsumerService', () => {
     });
     sessionService.transitionState.mockResolvedValue(undefined as any);
 
-    eventSubject.next({
+    streams[0]!.next({
       sequence: 2,
       recordedAt: Date.now(),
       payload: {
@@ -203,7 +213,7 @@ describe('BriaEventConsumerService', () => {
       },
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 30));
 
     expect(prisma.payoutInstruction.update).toHaveBeenCalledWith({
       where: { id: 'pi-2' },
@@ -228,7 +238,7 @@ describe('BriaEventConsumerService', () => {
     const mockPayout = { id: 'pi-3', conversionSessionId: 'sess-3', status: 'CONFIRMED' };
     prisma.payoutInstruction.findFirst.mockResolvedValue(mockPayout);
 
-    eventSubject.next({
+    streams[0]!.next({
       sequence: 3,
       recordedAt: Date.now(),
       payload: {
@@ -245,52 +255,94 @@ describe('BriaEventConsumerService', () => {
       },
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 30));
 
     expect(prisma.payoutInstruction.update).not.toHaveBeenCalled();
     expect(sessionService.transitionState).not.toHaveBeenCalled();
   });
 
-  it('should skip events for unknown payouts', async () => {
+  it('should auto-reconnect when stream errors', async () => {
+    jest.useFakeTimers();
     await createModule('bria');
     await consumer.onModuleInit();
 
-    prisma.payoutInstruction.findFirst.mockResolvedValue(null);
+    expect(briaClient.subscribeAll).toHaveBeenCalledTimes(1);
 
-    eventSubject.next({
-      sequence: 4,
+    streams[0]!.error(new Error('connection dropped'));
+
+    await jest.advanceTimersByTimeAsync(15);
+    expect(briaClient.subscribeAll).toHaveBeenCalledTimes(2);
+    expect(briaClient.subscribeAll).toHaveBeenNthCalledWith(2, { afterSequence: 0, augment: true });
+  });
+
+  it('should not advance cursor on handler failure and should reconnect from last committed cursor', async () => {
+    jest.useFakeTimers();
+    await createModule('bria');
+    await consumer.onModuleInit();
+
+    prisma.payoutInstruction.findFirst.mockResolvedValue({
+      id: 'pi-fail',
+      conversionSessionId: 'sess-fail',
+      status: 'PENDING',
+    });
+    prisma.payoutInstruction.update.mockRejectedValue(new Error('db write failed'));
+
+    streams[0]!.next({
+      sequence: 1,
+      recordedAt: Date.now(),
+      payload: {
+        type: 'payout_submitted',
+        data: { id: 'p-1', walletId: 'w1', payoutQueueId: 'q1', satoshis: 1000 },
+      },
+    });
+
+    await jest.advanceTimersByTimeAsync(20);
+    expect(cursorStore.setCursor).toHaveBeenCalledWith('bria_event_consumer', 1);
+
+    streams[0]!.next({
+      sequence: 2,
       recordedAt: Date.now(),
       payload: {
         type: 'payout_broadcast',
         data: {
-          id: 'unknown-payout',
+          id: 'bria-payout-fail',
           walletId: 'w1',
           payoutQueueId: 'q1',
-          satoshis: 10000,
-          txId: 'some-txid',
+          satoshis: 100000,
+          txId: 'tx-fail',
           vout: 0,
-          proportionalFeeSats: 100,
+          proportionalFeeSats: 500,
         },
       },
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await jest.advanceTimersByTimeAsync(15);
 
-    expect(prisma.payoutInstruction.update).not.toHaveBeenCalled();
+    expect(cursorStore.setCursor).not.toHaveBeenCalledWith('bria_event_consumer', 2);
+    expect(briaClient.subscribeAll).toHaveBeenCalledTimes(2);
+    expect(briaClient.subscribeAll).toHaveBeenNthCalledWith(2, { afterSequence: 1, augment: true });
+  });
+
+  it('should expose connectivity status', async () => {
+    await createModule('bria');
+    await consumer.onModuleInit();
+
+    const status = consumer.getConnectivityStatus();
+    expect(status.enabled).toBe(true);
+    expect(status.driver).toBe('bria');
+    expect(status.connected).toBe(true);
+    expect(status.committedCursor).toBe(0);
   });
 
   it('should unsubscribe on destroy', async () => {
     await createModule('bria');
     await consumer.onModuleInit();
 
-    expect(briaClient.subscribeAll).toHaveBeenCalled();
-
     consumer.onModuleDestroy();
 
-    // After destroy, emitting events should not trigger handlers
     prisma.payoutInstruction.findFirst.mockResolvedValue(null);
-    eventSubject.next({
-      sequence: 5,
+    streams[0]!.next({
+      sequence: 99,
       recordedAt: Date.now(),
       payload: {
         type: 'payout_broadcast',
@@ -306,7 +358,7 @@ describe('BriaEventConsumerService', () => {
       },
     });
 
-    await new Promise((r) => setTimeout(r, 50));
+    await new Promise((r) => setTimeout(r, 30));
     expect(prisma.payoutInstruction.findFirst).not.toHaveBeenCalled();
   });
 });

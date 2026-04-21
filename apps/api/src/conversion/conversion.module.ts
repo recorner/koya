@@ -9,6 +9,7 @@ import { PsbtSigningService } from './psbt-signing.service';
 import { RedisCursorStore } from './redis-cursor.store';
 import { BriaSetupService } from './bria-setup.service';
 import { BriaSetupController } from './bria-setup.controller';
+import { BriaHealthController } from './bria-health.controller';
 import { KycModule } from '../kyc/kyc.module';
 import { PaymentsModule } from '../payments/payments.module';
 import { RiskModule } from '../risk/risk.module';
@@ -26,7 +27,7 @@ import { DfnsModule } from '../dfns/dfns.module';
 import type { Type } from '@nestjs/common';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const controllers: Type<any>[] = [ConversionController];
+const controllers: Type<any>[] = [ConversionController, BriaHealthController];
 if (process.env['NODE_ENV'] !== 'production') {
   controllers.push(BriaSetupController);
 }
@@ -63,6 +64,6 @@ if (process.env['NODE_ENV'] !== 'production') {
     },
     { provide: SWAP_PROVIDER, useClass: MockSwapProvider },
   ],
-  exports: [ConversionService],
+  exports: [ConversionService, BriaEventConsumerService],
 })
 export class ConversionModule {}

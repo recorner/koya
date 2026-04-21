@@ -24,6 +24,7 @@ describe('BriaBtcDeliveryProvider', () => {
               const config: Record<string, string> = {
                 BRIA_WALLET_NAME: 'test-wallet',
                 BRIA_PAYOUT_QUEUE: 'test-queue',
+                BTC_NETWORK: 'testnet4',
               };
               return config[key] ?? defaultValue;
             }),

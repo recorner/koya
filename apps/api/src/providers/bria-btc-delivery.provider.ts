@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BriaClientService, BriaClientError, BriaErrorCode } from '@koya/bria-adapter';
+import { validateBtcAddressForNetwork } from '../common/btc-address.utils';
 import {
   BtcDeliveryProvider,
   BtcSendInput,
@@ -12,6 +13,7 @@ export class BriaBtcDeliveryProvider implements BtcDeliveryProvider {
   private readonly logger = new Logger(BriaBtcDeliveryProvider.name);
   private readonly walletName: string;
   private readonly payoutQueueName: string;
+  private readonly btcNetwork: string;
 
   constructor(
     private readonly briaClient: BriaClientService,
@@ -19,10 +21,18 @@ export class BriaBtcDeliveryProvider implements BtcDeliveryProvider {
   ) {
     this.walletName = this.config.get<string>('BRIA_WALLET_NAME', 'koya-wallet');
     this.payoutQueueName = this.config.get<string>('BRIA_PAYOUT_QUEUE', 'default');
+    this.btcNetwork = this.config.get<string>('BTC_NETWORK', 'bitcoin');
   }
 
   async send(input: BtcSendInput): Promise<BtcSendResult> {
     const externalId = `koya:conversion:${input.referenceCode}`;
+    const validation = validateBtcAddressForNetwork(input.address, this.btcNetwork);
+    if (!validation.valid) {
+      this.logger.error(
+        `Rejected payout ${externalId} due to BTC network mismatch (configured=${this.btcNetwork}, detected=${validation.detectedNetwork ?? 'unknown'})`,
+      );
+      return { success: false, txHash: '', confirmations: 0 };
+    }
 
     try {
       const result = await this.briaClient.submitPayout({

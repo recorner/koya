@@ -173,7 +173,12 @@ export class CacheService {
   async ping(): Promise<{ ok: boolean; latencyMs: number }> {
     const start = Date.now();
     try {
-      const result = await this.redis.ping();
+      const result = await Promise.race([
+        this.redis.ping().catch(() => 'ERR'),
+        new Promise<'TIMEOUT'>((resolve) => {
+          setTimeout(() => resolve('TIMEOUT'), 1000);
+        }),
+      ]);
       return { ok: result === 'PONG', latencyMs: Date.now() - start };
     } catch {
       return { ok: false, latencyMs: Date.now() - start };

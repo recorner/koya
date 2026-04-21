@@ -17,6 +17,7 @@ describe('DfnsBtcDeliveryProvider', () => {
         const config: Record<string, string> = {
           BRIA_WALLET_NAME: 'test-wallet',
           BRIA_PAYOUT_QUEUE_NAME: 'test-queue',
+          BTC_NETWORK: 'testnet4',
         };
         return config[key] ?? defaultValue ?? '';
       }),
@@ -31,7 +32,7 @@ describe('DfnsBtcDeliveryProvider', () => {
     });
 
     const result = await provider.send({
-      address: 'tb1qtest123',
+      address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       amountSatoshis: BigInt(100000),
       referenceCode: 'KYA-TEST01',
     });
@@ -43,7 +44,7 @@ describe('DfnsBtcDeliveryProvider', () => {
     expect(briaClient.submitPayout).toHaveBeenCalledWith({
       walletName: 'test-wallet',
       payoutQueueName: 'test-queue',
-      destination: { onchainAddress: 'tb1qtest123' },
+      destination: { onchainAddress: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn' },
       satoshis: 100000,
       externalId: 'koya:conversion:KYA-TEST01',
       metadata: { referenceCode: 'KYA-TEST01', driver: 'dfns' },
@@ -54,7 +55,7 @@ describe('DfnsBtcDeliveryProvider', () => {
     briaClient.submitPayout.mockResolvedValue({ id: 'bria-payout-002' });
 
     await provider.send({
-      address: 'tb1qaddr',
+      address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       amountSatoshis: BigInt(50000),
       referenceCode: 'KYA-ABCD1234',
     });
@@ -72,7 +73,7 @@ describe('DfnsBtcDeliveryProvider', () => {
     );
 
     const result = await provider.send({
-      address: 'tb1qbad',
+      address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       amountSatoshis: BigInt(10000),
       referenceCode: 'KYA-FAIL01',
     });
@@ -88,7 +89,7 @@ describe('DfnsBtcDeliveryProvider', () => {
     );
 
     const result = await provider.send({
-      address: 'tb1qnet',
+      address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
       amountSatoshis: BigInt(20000),
       referenceCode: 'KYA-NET01',
     });

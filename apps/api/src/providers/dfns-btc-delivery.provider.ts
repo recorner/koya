@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BriaClientService } from '@koya/bria-adapter';
+import { validateBtcAddressForNetwork } from '../common/btc-address.utils';
 import {
   BtcDeliveryProvider,
   BtcSendInput,
@@ -24,6 +25,7 @@ export class DfnsBtcDeliveryProvider implements BtcDeliveryProvider {
   private readonly logger = new Logger(DfnsBtcDeliveryProvider.name);
   private readonly walletName: string;
   private readonly queueName: string;
+  private readonly btcNetwork: string;
 
   constructor(
     private readonly briaClient: BriaClientService,
@@ -31,10 +33,18 @@ export class DfnsBtcDeliveryProvider implements BtcDeliveryProvider {
   ) {
     this.walletName = this.config.get<string>('BRIA_WALLET_NAME', 'default');
     this.queueName = this.config.get<string>('BRIA_PAYOUT_QUEUE_NAME', 'default');
+    this.btcNetwork = this.config.get<string>('BTC_NETWORK', 'bitcoin');
   }
 
   async send(input: BtcSendInput): Promise<BtcSendResult> {
     const externalId = `koya:conversion:${input.referenceCode}`;
+    const validation = validateBtcAddressForNetwork(input.address, this.btcNetwork);
+    if (!validation.valid) {
+      this.logger.error(
+        `Rejected DFNS payout ${externalId} due to BTC network mismatch (configured=${this.btcNetwork}, detected=${validation.detectedNetwork ?? 'unknown'})`,
+      );
+      return { success: false, txHash: '', confirmations: 0 };
+    }
 
     try {
       // Submit payout to Bria — Bria will batch it and create an unsigned PSBT.

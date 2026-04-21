@@ -21,7 +21,8 @@ export const RedisProvider = {
       db,
       ...(tls ? { tls: {} } : {}),
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
+      // Prevent process-crashing MaxRetriesPerRequestError during transient Redis outages.
+      maxRetriesPerRequest: null,
       retryStrategy(times: number) {
         const delay = Math.min(times * 200, 5000);
         logger.warn(`Redis reconnecting attempt ${times}, delay ${delay}ms`);

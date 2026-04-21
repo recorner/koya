@@ -15,6 +15,8 @@ import type {
   CreateProfileApiKeyResult,
   CreateWalletInput,
   CreateWalletResult,
+  CreatePayoutQueueInput,
+  CreatePayoutQueueResult,
   EstimatePayoutFeeInput,
   EstimatePayoutFeeResult,
   GetPayoutInput,
@@ -25,6 +27,8 @@ import type {
   NewAddressInput,
   NewAddressResult,
   PayoutInfo,
+  PayoutQueueInfo,
+  ProfileInfo,
   SubmitPayoutInput,
   SubmitPayoutResult,
   SubmitSignedPsbtInput,
@@ -104,6 +108,11 @@ export class BriaClientService implements OnModuleInit, OnModuleDestroy {
     return { id: res.id, key: res.key };
   }
 
+  async listProfiles(): Promise<ProfileInfo[]> {
+    const res = await this.callWithRetry<{ profiles: ProfileInfo[] }>('listProfiles', {});
+    return res.profiles ?? [];
+  }
+
   // ─── Xpub ───────────────────────────────────────────────
 
   async importXpub(input: ImportXpubInput): Promise<ImportXpubResult> {
@@ -132,6 +141,36 @@ export class BriaClientService implements OnModuleInit, OnModuleDestroy {
     return this.callWithRetry<WalletBalanceSummary>('getWalletBalanceSummary', {
       walletName,
     });
+  }
+
+  async createPayoutQueue(input: CreatePayoutQueueInput): Promise<CreatePayoutQueueResult> {
+    const config: Record<string, unknown> = {
+      txPriority: 0,
+      consolidateDeprecatedKeychains: false,
+    };
+
+    if (input.intervalTrigger?.seconds) {
+      config['intervalSecs'] = input.intervalTrigger.seconds;
+    } else {
+      config['manual'] = true;
+    }
+
+    const req: Record<string, unknown> = {
+      name: input.name,
+      config,
+    };
+
+    if (input.description) {
+      req['description'] = input.description;
+    }
+
+    const res = await this.callWithRetry<{ id: string }>('createPayoutQueue', req);
+    return { id: res.id };
+  }
+
+  async listPayoutQueues(): Promise<PayoutQueueInfo[]> {
+    const res = await this.callWithRetry<{ payoutQueues: PayoutQueueInfo[] }>('listPayoutQueues', {});
+    return res.payoutQueues ?? [];
   }
 
   // ─── Address ─────────────────────────────────────────────

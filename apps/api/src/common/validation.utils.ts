@@ -1,3 +1,8 @@
+import {
+  isValidBtcAddress as isValidBtcAddressStrict,
+  validateBtcAddressForNetwork,
+} from './btc-address.utils';
+
 /**
  * Normalize a Kenya phone number to E.164 format (+254XXXXXXXXX)
  * Handles: 07XX, +2547XX, 2547XX, 01XX formats
@@ -25,24 +30,18 @@ export class InvalidPhoneError extends Error {
 }
 
 /**
- * Validate a BTC address (P2PKH, P2SH, Bech32, Taproot)
- * Also accepts testnet (tb1) and regtest (bcrt1) addresses when NODE_ENV !== 'production'
+ * Validate that an address is a syntactically-valid BTC address for any network.
  */
 export function isValidBtcAddress(address: string): boolean {
-  // P2PKH: starts with 1, 25-34 chars
-  if (/^1[a-km-zA-HJ-NP-Z1-9]{24,33}$/.test(address)) return true;
-  // P2SH: starts with 3, 25-34 chars
-  if (/^3[a-km-zA-HJ-NP-Z1-9]{24,33}$/.test(address)) return true;
-  // Bech32: starts with bc1q, 42 or 62 chars
-  if (/^bc1q[a-z0-9]{38,58}$/.test(address)) return true;
-  // Taproot: starts with bc1p, 62 chars
-  if (/^bc1p[a-z0-9]{58}$/.test(address)) return true;
-  // Testnet bech32: starts with tb1q
-  if (/^tb1q[a-z0-9]{38,58}$/.test(address)) return true;
-  // Regtest bech32: starts with bcrt1q
-  if (/^bcrt1q[a-z0-9]{38,58}$/.test(address)) return true;
+  return isValidBtcAddressStrict(address);
+}
 
-  return false;
+/**
+ * Validate a BTC address against an explicit configured network family.
+ * network can be one of: bitcoin, testnet, testnet4, signet, regtest
+ */
+export function isValidBtcAddressForNetwork(address: string, network: string | undefined): boolean {
+  return validateBtcAddressForNetwork(address, network).valid;
 }
 
 /**

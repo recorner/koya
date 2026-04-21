@@ -18,7 +18,8 @@ export class RatesWarmerService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('Warming rates cache on startup…');
-    await this.warm();
+    // Do not block API startup on cache backend availability.
+    void this.warm();
   }
 
   @Interval(5_000)
