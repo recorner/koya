@@ -1,6 +1,6 @@
 # Messaging Production Redeploy Checklist
 
-Last updated: 2026-04-20
+Last updated: 2026-04-21
 
 Use this checklist before redeploying the API to `api.koyabank.com`.
 
@@ -71,6 +71,8 @@ Webhook registration is not automated in this repo.
 - [ ] Set verify token to the value from Secrets Manager path:
   - `/koya/whatsapp/verifyToken`
 - [ ] Complete provider-side verification challenge successfully.
+- [ ] Verify challenge endpoint using:
+  - `./scripts/verify-whatsapp-webhook.sh production`
 
 ### Telegram
 
@@ -92,6 +94,12 @@ Verify command:
 curl -sS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ```
 
+Automated registration command:
+
+```bash
+./scripts/register-telegram-webhook.sh production
+```
+
 ## 5. Post-deploy smoke tests
 
 - [ ] WhatsApp webhook verification succeeds.
@@ -100,6 +108,8 @@ curl -sS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 - [ ] Inbound Telegram webhook accepted.
 - [ ] Outbound WhatsApp send succeeds.
 - [ ] Outbound Telegram send succeeds.
+- [ ] Provider API outbound smoke succeeds:
+  - `./scripts/messaging-smoke.sh production --whatsapp-recipient <E164> --telegram-chat-id <chat-id>`
 - [ ] Chat conversion reaches terminal state.
 - [ ] Tracking link is sent at completion.
 - [ ] CloudWatch logs show no startup/config failures.

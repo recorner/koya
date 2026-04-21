@@ -1,6 +1,6 @@
 # Messaging Production Release Note
 
-Date: 2026-04-20
+Date: 2026-04-21
 
 ## What was missing
 
@@ -46,6 +46,8 @@ Date: 2026-04-20
   - `/koya/telegram/botToken`
   - `/koya/telegram/webhookSecret`
 - Ensure `WHATSAPP_PHONE_NUMBER_ID` in `env/production.env` is set to a real value.
-- Perform provider-side webhook registration (not automated in repo):
-  - WhatsApp callback/verify: `https://api.koyabank.com/api/v1/messaging/webhooks/whatsapp-cloud`
-  - Telegram webhook: `https://api.koyabank.com/api/v1/messaging/webhooks/telegram` with matching `secret_token`
+- Run webhook verification/registration scripts:
+  - `./scripts/verify-whatsapp-webhook.sh production`
+  - `./scripts/register-telegram-webhook.sh production`
+- Run outbound provider smoke:
+  - `./scripts/messaging-smoke.sh production --whatsapp-recipient <E164> --telegram-chat-id <chat-id>`
