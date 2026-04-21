@@ -1,12 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { BriaClientService } from '@koya/bria-adapter';
+import { BriaClientService, BriaClientError, BriaErrorCode } from '@koya/bria-adapter';
 import { validateBtcAddressForNetwork } from '../common/btc-address.utils';
 import {
-  BtcDeliveryProvider,
-  BtcSendInput,
-  BtcSendResult,
-} from './btc-delivery.interface';
+  BtcBackendCapability,
+  BtcBackendErrorClassification,
+  BtcBackendHealthMetadata,
+  BtcBackendProvider,
+  BtcGenerateDepositAddressInput,
+  BtcGenerateDepositAddressResult,
+  BtcGetPayoutInput,
+  BtcGetPayoutResult,
+  BtcSubmitPayoutInput,
+  BtcSubmitPayoutResult,
+} from './btc-backend.interface';
 
 /**
  * DfnsBtcDeliveryProvider — uses Bria for payout submission and UTXO management,
@@ -16,12 +23,10 @@ import {
  * 2. BriaEventConsumer catches payout_committed, retrieves unsigned PSBT
  * 3. PsbtSigningService sends PSBT to DFNS for signing
  * 4. Signed PSBT returned to Bria for broadcast
- *
- * This provider only handles step 1 — submitting the payout.
- * Steps 2-4 are handled asynchronously by BriaEventConsumer + PsbtSigningService.
  */
 @Injectable()
-export class DfnsBtcDeliveryProvider implements BtcDeliveryProvider {
+export class DfnsBtcDeliveryProvider implements BtcBackendProvider {
+  readonly backend = 'dfns';
   private readonly logger = new Logger(DfnsBtcDeliveryProvider.name);
   private readonly walletName: string;
   private readonly queueName: string;
@@ -36,46 +41,123 @@ export class DfnsBtcDeliveryProvider implements BtcDeliveryProvider {
     this.btcNetwork = this.config.get<string>('BTC_NETWORK', 'bitcoin');
   }
 
-  async send(input: BtcSendInput): Promise<BtcSendResult> {
+  async generateDepositAddress(
+    input: BtcGenerateDepositAddressInput,
+  ): Promise<BtcGenerateDepositAddressResult> {
+    const walletName = input.walletName ?? this.walletName;
+    const res = await this.briaClient.newAddress({
+      walletName,
+      externalId: input.externalId,
+      metadata: input.metadata,
+    });
+
+    const validation = validateBtcAddressForNetwork(res.address, this.btcNetwork);
+    if (!validation.valid) {
+      throw new Error(
+        `Bria emitted address not valid for configured BTC network (configured=${this.btcNetwork}, detected=${validation.detectedNetwork ?? 'unknown'})`,
+      );
+    }
+
+    return {
+      address: res.address,
+      externalId: input.externalId,
+    };
+  }
+
+  async submitPayout(input: BtcSubmitPayoutInput): Promise<BtcSubmitPayoutResult> {
     const externalId = `koya:conversion:${input.referenceCode}`;
     const validation = validateBtcAddressForNetwork(input.address, this.btcNetwork);
     if (!validation.valid) {
-      this.logger.error(
-        `Rejected DFNS payout ${externalId} due to BTC network mismatch (configured=${this.btcNetwork}, detected=${validation.detectedNetwork ?? 'unknown'})`,
+      throw new Error(
+        `Invalid BTC address for configured network (${this.btcNetwork}); detected=${validation.detectedNetwork ?? 'unknown'}`,
       );
-      return { success: false, txHash: '', confirmations: 0 };
     }
 
     try {
-      // Submit payout to Bria — Bria will batch it and create an unsigned PSBT.
-      // The BriaEventConsumer will pick up the payout_committed event and
-      // orchestrate DFNS signing via PsbtSigningService.
       const result = await this.briaClient.submitPayout({
         walletName: this.walletName,
         payoutQueueName: this.queueName,
         destination: { onchainAddress: input.address },
         satoshis: Number(input.amountSatoshis),
         externalId,
-        metadata: { referenceCode: input.referenceCode, driver: 'dfns' },
+        metadata: { referenceCode: input.referenceCode, driver: this.backend, ...input.metadata },
       });
 
       this.logger.log(
         `Payout submitted to Bria for DFNS signing: payoutId=${result.id} externalId=${externalId}`,
       );
 
-      // Return Bria payout ID for tracking.
-      // On-chain txId arrives later via BriaEventConsumer (payout_broadcast/settled).
       return {
-        success: true,
-        txHash: result.id,
-        confirmations: 0,
+        providerPayoutId: result.id,
       };
-    } catch (err) {
-      this.logger.error(
-        `Bria payout submission failed for ${externalId}`,
-        err instanceof Error ? err.message : err,
-      );
-      return { success: false, txHash: '', confirmations: 0 };
+    } catch (error) {
+      if (error instanceof BriaClientError && error.code === BriaErrorCode.ALREADY_EXISTS) {
+        const existing = await this.briaClient.getPayout({ externalId });
+        return {
+          providerPayoutId: existing.id,
+          txId: existing.txId,
+        };
+      }
+      throw error;
     }
+  }
+
+  async getPayout(input: BtcGetPayoutInput): Promise<BtcGetPayoutResult | null> {
+    try {
+      const payout = await this.briaClient.getPayout(input);
+      return {
+        id: payout.id,
+        externalId: payout.externalId,
+        txId: payout.txId,
+        cancelled: payout.cancelled,
+      };
+    } catch (error) {
+      if (error instanceof BriaClientError && error.code === BriaErrorCode.NOT_FOUND) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  classifyError(error: unknown): BtcBackendErrorClassification {
+    if (error instanceof BriaClientError) {
+      if (error.isTransient || error.code === BriaErrorCode.INTERNAL) {
+        return {
+          retryable: true,
+          reason: error.code,
+          suggestedDelayMs: 2500,
+        };
+      }
+
+      return {
+        retryable: false,
+        reason: error.code,
+      };
+    }
+
+    return {
+      retryable: false,
+      reason: error instanceof Error ? error.message : 'unknown_error',
+    };
+  }
+
+  capabilities(): BtcBackendCapability[] {
+    return [
+      'deposit_address_generation',
+      'payout_submission',
+      'payout_lookup',
+      'event_stream',
+    ];
+  }
+
+  healthMetadata(): BtcBackendHealthMetadata {
+    return {
+      backend: this.backend,
+      healthy: Boolean(this.walletName && this.queueName),
+      capabilities: this.capabilities(),
+      network: this.btcNetwork,
+      walletName: this.walletName,
+      payoutQueueName: this.queueName,
+    };
   }
 }

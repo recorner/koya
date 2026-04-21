@@ -11,6 +11,7 @@ describe('BriaBtcDeliveryProvider', () => {
     const mockBriaClient = {
       submitPayout: jest.fn(),
       getPayout: jest.fn(),
+      newAddress: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -23,7 +24,7 @@ describe('BriaBtcDeliveryProvider', () => {
             get: jest.fn((key: string, defaultValue?: string) => {
               const config: Record<string, string> = {
                 BRIA_WALLET_NAME: 'test-wallet',
-                BRIA_PAYOUT_QUEUE: 'test-queue',
+                BRIA_PAYOUT_QUEUE_NAME: 'test-queue',
                 BTC_NETWORK: 'testnet4',
               };
               return config[key] ?? defaultValue;
@@ -38,7 +39,7 @@ describe('BriaBtcDeliveryProvider', () => {
   });
 
   const defaultInput = {
-    address: 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx',
+    address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn',
     amountSatoshis: BigInt(100000),
     referenceCode: 'KYA-ABCD1234',
   };
@@ -46,22 +47,23 @@ describe('BriaBtcDeliveryProvider', () => {
   it('should submit payout with correct params', async () => {
     briaClient.submitPayout.mockResolvedValue({ id: 'payout-123' });
 
-    const result = await provider.send(defaultInput);
+    const result = await provider.submitPayout(defaultInput);
 
-    expect(result).toEqual({ success: true, txHash: 'payout-123', confirmations: 0 });
+    expect(result).toEqual({ providerPayoutId: 'payout-123' });
     expect(briaClient.submitPayout).toHaveBeenCalledWith({
       walletName: 'test-wallet',
       payoutQueueName: 'test-queue',
       destination: { onchainAddress: defaultInput.address },
       satoshis: 100000,
       externalId: 'koya:conversion:KYA-ABCD1234',
+      metadata: undefined,
     });
   });
 
   it('should build correct externalId from referenceCode', async () => {
     briaClient.submitPayout.mockResolvedValue({ id: 'payout-456' });
 
-    await provider.send({ ...defaultInput, referenceCode: 'KYA-XYZ99999' });
+    await provider.submitPayout({ ...defaultInput, referenceCode: 'KYA-XYZ99999' });
 
     expect(briaClient.submitPayout).toHaveBeenCalledWith(
       expect.objectContaining({ externalId: 'koya:conversion:KYA-XYZ99999' }),
@@ -82,50 +84,44 @@ describe('BriaBtcDeliveryProvider', () => {
       txId: 'abc123txid',
     } as any);
 
-    const result = await provider.send(defaultInput);
+    const result = await provider.submitPayout(defaultInput);
 
-    expect(result).toEqual({ success: true, txHash: 'abc123txid', confirmations: 0 });
+    expect(result).toEqual({ providerPayoutId: 'payout-existing', txId: 'abc123txid' });
     expect(briaClient.getPayout).toHaveBeenCalledWith({
       externalId: 'koya:conversion:KYA-ABCD1234',
     });
   });
 
-  it('should return success with empty txHash if existing payout has no txId', async () => {
-    briaClient.submitPayout.mockRejectedValue(
-      new BriaClientError(BriaErrorCode.ALREADY_EXISTS, 'payout exists', 6),
-    );
-    briaClient.getPayout.mockResolvedValue({
-      id: 'payout-existing',
-      walletId: 'w1',
-      payoutQueueId: 'q1',
-      satoshis: 100000,
-      cancelled: false,
-      externalId: 'koya:conversion:KYA-ABCD1234',
-    } as any);
-
-    const result = await provider.send(defaultInput);
-
-    expect(result).toEqual({ success: true, txHash: '', confirmations: 0 });
-  });
-
-  it('should return failure on non-transient error', async () => {
+  it('should throw on non-transient error', async () => {
     briaClient.submitPayout.mockRejectedValue(
       new BriaClientError(BriaErrorCode.PERMISSION_DENIED, 'forbidden', 7),
     );
 
-    const result = await provider.send(defaultInput);
-
-    expect(result).toEqual({ success: false, txHash: '', confirmations: 0 });
+    await expect(provider.submitPayout(defaultInput)).rejects.toThrow('forbidden');
   });
 
-  it('should return failure when ALREADY_EXISTS lookup fails', async () => {
-    briaClient.submitPayout.mockRejectedValue(
-      new BriaClientError(BriaErrorCode.ALREADY_EXISTS, 'payout exists', 6),
-    );
-    briaClient.getPayout.mockRejectedValue(new Error('lookup failed'));
+  it('should throw when payout address is on wrong network', async () => {
+    await expect(
+      provider.submitPayout({
+        ...defaultInput,
+        address: 'bc1q8fjfrwmf6z4ccz5x4v8x9kz3g6dn6xv3mwt6vc',
+      }),
+    ).rejects.toThrow('Invalid BTC address for configured network');
+  });
 
-    const result = await provider.send(defaultInput);
+  it('should generate a deposit address', async () => {
+    briaClient.newAddress.mockResolvedValue({ address: 'mipcBbFg9gMiCh81Kj8tqqdgoZub1ZJRfn' });
 
-    expect(result).toEqual({ success: false, txHash: '', confirmations: 0 });
+    const result = await provider.generateDepositAddress({
+      externalId: 'koya:deposit:test:1',
+      metadata: { context: 'test' },
+    });
+
+    expect(result.address).toMatch(/^[mn2]/);
+    expect(briaClient.newAddress).toHaveBeenCalledWith({
+      walletName: 'test-wallet',
+      externalId: 'koya:deposit:test:1',
+      metadata: { context: 'test' },
+    });
   });
 });

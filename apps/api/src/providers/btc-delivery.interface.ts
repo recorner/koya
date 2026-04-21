@@ -1,18 +1,8 @@
-/** BTC delivery abstraction */
-export interface BtcDeliveryProvider {
-  send(input: BtcSendInput): Promise<BtcSendResult>;
-}
-
-export interface BtcSendInput {
-  address: string;
-  amountSatoshis: bigint;
-  referenceCode: string;
-}
-
-export interface BtcSendResult {
-  success: boolean;
-  txHash: string;
-  confirmations: number;
-}
-
-export const BTC_DELIVERY_PROVIDER = 'BTC_DELIVERY_PROVIDER';
+// Deprecated shim: keep existing imports compiling while migrating to the
+// provider-style backend contract.
+export {
+  BTC_BACKEND_PROVIDER as BTC_DELIVERY_PROVIDER,
+  type BtcBackendProvider as BtcDeliveryProvider,
+  type BtcSubmitPayoutInput as BtcSendInput,
+  type BtcSubmitPayoutResult as BtcSendResult,
+} from './btc-backend.interface';

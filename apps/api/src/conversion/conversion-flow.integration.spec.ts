@@ -10,7 +10,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { RiskModule } from '../risk/risk.module';
 import { RATE_PROVIDER } from '../providers/rate-provider.interface';
 import { MockRateProvider } from '../providers/mock-rate.provider';
-import { BTC_DELIVERY_PROVIDER } from '../providers/btc-delivery.interface';
+import { BTC_BACKEND_PROVIDER } from '../providers/btc-backend.interface';
 import { MockBtcDeliveryProvider } from '../providers/mock-btc-delivery.provider';
 import { SWAP_PROVIDER } from '../providers/swap-provider.interface';
 import { MockSwapProvider } from '../providers/mock-swap.provider';
@@ -38,7 +38,7 @@ describe('Conversion Flow (Integration)', () => {
         QuoteService,
         SessionService,
         { provide: RATE_PROVIDER, useClass: MockRateProvider },
-        { provide: BTC_DELIVERY_PROVIDER, useClass: MockBtcDeliveryProvider },
+        { provide: BTC_BACKEND_PROVIDER, useClass: MockBtcDeliveryProvider },
         { provide: SWAP_PROVIDER, useClass: MockSwapProvider },
       ],
     }).compile();
