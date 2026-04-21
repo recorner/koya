@@ -22,6 +22,7 @@ const descriptorExternal = process.env.BRIA_WALLET_DESCRIPTOR_EXTERNAL || '';
 const descriptorInternal = process.env.BRIA_WALLET_DESCRIPTOR_INTERNAL || '';
 const walletXpub = process.env.BRIA_WALLET_XPUB || '';
 const walletDerivationPath = process.env.BRIA_WALLET_DERIVATION_PATH || 'm/84h/1h/0h';
+const btcPolicyNetwork = (process.env.BTC_NETWORK || 'testnet4').toLowerCase();
 
 if (!walletXpub && (!descriptorExternal || !descriptorInternal)) {
   throw new Error('Missing BRIA_WALLET_DESCRIPTOR_EXTERNAL or BRIA_WALLET_DESCRIPTOR_INTERNAL');
@@ -58,6 +59,20 @@ function isAlreadyExists(err) {
 function isDuplicateConstraint(err) {
   const details = typeof err?.details === 'string' ? err.details : '';
   return err?.code === grpc.status.INTERNAL && /duplicate key value violates unique constraint/i.test(details);
+}
+
+function expectedAddressFamily(policyNetwork) {
+  if (policyNetwork === 'mainnet' || policyNetwork === 'bitcoin') return 'mainnet';
+  if (policyNetwork === 'testnet' || policyNetwork === 'testnet4' || policyNetwork === 'signet') return 'testnet';
+  return 'regtest';
+}
+
+function detectAddressFamily(address) {
+  const value = String(address || '').trim().toLowerCase();
+  if (value.startsWith('bc1') || value.startsWith('1') || value.startsWith('3')) return 'mainnet';
+  if (value.startsWith('tb1') || value.startsWith('m') || value.startsWith('n') || value.startsWith('2')) return 'testnet';
+  if (value.startsWith('bcrt1')) return 'regtest';
+  return 'unknown';
 }
 
 function resolveProtoPath(relativePath) {
@@ -226,6 +241,14 @@ async function main() {
     { walletName },
     serviceMd,
   );
+
+  const expectedFamily = expectedAddressFamily(btcPolicyNetwork);
+  const detectedFamily = detectAddressFamily(verification.address);
+  if (expectedFamily !== detectedFamily) {
+    throw new Error(
+      `Provision verification emitted wrong address family: address=${verification.address} expected=${expectedFamily} detected=${detectedFamily} (BTC_NETWORK=${btcPolicyNetwork})`,
+    );
+  }
 
   process.stdout.write(
     JSON.stringify({

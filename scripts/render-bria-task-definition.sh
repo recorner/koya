@@ -104,7 +104,7 @@ export BRIA_CPU="${BRIA_CPU:-512}"
 export BRIA_MEMORY="${BRIA_MEMORY:-1024}"
 export BRIA_PORT="${BRIA_PORT:-2742}"
 export BRIA_ADMIN_PORT="${BRIA_ADMIN_PORT:-2743}"
-export BRIA_NETWORK="${BRIA_NETWORK:-testnet4}"
+export BRIA_NETWORK="${BRIA_NETWORK:-testnet}"
 export BRIA_ELECTRUM_URL="${BRIA_ELECTRUM_URL:-mempool.space:40002}"
 
 TEMPLATE_DIR="${REPO_ROOT}/infra/templates"

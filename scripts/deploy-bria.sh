@@ -120,4 +120,7 @@ aws ecs wait services-stable \
   --services "${SERVICE}" \
   --region "${AWS_REGION}"
 
+echo "Running private-topology validation..."
+"${SCRIPT_DIR}/validate-bria-private.sh" "${KOYA_ENV}" "${CLUSTER}" "${SERVICE}"
+
 echo "Bria deploy complete: ${SERVICE} -> ${BRIA_TASK_DEF_ARN}"

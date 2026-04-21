@@ -146,6 +146,21 @@ variable "btc_network" {
   default = "bitcoin"
 }
 
+variable "btc_production_network_mode" {
+  type    = string
+  default = "testnet4"
+}
+
+variable "btc_payout_retry_max_attempts" {
+  type    = string
+  default = "5"
+}
+
+variable "btc_payout_retry_poll_ms" {
+  type    = string
+  default = "5000"
+}
+
 variable "messaging_enable_whatsapp_cloud" {
   type    = string
   default = "true"

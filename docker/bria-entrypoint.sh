@@ -1,7 +1,9 @@
 #!/usr/bin/env sh
 set -eu
 
-: "${BRIA_NETWORK:=testnet4}"
+# Bria v0.1.131 runtime uses `testnet` for tb1 addresses.
+# Koya policy can still be `BTC_NETWORK=testnet4`.
+: "${BRIA_NETWORK:=testnet}"
 : "${BRIA_ELECTRUM_URL:=mempool.space:40002}"
 : "${BRIA_API_PORT:=2742}"
 : "${BRIA_ADMIN_PORT:=2743}"

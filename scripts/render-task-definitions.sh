@@ -76,6 +76,9 @@ fi
 export BRIA_STREAM_RECONNECT_BASE_MS="${BRIA_STREAM_RECONNECT_BASE_MS:-1000}"
 export BRIA_STREAM_RECONNECT_MAX_MS="${BRIA_STREAM_RECONNECT_MAX_MS:-30000}"
 export BRIA_STREAM_RECONNECT_JITTER_MS="${BRIA_STREAM_RECONNECT_JITTER_MS:-500}"
+export BTC_PRODUCTION_NETWORK_MODE="${BTC_PRODUCTION_NETWORK_MODE:-}"
+export BTC_PAYOUT_RETRY_MAX_ATTEMPTS="${BTC_PAYOUT_RETRY_MAX_ATTEMPTS:-5}"
+export BTC_PAYOUT_RETRY_POLL_MS="${BTC_PAYOUT_RETRY_POLL_MS:-5000}"
 
 normalize_ecr_repo_url() {
   local image="$1"
@@ -188,6 +191,9 @@ if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
   # Drift-safe live mode:
   # Preserve runtime connectivity/payment values from the currently running task
   # so deploys can roll forward safely even if env/<env>.env differs.
+  # Do NOT carry forward wallet identity fields (BRIA_WALLET_NAME/BRIA_XPUB_REF):
+  # those must come from explicit environment config to avoid pinning stale
+  # regtest-era wallet material in testnet4/mainnet deploys.
   for key in \
     REDIS_HOST \
     REDIS_PORT \
@@ -195,13 +201,9 @@ if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
     REDIS_DB \
     MPESA_ENVIRONMENT \
     BTC_DELIVERY_DRIVER \
-    BTC_NETWORK \
     BRIA_API_HOST \
     BRIA_API_PORT \
-    BRIA_NETWORK \
     BRIA_ELECTRUM_URL \
-    BRIA_WALLET_NAME \
-    BRIA_XPUB_REF \
     BRIA_STREAM_RECONNECT_BASE_MS \
     BRIA_STREAM_RECONNECT_MAX_MS \
     BRIA_STREAM_RECONNECT_JITTER_MS \
