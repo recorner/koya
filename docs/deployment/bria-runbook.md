@@ -45,18 +45,29 @@ Validation enforces:
 ./scripts/provision-bria-wallet.sh <staging|production>
 ```
 
+Fresh-lineage reprovision (recommended when address family mismatch persists):
+```bash
+./scripts/provision-bria-wallet.sh <staging|production> --fresh-lineage --lineage-tag <yyyymmddhhmmss>
+```
+
 The provisioning script fails fast if the verification address family does not match Koya policy network.
+The script now writes generated Bria keys to a protected temp file path and never prints key material to stdout/stderr.
+If descriptor reuse is detected, provisioning fails with a lineage-guard error instead of silently reusing incompatible wallet lineage.
 
 Post-deploy address-family probe (API + Bria end-to-end):
 ```bash
 ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name]
+# optional private endpoint override:
+./scripts/validate-bria-address-family.sh <staging|production> [wallet_name] --api-base-url http://<private-api-host>:3333
 ```
 
 If this probe reports `bcrt1...` while `BTC_NETWORK=testnet4`, treat it as a hard failure.
 
 ## Health
-- API connectivity: `GET /api/v1/internal/health/bria`
-- Backend health: `GET /api/v1/internal/btc-backend/health` (admin key)
+- API connectivity (private path): `GET /api/v1/internal/health/bria`
+- Backend health (private path): `GET /api/v1/internal/btc-backend/health` (admin key)
+
+Note: these internal endpoints are intended for private/VPC access. Public API edge paths can return `404` even when service startup logs show the routes mapped.
 
 ## Address-Family Mismatch Playbook (`bcrt1...` in testnet4 mode)
 1. Confirm runtime mapping is correct:
