@@ -25,6 +25,17 @@ interface TelegramUpdate {
     chat?: { id?: number | string };
     from?: { id?: number | string };
   };
+  callback_query?: {
+    id?: string;
+    data?: string;
+    from?: { id?: number | string };
+    message?: {
+      message_id?: number;
+      date?: number;
+      text?: string;
+      chat?: { id?: number | string };
+    };
+  };
 }
 
 @Injectable()
@@ -74,7 +85,61 @@ export class TelegramProvider implements MessagingProvider {
   }): NormalizedInboundEvent[] {
     this.ensureConfigured();
     const update = input.payload as TelegramUpdate;
-    if (!update.update_id || !update.message?.chat?.id || !update.message?.text) {
+    if (!update.update_id) {
+      throw new PayloadValidationError('Malformed Telegram update payload');
+    }
+
+    if (update.callback_query) {
+      const callbackQuery = update.callback_query;
+      if (!callbackQuery.id || !callbackQuery.message?.chat?.id) {
+        throw new PayloadValidationError('Malformed Telegram callback query payload');
+      }
+
+      const chatId = String(callbackQuery.message.chat.id);
+      const senderId = String(callbackQuery.from?.id ?? chatId);
+      const callbackPayload = callbackQuery.data?.trim() || callbackQuery.message.text?.trim();
+      if (!callbackPayload) {
+        throw new PayloadValidationError('Telegram callback query missing callback data');
+      }
+
+      const messageId = callbackQuery.message.message_id
+        ? String(callbackQuery.message.message_id)
+        : `${update.update_id}`;
+
+      return [
+        {
+          provider: this.provider,
+          providerAccountId: this.botToken.slice(0, 12),
+          providerEventId: String(update.update_id),
+          providerMessageId: messageId,
+          conversationExternalId: chatId,
+          senderExternalId: senderId,
+          eventType: 'INBOUND_MESSAGE',
+          occurredAt: callbackQuery.message.date
+            ? new Date(callbackQuery.message.date * 1000)
+            : new Date(),
+          checksum: checksumPayload(input.rawBody),
+          idempotencyKey: buildIdempotencyKey([
+            this.provider,
+            String(update.update_id),
+            chatId,
+          ]),
+          rawPayloadRef: `telegram:${update.update_id}`,
+          messageText: callbackPayload,
+          rawPayload: {
+            ...input.payload,
+            updateType: 'callback_query',
+            buttonPayload: callbackQuery.data ?? callbackPayload,
+            buttonText: callbackQuery.message.text ?? null,
+            callbackQueryId: callbackQuery.id,
+          },
+          webhookEventKind: 'callback_query',
+          callbackQueryId: callbackQuery.id,
+        },
+      ];
+    }
+
+    if (!update.message?.chat?.id || !update.message?.text) {
       throw new PayloadValidationError('Malformed Telegram update payload');
     }
 
@@ -98,9 +163,44 @@ export class TelegramProvider implements MessagingProvider {
         idempotencyKey: buildIdempotencyKey([this.provider, String(update.update_id), chatId]),
         rawPayloadRef: `telegram:${update.update_id}`,
         messageText: update.message.text,
-        rawPayload: input.payload,
+        rawPayload: {
+          ...input.payload,
+          updateType: 'message',
+        },
+        webhookEventKind: 'message',
       },
     ];
+  }
+
+  async acknowledgeInboundEvent(input: {
+    event: NormalizedInboundEvent;
+    correlationId: string;
+  }): Promise<void> {
+    this.ensureConfigured();
+    if (!input.event.callbackQueryId) {
+      return;
+    }
+
+    const endpoint = `https://api.telegram.org/bot${this.botToken}/answerCallbackQuery`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Correlation-Id': input.correlationId,
+      },
+      body: JSON.stringify({
+        callback_query_id: input.event.callbackQueryId,
+      }),
+    });
+
+    const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!response.ok || json['ok'] === false) {
+      const description = String(json['description'] ?? response.statusText);
+      if (response.status >= 500 || response.status === 429) {
+        throw new ProviderTransientError(`Telegram callback ack transient error: ${description}`);
+      }
+      throw new ProviderPermanentError(`Telegram callback ack permanent error: ${description}`);
+    }
   }
 
   async sendTextMessage(input: {

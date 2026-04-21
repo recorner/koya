@@ -41,6 +41,11 @@ export interface MessagingProvider
     MessagingTemplateSender {
   readonly provider: MessagingProviderType;
 
+  acknowledgeInboundEvent?(input: {
+    event: NormalizedInboundEvent;
+    correlationId: string;
+  }): Promise<void>;
+
   sendTextMessage(input: {
     recipient: string;
     message: ChatOutboundMessage;

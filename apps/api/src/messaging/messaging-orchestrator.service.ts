@@ -37,10 +37,12 @@ export class MessagingOrchestratorService {
   }): Promise<{ accepted: boolean; reason?: string; challenge?: string }> {
     const correlationId = input.correlationId ?? randomUUID();
     const provider = this.providerRouter.getProvider(input.provider);
+    this.logger.log(`[${correlationId}] webhook.received provider=${input.provider}`);
 
     if (provider.verifyChallenge && input.query) {
       const challengeResult = provider.verifyChallenge({ query: input.query });
       if (challengeResult.accepted) {
+        this.logger.log(`[${correlationId}] webhook.challenge_accepted provider=${input.provider}`);
         return {
           accepted: true,
           challenge: challengeResult.challenge,
@@ -53,25 +55,43 @@ export class MessagingOrchestratorService {
       rawBody: input.rawBody,
       query: input.query,
     });
+    this.logger.log(`[${correlationId}] webhook.verified provider=${input.provider}`);
 
     const events = provider.normalizeInbound({
       headers: input.headers,
       payload: input.payload,
       rawBody: input.rawBody,
     });
+    this.logger.log(`[${correlationId}] webhook.normalized provider=${input.provider} events=${events.length}`);
 
     for (const event of events) {
       const stored = await this.persistence.storeInboundEvent({
         event,
         correlationId,
       });
+      this.logger.log(
+        `[${correlationId}] webhook.persisted provider=${event.provider} event=${event.providerEventId} created=${stored.created}`,
+      );
 
       if (!stored.created || !stored.eventId) {
         continue;
       }
 
       try {
+        await provider.acknowledgeInboundEvent?.({
+          event,
+          correlationId,
+        });
+        if (event.webhookEventKind === 'callback_query') {
+          this.logger.log(
+            `[${correlationId}] webhook.callback_acked provider=${event.provider} event=${event.providerEventId}`,
+          );
+        }
+
         if (event.eventType === 'INBOUND_MESSAGE') {
+          this.logger.log(
+            `[${correlationId}] webhook.routed provider=${event.provider} event=${event.providerEventId} kind=${event.webhookEventKind ?? 'message'}`,
+          );
           await this.chatFlow.handleInboundMessage({
             provider: event.provider,
             from: event.senderExternalId,
@@ -80,9 +100,15 @@ export class MessagingOrchestratorService {
             rawPayload: event.rawPayload,
             correlationId,
           });
+          this.logger.log(
+            `[${correlationId}] webhook.replied provider=${event.provider} event=${event.providerEventId}`,
+          );
         }
 
         await this.persistence.markProcessed(stored.eventId);
+        this.logger.log(
+          `[${correlationId}] webhook.processed provider=${event.provider} event=${event.providerEventId}`,
+        );
       } catch (error) {
         await this.handleProcessingError({
           eventId: stored.eventId,

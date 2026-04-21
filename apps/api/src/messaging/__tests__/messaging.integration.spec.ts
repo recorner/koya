@@ -191,6 +191,58 @@ describe('Messaging Webhooks (Integration)', () => {
     expect(event).toBeTruthy();
   });
 
+  it('accepts Telegram callback_query webhook and routes callback payload', async () => {
+    const updateId = Date.now() + 1;
+    const payload = {
+      update_id: updateId,
+      callback_query: {
+        id: `cb_${updateId}`,
+        data: 'menu:transactions',
+        from: { id: 99887766 },
+        message: {
+          message_id: 2,
+          date: Math.floor(Date.now() / 1000),
+          chat: { id: 99887766 },
+          text: 'Choose',
+        },
+      },
+    };
+
+    const callsBefore = handleInboundMessage.mock.calls.length;
+    const originalFetch = (global as typeof global & { fetch?: typeof fetch }).fetch;
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: async () => ({ ok: true }),
+    });
+    (global as typeof global & { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
+
+    try {
+      const res = await request(app.getHttpServer())
+        .post('/messaging/webhooks/telegram')
+        .set('x-telegram-bot-api-secret-token', 'telegram-secret')
+        .set('content-type', 'application/json')
+        .send(payload);
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('accepted');
+
+      const event = await prisma.messagingEvent.findFirst({
+        where: {
+          provider: 'TELEGRAM',
+          providerEventId: String(updateId),
+        },
+      });
+      expect(event).toBeTruthy();
+      expect(handleInboundMessage.mock.calls.length).toBe(callsBefore + 1);
+      expect(handleInboundMessage.mock.calls.at(-1)?.[0]?.body).toBe('menu:transactions');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      (global as typeof global & { fetch?: typeof fetch }).fetch = originalFetch;
+    }
+  });
+
   it('rejects Telegram webhook with invalid secret', async () => {
     const payload = {
       update_id: Date.now(),

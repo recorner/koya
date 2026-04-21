@@ -46,6 +46,8 @@ export interface NormalizedInboundEvent {
   rawPayloadRef: string;
   messageText: string;
   rawPayload: Record<string, unknown>;
+  webhookEventKind?: 'message' | 'callback_query';
+  callbackQueryId?: string;
 }
 
 export interface ProviderSendResult {
