@@ -63,6 +63,7 @@ enum PaymentInstructionStatus {
 
 enum PayoutInstructionStatus {
   CREATED
+  PENDING_DISPATCH
   PENDING
   CONFIRMED
   FAILED
@@ -180,6 +181,7 @@ model ConversionSession {
   quote              ConversionQuote?    @relation(fields: [quoteId], references: [id])
   paymentInstruction PaymentInstruction?
   payoutInstruction  PayoutInstruction?
+  btcDepositAddresses BtcDepositAddress[]
   stateEvents        ConversionStateEvent[]
   whatsappConversation WhatsAppConversation?
 
@@ -239,6 +241,9 @@ model PayoutInstruction {
   txHash              String?                 @map("tx_hash")
   externalId          String?                 @unique @map("external_id")
   providerPayoutId    String?                 @map("provider_payout_id")
+  dispatchAttempts    Int                     @default(0) @map("dispatch_attempts")
+  nextDispatchAt      DateTime?               @map("next_dispatch_at")
+  lastDispatchError   String?                 @map("last_dispatch_error")
   status              PayoutInstructionStatus @default(CREATED)
   createdAt           DateTime                @default(now()) @map("created_at")
   updatedAt           DateTime                @updatedAt @map("updated_at")
@@ -246,6 +251,27 @@ model PayoutInstruction {
   session ConversionSession @relation(fields: [conversionSessionId], references: [id])
 
   @@map("payout_instructions")
+}
+
+model BtcDepositAddress {
+  id                  String            @id @default(uuid())
+  backend             String
+  btcNetwork          String            @map("btc_network")
+  walletName          String?           @map("wallet_name")
+  address             String            @unique
+  externalId          String            @unique @map("external_id")
+  businessContextType String            @map("business_context_type")
+  businessContextRef  String            @map("business_context_ref")
+  conversionSessionId String?           @map("conversion_session_id")
+  metadataJson        Json?             @map("metadata_json")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  conversionSession ConversionSession? @relation(fields: [conversionSessionId], references: [id])
+
+  @@index([businessContextType, businessContextRef], map: "btc_deposit_addresses_context_idx")
+  @@index([conversionSessionId], map: "btc_deposit_addresses_session_idx")
+  @@map("btc_deposit_addresses")
 }
 
 model ConversionStateEvent {
