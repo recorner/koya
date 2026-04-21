@@ -1,6 +1,6 @@
 # Environment Matrix
 
-**Last updated:** 2026-04-19  
+**Last updated:** 2026-04-21  
 **Release:** Euclide v1.1.001
 
 ---
@@ -58,11 +58,15 @@
 | `MPESA_SHORTCODE` | `174379` | `174379` | Real shortcode | ECS task def |
 | `MPESA_CALLBACK_URL` | `http://localhost:3333/...` | `https://api.koyabank.com/api/v1/payments/mpesa/callback` | Same | ECS task def |
 
-### BTC Delivery / DFNS
+### BTC Delivery / Backends
 
 | Variable | Local | Staging | Production | Source |
 |----------|-------|---------|------------|--------|
-| `BTC_DELIVERY_DRIVER` | `mock` | `dfns` | `dfns` | ECS task def |
+| `BTC_DELIVERY_DRIVER` | `mock` | `dfns` | `bria` | ECS task def |
+| `BTC_NETWORK` | `testnet4` | `testnet4` | `testnet4` or `bitcoin` (via mode) | ECS task def |
+| `BTC_PRODUCTION_NETWORK_MODE` | `testnet4` | `testnet4` | `testnet4` or `mainnet` | ECS task def |
+| `BTC_PAYOUT_RETRY_MAX_ATTEMPTS` | `5` | `5` | `5` | ECS task def |
+| `BTC_PAYOUT_RETRY_POLL_MS` | `5000` | `5000` | `5000` | ECS task def |
 | `DFNS_API_URL` | — | `https://api.dfns.ninja/v2` | `https://api.dfns.io` | ECS task def |
 | `DFNS_APP_ID` | — | App ID | App ID | ECS task def |
 | `DFNS_WALLET_ID` | — | Wallet ID | Wallet ID | ECS task def |
@@ -79,6 +83,7 @@
 |----------|-------|---------|------------|--------|
 | `BRIA_API_HOST` | `localhost` | Bria host | Bria host | ECS task def |
 | `BRIA_API_PORT` | `2742` | `2742` | `2742` | ECS task def |
+| `BRIA_NETWORK` | `testnet` | `testnet` | `testnet` or `bitcoin` (derived) | ECS task def |
 | `BRIA_API_KEY` | local key | Secrets Manager | Secrets Manager | Secret |
 | `BRIA_ADMIN_HOST` | `localhost` | Bria host | Bria host | ECS task def |
 | `BRIA_ADMIN_PORT` | `2743` | `2743` | `2743` | ECS task def |
@@ -150,12 +155,12 @@
 
 | Setting | Local/Staging | Production |
 |---------|--------------|------------|
-| `blockchain.network` | `testnet4` | `mainnet` |
-| `blockchain.electrum_url` | `mempool.space:40002` | Production Electrum |
+| `app.blockchain.network` | `testnet` (for testnet4 policy) | `testnet` or `bitcoin` by production mode |
+| `app.blockchain.electrum_url` | `mempool.space:40002` | Production Electrum |
 | `api.listen_port` | `2742` | `2742` |
 | `admin.listen_port` | `2743` | `2743` |
 | `db.pool_size` | `20` | `50` |
-| `signing.max_attempts` | `5` | `5` |
+| `app.jobs.signing.max_attempts` | `5` | `5` |
 
 ---
 

@@ -1,6 +1,6 @@
 # Service Dependency Map
 
-**Last updated:** 2026-04-05
+**Last updated:** 2026-04-21
 
 ---
 
@@ -118,7 +118,7 @@ API ──► Bria (gRPC: payout, address, events)
 2. Primary PostgreSQL (DigitalOcean — always on)
 3. Redis (ElastiCache with auth + TLS)
 4. Bria PostgreSQL (dedicated managed instance)
-5. Bria (production config, mainnet)
+5. Bria (private config; network from `BTC_PRODUCTION_NETWORK_MODE`)
 6. DFNS connectivity verified (mTLS required)
 7. ACM certificate validated for api.koyabank.com
 8. ALB HTTPS listener active
