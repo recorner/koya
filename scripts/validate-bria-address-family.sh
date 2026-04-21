@@ -5,17 +5,42 @@ set -euo pipefail
 # in the intended BTC family for the current Koya network policy.
 #
 # Usage:
-#   ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name]
+#   ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name] [--api-base-url <url>]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 KOYA_ENV="${1:-}"
-WALLET_OVERRIDE="${2:-}"
+shift || true
+WALLET_OVERRIDE=""
+API_BASE_URL="${KOYA_API_BASE_URL:-}"
 
 if [[ -z "${KOYA_ENV}" ]]; then
-  echo "Usage: ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name]"
+  echo "Usage: ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name] [--api-base-url <url>]"
   exit 1
 fi
+
+while [[ $# -gt 0 ]]; do
+  if [[ -z "${WALLET_OVERRIDE}" && "$1" != --* ]]; then
+    WALLET_OVERRIDE="$1"
+    shift
+    continue
+  fi
+  case "$1" in
+    --api-base-url)
+      API_BASE_URL="${2:-}"
+      if [[ -z "${API_BASE_URL}" ]]; then
+        echo "ERROR: --api-base-url requires a value"
+        exit 1
+      fi
+      shift 2
+      ;;
+    *)
+      echo "ERROR: Unknown option: $1"
+      echo "Usage: ./scripts/validate-bria-address-family.sh <staging|production> [wallet_name] [--api-base-url <url>]"
+      exit 1
+      ;;
+  esac
+done
 
 # shellcheck source=load-env.sh
 source "${SCRIPT_DIR}/load-env.sh" "${KOYA_ENV}"
@@ -53,15 +78,18 @@ BRIA_API_KEY="$(aws secretsmanager get-secret-value \
   --query 'SecretString' \
   --output text)"
 
-ALB_DNS="$(aws elbv2 describe-load-balancers \
-  --region "${AWS_REGION}" \
-  --names "${PROJECT}-api-alb-${ENVIRONMENT}" \
-  --query 'LoadBalancers[0].DNSName' \
-  --output text)"
+if [[ -z "${API_BASE_URL}" ]]; then
+  ALB_DNS="$(aws elbv2 describe-load-balancers \
+    --region "${AWS_REGION}" \
+    --names "${PROJECT}-api-alb-${ENVIRONMENT}" \
+    --query 'LoadBalancers[0].DNSName' \
+    --output text)"
 
-if [[ -z "${ALB_DNS}" || "${ALB_DNS}" == "None" ]]; then
-  echo "ERROR: could not resolve API ALB DNS name"
-  exit 1
+  if [[ -z "${ALB_DNS}" || "${ALB_DNS}" == "None" ]]; then
+    echo "ERROR: could not resolve API ALB DNS name"
+    exit 1
+  fi
+  API_BASE_URL="https://${ALB_DNS}"
 fi
 
 wallet_name="${WALLET_OVERRIDE:-${BRIA_WALLET_NAME:-}}"
@@ -82,13 +110,16 @@ tmp_body="$(mktemp)"
 http_code="$(curl -ksS \
   -o "${tmp_body}" \
   -w "%{http_code}" \
-  -X POST "https://${ALB_DNS}/api/v1/internal/btc-backend/deposit-addresses" \
+  -X POST "${API_BASE_URL}/api/v1/internal/btc-backend/deposit-addresses" \
   -H "content-type: application/json" \
   -H "x-admin-api-key: ${BRIA_API_KEY}" \
   -d "${payload}")"
 
 if [[ "${http_code}" != "200" && "${http_code}" != "201" ]]; then
-  echo "ERROR: deposit issuance probe failed (HTTP ${http_code})"
+  echo "ERROR: deposit issuance probe failed (HTTP ${http_code}) via ${API_BASE_URL}"
+  if [[ "${http_code}" == "404" ]]; then
+    echo "Hint: internal btc-backend routes can be private-only. Re-run with --api-base-url pointing to a private API endpoint."
+  fi
   cat "${tmp_body}"
   rm -f "${tmp_body}"
   exit 1

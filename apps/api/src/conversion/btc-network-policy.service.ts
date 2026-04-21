@@ -30,6 +30,7 @@ export class BtcNetworkPolicyService implements OnModuleInit {
     const briaRaw = this.config.get<string>('BRIA_NETWORK', 'bitcoin');
     const briaRuntime = normalizeBriaRuntimeNetwork(briaRaw);
     const expectedBriaRuntime = expectedBriaRuntimeFromPolicy(policyNetwork);
+    const walletName = this.config.get<string>('BRIA_WALLET_NAME', 'koya-wallet');
 
     if ((environment === 'production' || environment === 'staging')
       && (policyNetwork === 'regtest' || briaRuntime === 'regtest')) {
@@ -60,7 +61,7 @@ export class BtcNetworkPolicyService implements OnModuleInit {
     }
 
     this.logger.log(
-      `BTC network policy validated (env=${environment || 'unknown'}, BTC_NETWORK=${policyNetwork}, BRIA_RUNTIME_NETWORK=${briaRuntime})`,
+      `BTC network policy validated (env=${environment || 'unknown'}, BTC_NETWORK=${policyNetwork}, BRIA_RUNTIME_NETWORK=${briaRuntime}, wallet=${walletName}, policy_mode=${productionMode || policyNetwork})`,
     );
   }
 }

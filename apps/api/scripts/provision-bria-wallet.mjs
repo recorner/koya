@@ -12,11 +12,22 @@ const grpcPort = Number(process.env.BRIA_API_PORT || '2742');
 const adminHost = process.env.BRIA_ADMIN_HOST || grpcHost;
 const adminPort = Number(process.env.BRIA_ADMIN_PORT || '2743');
 
-const walletName = process.env.BRIA_WALLET_NAME || 'koya-testnet4';
-const payoutQueueName =
+const freshLineage = (process.env.BRIA_PROVISION_FRESH_LINEAGE || '').toLowerCase() === 'true';
+const defaultLineageTag = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+$/, '');
+const configuredLineageTag = process.env.BRIA_PROVISION_LINEAGE_TAG || defaultLineageTag;
+const lineageTag = configuredLineageTag.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14);
+const lineageSuffix = freshLineage ? `-${lineageTag}` : '';
+
+const walletNameBase = process.env.BRIA_WALLET_NAME || 'koya-testnet4';
+const payoutQueueNameBase =
   process.env.BRIA_PAYOUT_QUEUE_NAME || process.env.BRIA_PAYOUT_QUEUE || 'koya-payouts';
-const serviceProfileName = process.env.BRIA_SERVICE_PROFILE || 'koya-service';
-const accountName = process.env.BRIA_ACCOUNT_NAME || 'koya';
+const serviceProfileNameBase = process.env.BRIA_SERVICE_PROFILE || 'koya-service';
+const accountNameBase = process.env.BRIA_ACCOUNT_NAME || 'koya';
+const walletName = `${walletNameBase}${lineageSuffix}`;
+const payoutQueueName = `${payoutQueueNameBase}${lineageSuffix}`;
+const serviceProfileName = `${serviceProfileNameBase}${lineageSuffix}`;
+const accountName = `${accountNameBase}${lineageSuffix}`;
+const outputSecretsFile = process.env.BRIA_PROVISION_SECRETS_FILE || '';
 
 const descriptorExternal = process.env.BRIA_WALLET_DESCRIPTOR_EXTERNAL || '';
 const descriptorInternal = process.env.BRIA_WALLET_DESCRIPTOR_INTERNAL || '';
@@ -149,6 +160,10 @@ async function main() {
   if (!accountExists) {
     const account = await callUnary(adminClient, 'createAccount', { name: accountName }, adminMd);
     accountApiKey = account.key?.key || accountApiKey;
+  } else if (freshLineage) {
+    throw new Error(
+      `Fresh-lineage provisioning requires a unique BRIA_PROVISION_LINEAGE_TAG. Account already exists: ${accountName}`,
+    );
   }
 
   if (!accountApiKey) {
@@ -176,6 +191,10 @@ async function main() {
 
   if (!profileExists) {
     await callUnary(apiClient, 'createProfile', { name: serviceProfileName }, apiMd);
+  } else if (freshLineage) {
+    throw new Error(
+      `Fresh-lineage provisioning requires a unique BRIA_PROVISION_LINEAGE_TAG. Profile already exists: ${serviceProfileName}`,
+    );
   }
 
   const newProfileKey = await callUnary(
@@ -188,6 +207,7 @@ async function main() {
 
   const serviceMd = metadataWithApiKey(generatedProfileApiKey);
 
+  let walletAlreadyExists = false;
   try {
     const keychainConfig = walletXpub
       ? {
@@ -213,7 +233,21 @@ async function main() {
       serviceMd,
     );
   } catch (err) {
-    if (!isAlreadyExists(err) && !isDuplicateConstraint(err)) throw err;
+    if (isDuplicateConstraint(err)) {
+      throw new Error(
+        'Lineage guard blocked descriptor reuse. Provide fresh descriptor/xpub material or reprovision Bria on a fresh tenant/database.',
+      );
+    }
+    if (isAlreadyExists(err)) {
+      walletAlreadyExists = true;
+      if (freshLineage) {
+        throw new Error(
+          `Fresh-lineage provisioning requires a unique BRIA_PROVISION_LINEAGE_TAG. Wallet already exists: ${walletName}`,
+        );
+      }
+    } else {
+      throw err;
+    }
   }
 
   try {
@@ -232,7 +266,12 @@ async function main() {
       serviceMd,
     );
   } catch (err) {
-    if (!isAlreadyExists(err) && !isDuplicateConstraint(err)) throw err;
+    if (isDuplicateConstraint(err)) {
+      throw new Error(
+        'Lineage guard blocked payout queue reuse under incompatible lineage. Use fresh lineage names or clean tenant state.',
+      );
+    }
+    if (!isAlreadyExists(err)) throw err;
   }
 
   const verification = await callUnary(
@@ -245,18 +284,36 @@ async function main() {
   const expectedFamily = expectedAddressFamily(btcPolicyNetwork);
   const detectedFamily = detectAddressFamily(verification.address);
   if (expectedFamily !== detectedFamily) {
+    const guardContext = walletAlreadyExists
+      ? 'Lineage guard blocked reuse of existing wallet because emitted family does not match policy.'
+      : 'Provisioned wallet emitted incompatible family.';
     throw new Error(
-      `Provision verification emitted wrong address family: address=${verification.address} expected=${expectedFamily} detected=${detectedFamily} (BTC_NETWORK=${btcPolicyNetwork})`,
+      `${guardContext} address=${verification.address} expected=${expectedFamily} detected=${detectedFamily} (BTC_NETWORK=${btcPolicyNetwork})`,
     );
   }
 
+  if (!outputSecretsFile) {
+    throw new Error('BRIA_PROVISION_SECRETS_FILE is required to safely capture generated API keys');
+  }
+
+  fs.writeFileSync(
+    outputSecretsFile,
+    JSON.stringify({
+      profileApiKey: generatedProfileApiKey,
+      generatedAdminApiKey,
+    }),
+    { encoding: 'utf8', mode: 0o600 },
+  );
+
   process.stdout.write(
     JSON.stringify({
+      accountName,
+      serviceProfileName,
       walletName,
       payoutQueueName,
       verificationAddress: verification.address,
-      profileApiKey: generatedProfileApiKey,
-      generatedAdminApiKey,
+      freshLineage,
+      lineageTag: freshLineage ? lineageTag : null,
     }),
   );
 }
