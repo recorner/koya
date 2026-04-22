@@ -75,6 +75,53 @@ describe('TelegramProvider', () => {
     expect(event!.rawPayload['buttonPayload']).toBe('menu:transactions');
   });
 
+  it('ignores unsupported Telegram update types', () => {
+    const events = provider.normalizeInbound({
+      payload: {
+        update_id: 3,
+        edited_message: {
+          message_id: 99,
+        },
+      } as unknown as Record<string, unknown>,
+      rawBody: '{"ok":true}',
+    });
+
+    expect(events).toEqual([]);
+  });
+
+  it('ignores malformed Telegram update shells without update_id', () => {
+    const events = provider.normalizeInbound({
+      payload: {
+        message: {
+          message_id: 25,
+          text: 'hello',
+          chat: { id: 9912 },
+          from: { id: 4456 },
+        },
+      } as unknown as Record<string, unknown>,
+      rawBody: '{"ok":true}',
+    });
+
+    expect(events).toEqual([]);
+  });
+
+  it('ignores non-text Telegram messages', () => {
+    const events = provider.normalizeInbound({
+      payload: {
+        update_id: 4,
+        message: {
+          message_id: 24,
+          date: 1713700002,
+          chat: { id: 9911 },
+          from: { id: 4455 },
+        },
+      },
+      rawBody: '{"ok":true}',
+    });
+
+    expect(events).toEqual([]);
+  });
+
   it('acknowledges callback queries', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: true,

@@ -13,6 +13,7 @@ import { RatesService } from './rates.service';
 @Injectable()
 export class RatesWarmerService implements OnModuleInit {
   private readonly logger = new Logger(RatesWarmerService.name);
+  private lastWarmLogAtMs = 0;
 
   constructor(private readonly ratesService: RatesService) {}
 
@@ -26,7 +27,11 @@ export class RatesWarmerService implements OnModuleInit {
   async warm(): Promise<void> {
     try {
       const rates = await this.ratesService.getAllRates();
-      this.logger.debug(`Cache warmed: ${rates.length} pairs`);
+      const nowMs = Date.now();
+      if (nowMs - this.lastWarmLogAtMs >= 60_000) {
+        this.logger.log(`Rates cache healthy: ${rates.length} pairs warmed`);
+        this.lastWarmLogAtMs = nowMs;
+      }
     } catch (err) {
       this.logger.error(`Cache warming failed: ${err}`);
     }

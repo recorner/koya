@@ -70,6 +70,36 @@ describe('WhatsAppCloudProvider', () => {
     ).toEqual([]);
   });
 
+  it('ignores unsupported message types as no-op', () => {
+    const payload = {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                messages: [
+                  {
+                    id: 'wamid.reaction.1',
+                    from: '254700000001',
+                    timestamp: '1713700000',
+                    type: 'reaction',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      provider.normalizeInbound({
+        payload,
+        rawBody: JSON.stringify(payload),
+      }),
+    ).toEqual([]);
+  });
+
   it('rejects malformed payloads without webhook envelope', () => {
     expect(() =>
       provider.normalizeInbound({

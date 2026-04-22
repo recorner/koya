@@ -85,32 +85,34 @@ export class TelegramProvider implements MessagingProvider {
   }): NormalizedInboundEvent[] {
     this.ensureConfigured();
     const update = input.payload as TelegramUpdate;
-    if (!update.update_id) {
-      throw new PayloadValidationError('Malformed Telegram update payload');
+    const updateId = update.update_id;
+    if (typeof updateId !== 'number' || !Number.isFinite(updateId)) {
+      // Ignore malformed update shells so Telegram receives 2xx instead of webhook 5xx.
+      return [];
     }
 
     if (update.callback_query) {
       const callbackQuery = update.callback_query;
       if (!callbackQuery.id || !callbackQuery.message?.chat?.id) {
-        throw new PayloadValidationError('Malformed Telegram callback query payload');
+        return [];
       }
 
       const chatId = String(callbackQuery.message.chat.id);
       const senderId = String(callbackQuery.from?.id ?? chatId);
       const callbackPayload = callbackQuery.data?.trim() || callbackQuery.message.text?.trim();
       if (!callbackPayload) {
-        throw new PayloadValidationError('Telegram callback query missing callback data');
+        return [];
       }
 
       const messageId = callbackQuery.message.message_id
         ? String(callbackQuery.message.message_id)
-        : `${update.update_id}`;
+        : `${updateId}`;
 
       return [
         {
           provider: this.provider,
           providerAccountId: this.botToken.slice(0, 12),
-          providerEventId: String(update.update_id),
+          providerEventId: String(updateId),
           providerMessageId: messageId,
           conversationExternalId: chatId,
           senderExternalId: senderId,
@@ -121,10 +123,10 @@ export class TelegramProvider implements MessagingProvider {
           checksum: checksumPayload(input.rawBody),
           idempotencyKey: buildIdempotencyKey([
             this.provider,
-            String(update.update_id),
+            String(updateId),
             chatId,
           ]),
-          rawPayloadRef: `telegram:${update.update_id}`,
+          rawPayloadRef: `telegram:${updateId}`,
           messageText: callbackPayload,
           rawPayload: {
             ...input.payload,
@@ -139,29 +141,36 @@ export class TelegramProvider implements MessagingProvider {
       ];
     }
 
-    if (!update.message?.chat?.id || !update.message?.text) {
-      throw new PayloadValidationError('Malformed Telegram update payload');
+    if (!update.message) {
+      // Ignore unsupported Telegram update types (e.g. edited_message, chat_member, etc.)
+      // so Telegram never sees webhook 5xx for non-message updates.
+      return [];
+    }
+
+    if (!update.message.chat?.id || !update.message.text) {
+      // Ignore non-text message updates to keep webhook processing resilient.
+      return [];
     }
 
     const chatId = String(update.message.chat.id);
     const senderId = String(update.message.from?.id ?? update.message.chat.id);
     const messageId = update.message.message_id
       ? String(update.message.message_id)
-      : `${update.update_id}`;
+      : `${updateId}`;
 
     return [
       {
         provider: this.provider,
         providerAccountId: this.botToken.slice(0, 12),
-        providerEventId: String(update.update_id),
+        providerEventId: String(updateId),
         providerMessageId: messageId,
         conversationExternalId: chatId,
         senderExternalId: senderId,
         eventType: 'INBOUND_MESSAGE',
         occurredAt: update.message.date ? new Date(update.message.date * 1000) : new Date(),
         checksum: checksumPayload(input.rawBody),
-        idempotencyKey: buildIdempotencyKey([this.provider, String(update.update_id), chatId]),
-        rawPayloadRef: `telegram:${update.update_id}`,
+        idempotencyKey: buildIdempotencyKey([this.provider, String(updateId), chatId]),
+        rawPayloadRef: `telegram:${updateId}`,
         messageText: update.message.text,
         rawPayload: {
           ...input.payload,

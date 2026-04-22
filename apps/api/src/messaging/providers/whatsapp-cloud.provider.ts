@@ -119,10 +119,20 @@ export class WhatsAppCloudProvider implements MessagingProvider {
           const messageId = message.id;
           const sender = message.from;
           if (!messageId || !sender) {
-            throw new PayloadValidationError('Missing WhatsApp message id/from');
+            this.logger.warn(
+              `whatsapp.inbound_ignored_missing_fields type=${message.type ?? 'unknown'}`,
+            );
+            continue;
           }
 
           const text = this.extractInboundText(message);
+          if (!text) {
+            this.logger.log(
+              `whatsapp.inbound_ignored type=${message.type ?? 'unknown'} messageId=${messageId}`,
+            );
+            continue;
+          }
+
           const occurredAt = message.timestamp
             ? new Date(Number(message.timestamp) * 1000)
             : new Date();
@@ -323,7 +333,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     };
   }
 
-  private extractInboundText(message: MetaMessage): string {
+  private extractInboundText(message: MetaMessage): string | undefined {
     if (message.text?.body) {
       return message.text.body;
     }
@@ -352,7 +362,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       return message.interactive.list_reply.title;
     }
 
-    throw new PayloadValidationError(`Unsupported WhatsApp message type: ${message.type ?? 'unknown'}`);
+    return undefined;
   }
 
   private singleQuery(value: string | string[] | undefined): string | undefined {
