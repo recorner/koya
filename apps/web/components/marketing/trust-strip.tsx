@@ -2,27 +2,16 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
-import {
-  ShieldCheck,
-  Lock,
-  Activity,
-  Scale,
-  Fingerprint,
-} from 'lucide-react';
-
-/* ── Animated counter ─────────────────────────────────────────── */
+import { Lock, Scale, ShieldCheck, BadgeCheck } from 'lucide-react';
+import type { MarketingSectionContent } from '@/components/marketing/section-content';
 
 function AnimatedCounter({
   target,
   suffix = '',
-  prefix = '',
-  duration = 2000,
   start,
 }: {
   target: number;
   suffix?: string;
-  prefix?: string;
-  duration?: number;
   start: boolean;
 }) {
   const [value, setValue] = useState(0);
@@ -31,105 +20,78 @@ function AnimatedCounter({
   useEffect(() => {
     if (!start) return;
     const startTime = performance.now();
+    const duration = 1400;
     const step = (now: number) => {
       const progress = Math.min((now - startTime) / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(target * eased));
       if (progress < 1) rafRef.current = requestAnimationFrame(step);
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [start, target, duration]);
+  }, [start, target]);
 
   return (
     <span className="font-mono tabular-nums">
-      {prefix}{value.toLocaleString('en-US')}{suffix}
+      {value.toLocaleString('en-US')}
+      {suffix}
     </span>
   );
 }
 
-/* ── Trust signals ────────────────────────────────────────────── */
-
-const signals = [
-  { icon: ShieldCheck, label: 'Kenya-based & regulated' },
-  { icon: Lock, label: 'End-to-end encrypted' },
-  { icon: Activity, label: '24/7 monitoring' },
-  { icon: Scale, label: 'KYC compliant' },
-  { icon: Fingerprint, label: 'Fraud-protected' },
-];
-
 const stats = [
-  { value: 5, suffix: '', label: 'Currencies supported' },
-  { value: 99, suffix: '%', label: 'Uptime SLA' },
-  { value: 30, suffix: 's', label: 'Avg. settlement' },
-  { value: 256, suffix: '-bit', label: 'Encryption standard' },
+  { value: 30, suffix: 's', label: 'Quote responsiveness' },
+  { value: 99, suffix: '%', label: 'Platform availability target' },
+  { value: 24, suffix: '/7', label: 'Monitoring coverage' },
+  { value: 256, suffix: '-bit', label: 'Encryption baseline' },
 ];
 
-/* ── Component ────────────────────────────────────────────────── */
+const controls = [
+  { icon: ShieldCheck, label: 'Segregated operational controls' },
+  { icon: Lock, label: 'Encrypted user and payment data' },
+  { icon: Scale, label: 'KYC and compliance checks' },
+  { icon: BadgeCheck, label: 'Auditable transaction trail' },
+];
 
-export function TrustStrip() {
+export function TrustStrip({ content }: { content?: MarketingSectionContent }) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-40px' });
+  const inView = useInView(ref, { once: true, margin: '-40px' });
 
   return (
-    <section
-      ref={ref}
-      className="relative border-y border-white/[0.06] bg-[linear-gradient(180deg,#090909_0%,#0B0B0C_100%)]"
-    >
-      {/* Subtle gold line accent at top */}
-      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent_15%,rgba(212,175,55,0.18)_50%,transparent_85%)]" />
+    <section ref={ref} className="border-y border-white/10 bg-[#0e0e0e]">
+      <div className="mx-auto max-w-7xl px-6 py-10 lg:px-10">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gold">{content?.badge || 'Trust Signals'}</p>
+          <p className="text-xs text-white/56">
+            {content?.subheading || 'Built for clear execution, secure custody, and accountable operations.'}
+          </p>
+        </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 md:py-10">
-        {/* Stats row — animated counters */}
-        <div className="mb-6 grid grid-cols-2 gap-4 md:mb-8 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 14 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.5, delay: i * 0.1, ease: 'easeOut' }}
-              className="text-center"
+              animate={inView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="rounded-lg border border-white/10 bg-[#131313] px-4 py-3 text-center"
             >
-              <div className="text-2xl font-bold tracking-tight text-white md:text-3xl">
-                <AnimatedCounter
-                  target={stat.value}
-                  suffix={stat.suffix}
-                  start={isInView}
-                  duration={1800 + i * 200}
-                />
+              <div className="text-2xl font-semibold tracking-tight text-white-95">
+                <AnimatedCounter target={stat.value} suffix={stat.suffix} start={inView} />
               </div>
-              <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-white/36">
-                {stat.label}
-              </p>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-white/38">{stat.label}</p>
             </motion.div>
           ))}
         </div>
 
-        {/* Divider */}
-        <div className="h-px w-full bg-white/[0.06]" />
-
-        {/* Trust signals — horizontal strip */}
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 md:mt-8 md:gap-x-10">
-          {signals.map((signal, i) => {
-            const Icon = signal.icon;
+        <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {controls.map((item) => {
+            const Icon = item.icon;
             return (
-              <motion.div
-                key={signal.label}
-                initial={{ opacity: 0 }}
-                animate={isInView ? { opacity: 1 } : {}}
-                transition={{ duration: 0.4, delay: 0.5 + i * 0.08 }}
-                className="flex items-center gap-2"
-              >
-                <Icon
-                  size={14}
-                  strokeWidth={1.8}
-                  className="text-gold/80"
-                />
-                <span className="text-xs font-medium text-white/48">
-                  {signal.label}
-                </span>
-              </motion.div>
+              <div key={item.label} className="flex items-center gap-2 rounded-md border border-white/10 bg-[#111111] px-3 py-2.5">
+                <Icon className="h-4 w-4 text-gold" />
+                <span className="text-xs text-white/62">{item.label}</span>
+              </div>
             );
           })}
         </div>

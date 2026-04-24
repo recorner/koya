@@ -48,12 +48,12 @@ export default async function LandingPage() {
         <SectionRenderer sections={sections} initialRates={initialRates} />
       ) : (
         <section className="px-6 py-24 text-center">
-          <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-white/5 p-8">
+          <div className="mx-auto max-w-2xl rounded-xl border border-white/12 bg-[#141414] p-8">
             <h1 className="font-display text-2xl font-bold text-white-95 sm:text-3xl">
-              Content unavailable
+              Content temporarily unavailable
             </h1>
             <p className="mx-auto mt-3 max-w-md text-sm text-white-40">
-              The homepage is temporarily unavailable while content sync is in progress.
+              Homepage sections are being refreshed from CMS. Please check back shortly.
             </p>
           </div>
         </section>

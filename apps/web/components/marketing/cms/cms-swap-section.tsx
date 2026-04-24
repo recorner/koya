@@ -1,30 +1,29 @@
 import type { PageSection } from '@/lib/cms/types';
 import { GuestSwapWidget } from '@/components/marketing/guest-swap-widget';
+import type { MarketingSectionContent } from '@/components/marketing/section-content';
 
-/**
- * CMS wrapper for the swap widget section.
- * Renders the heading/subheading from CMS, widget from code.
- */
-export function CmsSwapSection({ section }: { section: PageSection }) {
+export function CmsSwapSection({
+  section: _section,
+  content,
+}: {
+  section: PageSection;
+  content: MarketingSectionContent;
+}) {
+  void _section;
+
   return (
-    <section className="relative py-12 md:py-16">
-      <div className="mx-auto max-w-7xl px-6">
-        {(section.badge_text || section.heading) && (
+    <section className="bg-vault-black py-14 md:py-18">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        {(content.badge || content.heading) && (
           <div className="mb-8 text-center">
-            {section.badge_text && (
-              <p className="mb-2 text-xs font-semibold tracking-[0.2em] uppercase text-gold">
-                {section.badge_text}
-              </p>
+            {content.badge && (
+              <p className="text-[11px] uppercase tracking-[0.2em] text-gold">{content.badge}</p>
             )}
-            {section.heading && (
-              <h2 className="font-display text-2xl font-bold text-white-95 sm:text-3xl">
-                {section.heading}
-              </h2>
+            {content.heading && (
+              <h2 className="mt-3 font-display text-3xl tracking-tight text-white-95 sm:text-4xl">{content.heading}</h2>
             )}
-            {section.subheading && (
-              <p className="mx-auto mt-3 max-w-md text-sm text-white-40">
-                {section.subheading}
-              </p>
+            {content.subheading && (
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/60">{content.subheading}</p>
             )}
           </div>
         )}

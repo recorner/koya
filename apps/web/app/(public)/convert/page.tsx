@@ -37,8 +37,7 @@ export async function generateMetadata({
     const preview = previewByRef || previewFallback;
     const title = preview?.og_title ?? 'Track Your Koya Conversion';
     const description =
-      preview?.og_description ??
-      'View real-time status of your KES → BTC conversion on Koya.';
+      preview?.og_description ?? 'View real-time status of your KES → BTC conversion on Koya.';
     const image = preview?.og_image ?? branding?.og_default_image ?? null;
 
     return {
@@ -69,8 +68,7 @@ export async function generateMetadata({
     page?.meta_description ||
     seo?.fallback_description ||
     'Convert Kenyan Shillings to Bitcoin instantly via M-Pesa. No account required.';
-  const ogImage =
-    page?.og_image || branding?.og_default_image || seo?.fallback_og_image || null;
+  const ogImage = page?.og_image || branding?.og_default_image || seo?.fallback_og_image || null;
 
   return {
     title,
@@ -94,53 +92,39 @@ export default async function ConvertPage() {
   const sections = (page?.sections as PageSection[] | undefined) || [];
 
   const heroSection = sections.find((section) => section.section_type === 'swap_widget');
-  const trustFooterSection = sections.find(
-    (section) => section.section_type === 'trust_footer_items',
-  );
+  const trustFooterSection = sections.find((section) => section.section_type === 'trust_footer_items');
 
-  const heading = heroSection?.heading || 'Send KES, receive BTC';
+  const heading = heroSection?.heading || 'Convert KES to BTC with controlled execution';
   const subheading =
     heroSection?.subheading ||
-    'Convert Kenyan Shillings to Bitcoin using M-Pesa. No account required — just your phone and a BTC address.';
-  const badge = heroSection?.badge_text || 'Guest Conversion';
+    'No account required. Enter your amount, verify identity, and settle through M-Pesa in a secure guided flow.';
+  const badge = heroSection?.badge_text || 'Guest conversion';
 
   const trustItems = extractTrustFooterItems(trustFooterSection);
-  const fallbackTrustItems = [
-    '256-bit encryption',
-    'KYC verified',
-    'Guest limit: KES 100K/day',
-  ];
-
+  const fallbackTrustItems = ['Encrypted flow', 'KYC verified', 'Guest limit: KES 100K/day'];
   const resolvedTrustItems = trustItems.length ? trustItems : fallbackTrustItems;
 
   return (
-    <section className="relative min-h-[calc(100dvh-4rem)] px-4 py-6 sm:py-16 md:py-24">
+    <section className="relative min-h-[calc(100dvh-4rem)] border-t border-white/8 bg-vault-black px-4 py-8 sm:py-14 md:py-18">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:120px_120px]" />
+
       <div className="relative mx-auto max-w-7xl">
-        <div className="mb-4 text-center sm:mb-10 md:mb-14">
-          <div className="mb-2 hidden items-center justify-center gap-2 sm:inline-flex">
-            <div className="rounded-full border border-white/8 bg-white/[0.04] px-3 py-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50">
-                {badge}
-              </span>
-            </div>
+        <div className="mb-8 text-center sm:mb-10 md:mb-12">
+          <div className="mb-3 inline-flex items-center justify-center rounded-md border border-white/12 bg-[#111111] px-3 py-1.5">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-gold">{badge}</span>
           </div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-white sm:text-4xl">
-            {heading}
-          </h1>
-          <p className="mx-auto mt-1.5 hidden max-w-md text-sm leading-relaxed text-white/45 sm:mt-3 sm:block">
-            {subheading}
-          </p>
+          <h1 className="font-display text-3xl tracking-tight text-white-95 sm:text-4xl md:text-5xl">{heading}</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-white/58 sm:text-base">{subheading}</p>
         </div>
 
         <Suspense>
           <ConversionWizard />
         </Suspense>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-[10px] uppercase tracking-[0.18em] text-white/25">
+        <div className="mt-9 flex flex-wrap items-center justify-center gap-3 text-[10px] uppercase tracking-[0.16em] text-white/36">
           {resolvedTrustItems.map((item, index) => (
-            <div key={`${item}-${index}`} className="flex items-center gap-6">
-              {index > 0 && <span className="hidden sm:inline">•</span>}
-              <span>{item}</span>
+            <div key={`${item}-${index}`} className="rounded-md border border-white/10 bg-[#111111] px-3 py-1.5">
+              {item}
             </div>
           ))}
         </div>

@@ -1,14 +1,3 @@
-/**
- * Section Renderer — maps CMS section_type values to React components.
- *
- * Architecture: Each existing marketing component remains unchanged (zero-prop,
- * hardcoded). The renderer wraps them with CMS-sourced content via lightweight
- * CMS wrapper components. If a section has no CMS wrapper, it renders the
- * original component as-is.
- *
- * This means the premium UI is NEVER degraded — CMS just overrides text content.
- */
-
 import type { PageSection } from '@/lib/cms/types';
 import { MarketRibbon, type RibbonRate } from '@/components/marketing/market-ribbon';
 import { HeroSection } from '@/components/marketing/hero-section';
@@ -22,30 +11,27 @@ import { FinalCTA } from '@/components/marketing/final-cta';
 import { CmsSwapSection } from '@/components/marketing/cms/cms-swap-section';
 import { CmsRichText } from '@/components/marketing/cms/cms-rich-text';
 import { CmsCta } from '@/components/marketing/cms/cms-cta';
+import {
+  normalizeSectionContent,
+  type MarketingSectionContent,
+} from '@/components/marketing/section-content';
 
-/**
- * Registry mapping section_type → React component.
- *
- * Components that don't accept CMS props map directly to existing components.
- * Components that CAN be driven by CMS content use lightweight wrappers.
- */
-function buildRegistry(initialRates?: RibbonRate[]): Record<
-  string,
-  React.ComponentType<{ section: PageSection }>
-> {
+type SectionComponent = React.ComponentType<{
+  section: PageSection;
+  content: MarketingSectionContent;
+}>;
+
+function buildRegistry(initialRates?: RibbonRate[]): Record<string, SectionComponent> {
   return {
-    // These render the original components as-is (CMS only controls ordering)
-    market_ribbon: () => <MarketRibbon initialRates={initialRates} />,
-    hero: () => <HeroSection />,
-    stats: () => <TrustStrip />,
-    feature_grid: () => <ProductPillars />,
-    how_it_works: () => <HowItWorks />,
-    security: () => <SecuritySection />,
-    cards: () => <CardsSection />,
-    global_finance: () => <GlobalFinanceSection />,
-    final_cta: () => <FinalCTA />,
-
-    // These have CMS-driven wrappers for editable content
+    market_ribbon: ({ content }) => <MarketRibbon initialRates={initialRates} content={content} />,
+    hero: ({ content }) => <HeroSection content={content} />,
+    stats: ({ content }) => <TrustStrip content={content} />,
+    feature_grid: ({ content }) => <ProductPillars content={content} />,
+    how_it_works: ({ content }) => <HowItWorks content={content} />,
+    security: ({ content }) => <SecuritySection content={content} />,
+    cards: ({ content }) => <CardsSection content={content} />,
+    global_finance: ({ content }) => <GlobalFinanceSection content={content} />,
+    final_cta: ({ content }) => <FinalCTA content={content} />,
     swap_widget: CmsSwapSection,
     rich_text: CmsRichText,
     cta: CmsCta,
@@ -61,19 +47,25 @@ export function SectionRenderer({
   initialRates?: RibbonRate[];
 }) {
   const registry = buildRegistry(initialRates);
+
   return (
     <>
       {sections.map((section) => {
         const Component = registry[section.section_type];
         if (!Component) {
           if (process.env.NODE_ENV === 'development') {
-            console.warn(
-              `[CMS] Unknown section_type: "${section.section_type}" (id=${section.id})`
-            );
+            console.warn(`[CMS] Unknown section_type: "${section.section_type}" (id=${section.id})`);
           }
           return null;
         }
-        return <Component key={section.id} section={section} />;
+
+        return (
+          <Component
+            key={section.id}
+            section={section}
+            content={normalizeSectionContent(section)}
+          />
+        );
       })}
     </>
   );

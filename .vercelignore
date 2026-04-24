@@ -1,0 +1,44 @@
+# Dependencies and package manager stores
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs and caches
+.next
+**/.next
+dist
+**/dist
+.nx
+**/.nx
+coverage
+**/coverage
+
+# Vercel local metadata/output
+.vercel/output
+
+# Logs and temp
+*.log
+tmp
+**/tmp
+
+# VCS and editor
+.git
+.github
+.vscode
+
+# Infra and docs not needed for web deployment
+terraform
+docker
+infra/rendered
+docs
+tasks
+
+# Secrets and env files
+.env
+.env.*
+*.pem
+*.key
+
+# Python/script artifacts
+__pycache__
+*.pyc

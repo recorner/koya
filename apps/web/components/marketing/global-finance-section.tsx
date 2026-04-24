@@ -1,256 +1,120 @@
 'use client';
 
+import { BarChart3, CircleDollarSign, Globe2, Landmark, Wallet } from 'lucide-react';
 import { SectionShell } from '@/components/marketing/section-shell';
-import {
-  FadeUp,
-  GlowPulse,
-} from '@/components/marketing/motion-wrapper';
-import { StockIcon } from '@/components/marketing/asset-icons';
+import { FadeUp } from '@/components/marketing/motion-wrapper';
 import { STOCK_TICKERS } from '@/components/marketing/asset-metadata';
-import {
-  ArrowUpRight,
-  BarChart3,
-  CircleDollarSign,
-  Globe2,
-  Landmark,
-  Sparkles,
-  Wallet,
-} from 'lucide-react';
+import { StockIcon } from '@/components/marketing/asset-icons';
+import type { MarketingSectionContent } from '@/components/marketing/section-content';
 
-export function GlobalFinanceSection() {
+const highlights = [
+  {
+    icon: Wallet,
+    title: 'Fund from active balances',
+    description: 'Deploy capital from wallets already inside your account system.',
+  },
+  {
+    icon: CircleDollarSign,
+    title: 'Fractional access',
+    description: 'Enter global positions with smaller ticket sizes and clear exposure controls.',
+  },
+  {
+    icon: Globe2,
+    title: 'Cross-border participation',
+    description: 'Move from local rails into international market assets without account switching.',
+  },
+];
+
+export function GlobalFinanceSection({ content }: { content?: MarketingSectionContent }) {
   return (
-    <SectionShell id="investing" bg="surface">
-      <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-10">
-        {/* LEFT: narrative */}
+    <SectionShell id="investing" bg="cell">
+      <div className="grid items-start gap-10 lg:grid-cols-12">
         <FadeUp className="lg:col-span-5">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-[rgba(212,175,55,0.95)]">
-            Global investing
-          </p>
-
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-5xl">
-            Invest in U.S. stocks
-            <span className="block bg-[linear-gradient(180deg,#F0D060_0%,#D4AF37_48%,#A88520_100%)] bg-clip-text text-transparent">
-              from your Koya account
-            </span>
+          <p className="text-[11px] uppercase tracking-[0.2em] text-gold">{content?.badge || 'Global Finance'}</p>
+          <h2 className="mt-3 font-display text-3xl tracking-tight text-white-95 sm:text-4xl md:text-5xl">
+            {content?.heading || 'Access global markets from your core Koya account.'}
           </h2>
-
-          <p className="mt-5 max-w-xl text-sm leading-7 text-white/56 sm:text-base">
-            Buy fractional shares of Apple, Tesla, S&P 500 ETFs, and more —
-            funded directly from your Koya wallets. No separate brokerage
-            account needed.
+          <p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
+            {content?.subheading ||
+              'Use the same wallet and conversion foundation to deploy into major equities and ETFs with clear funding paths.'}
           </p>
 
-          <div className="mt-8 space-y-3">
-            {[
-              {
-                icon: Wallet,
-                title: 'Fund from existing wallets',
-                description:
-                  'Use available balances instead of wiring money into disconnected platforms.',
-              },
-              {
-                icon: CircleDollarSign,
-                title: 'Fractional investing access',
-                description:
-                  'Enter positions with smaller ticket sizes while keeping exposure to major names and ETFs.',
-              },
-              {
-                icon: Globe2,
-                title: 'Global market participation',
-                description:
-                  'Expand beyond local cash storage into international public markets.',
-              },
-            ].map((item) => {
+          <div className="mt-7 space-y-2.5">
+            {highlights.map((item) => {
               const Icon = item.icon;
               return (
-                <div
-                  key={item.title}
-                  className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.03))] p-4"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[rgba(212,175,55,0.14)] bg-[rgba(212,175,55,0.10)] text-[rgba(212,175,55,0.95)]">
-                      <Icon size={18} strokeWidth={1.7} />
+                <article key={item.title} className="rounded-lg border border-white/10 bg-[#121212] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-md border border-gold/35 bg-gold/10 text-gold">
+                      <Icon size={16} />
                     </div>
-
                     <div>
-                      <h3 className="text-base font-semibold tracking-tight text-white">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-white/56">
-                        {item.description}
-                      </p>
+                      <h3 className="text-base font-semibold text-white/88">{item.title}</h3>
+                      <p className="mt-1.5 text-sm leading-6 text-white/56">{item.description}</p>
                     </div>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            {[
-              'Fractional shares',
-              'U.S. equities',
-              'ETFs',
-              'USD settlement',
-            ].map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-white/58"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
         </FadeUp>
 
-        {/* RIGHT: investing surface */}
-        <FadeUp delay={0.12} className="lg:col-span-7">
-          <div className="relative mx-auto w-full max-w-[700px]">
-            {/* ambient glow — breathing */}
-            <GlowPulse className="left-1/2 top-[38%] h-[360px] w-[360px] -translate-x-1/2" />
-            <div className="pointer-events-none absolute right-[4%] top-[8%] h-[180px] w-[180px] rounded-full bg-[rgba(0,229,255,0.05)] blur-2xl" />
+        <FadeUp delay={0.1} className="lg:col-span-7">
+          <div className="rounded-xl border border-white/12 bg-[#141414] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/42">Portfolio view</p>
+                <p className="mt-2 font-mono text-3xl tabular-nums text-white-95">$18,420.60</p>
+                <p className="mt-1 font-mono text-xs text-emerald">+6.24% 30D</p>
+              </div>
+              <div className="rounded-md border border-white/10 bg-[#101010] px-3 py-2 text-right">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/38">Settlement</p>
+                <p className="mt-1 text-sm text-white/78">USD Wallet</p>
+              </div>
+            </div>
 
-            <div className="grid gap-4 md:grid-cols-12">
-              {/* main portfolio card */}
-              <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.03)_100%)] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.34)] backdrop-blur-md md:col-span-8">
-                <div className="pointer-events-none absolute -right-14 -top-14 h-32 w-32 rounded-full bg-[rgba(212,175,55,0.10)] blur-3xl" />
-
-                <div className="relative">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                        Investment portfolio
-                      </div>
-                      <div className="mt-2 text-3xl font-semibold tracking-tight text-white">
-                        $18,420.60
-                      </div>
-                      <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-medium text-emerald-300">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        +6.24% this month
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-2 text-right">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-white/36">
-                        Settlement
-                      </div>
-                      <div className="mt-1 text-sm font-medium text-white/80">
-                        USD wallet
-                      </div>
+            <div className="mt-5 rounded-lg border border-white/10 bg-[#111111] p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Allocation sketch</p>
+                <BarChart3 className="h-4 w-4 text-gold" />
+              </div>
+              <div className="space-y-3">
+                {[
+                  { label: 'U.S. Equities', width: '70%' },
+                  { label: 'Broad ETFs', width: '54%' },
+                  { label: 'USD Cash', width: '36%' },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <p className="mb-1 text-xs text-white/58">{row.label}</p>
+                    <div className="h-1.5 bg-white/8">
+                      <div className="h-full bg-[linear-gradient(90deg,#9e7531_0%,#c8963c_55%,#ddb56f_100%)]" style={{ width: row.width }} />
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                    {[
-                      { label: 'Buying power', value: '$2,840' },
-                      { label: 'Open positions', value: '12' },
-                      { label: 'Fractional enabled', value: 'Yes' },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="rounded-2xl border border-white/6 bg-white/[0.03] px-4 py-3"
-                      >
-                        <div className="text-[10px] uppercase tracking-[0.14em] text-white/36">
-                          {item.label}
-                        </div>
-                        <div className="mt-2 text-sm font-semibold text-white/84">
-                          {item.value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-6 rounded-[24px] border border-white/8 bg-black/20 p-4">
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                        Top allocations
-                      </div>
-                      <BarChart3 className="h-4 w-4 text-[rgba(212,175,55,0.85)]" />
-                    </div>
-
-                    <div className="space-y-3">
-                      {[
-                        { label: 'U.S. Equities', width: 'w-[68%]' },
-                        { label: 'Broad Market ETFs', width: 'w-[52%]' },
-                        { label: 'Cash in USD', width: 'w-[34%]' },
-                      ].map((item) => (
-                        <div key={item.label}>
-                          <div className="mb-1 flex items-center justify-between text-xs text-white/56">
-                            <span>{item.label}</span>
-                          </div>
-                          <div className="h-2 overflow-hidden rounded-full bg-white/6">
-                            <div
-                              className={`h-full rounded-full bg-[linear-gradient(90deg,#A88520_0%,#D4AF37_55%,#F0D060_100%)] ${item.width}`}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="rounded-lg border border-white/10 bg-[#111111] p-3.5">
+                <div className="mb-2 flex items-center gap-2">
+                  <Landmark className="h-4 w-4 text-gold" />
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/40">Funding path</p>
                 </div>
+                <p className="text-xs leading-6 text-white/58">KES wallet → USD conversion → market deployment.</p>
               </div>
 
-              {/* side chips */}
-              <div className="space-y-4 md:col-span-4">
-                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Landmark className="h-4 w-4 text-[rgba(212,175,55,0.95)]" />
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                      Funding path
-                    </span>
-                  </div>
-                  <div className="space-y-2 text-sm text-white/74">
-                    <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
-                      <span>KES Wallet</span>
-                      <ArrowUpRight className="h-4 w-4 text-white/24" />
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
-                      <span>Convert to USD</span>
-                      <ArrowUpRight className="h-4 w-4 text-white/24" />
-                    </div>
-                    <div className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
-                      <span>Deploy to markets</span>
-                      <ArrowUpRight className="h-4 w-4 text-white/24" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0.03)_100%)] p-5 shadow-[0_16px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm">
-                  <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-                    Market access
-                  </div>
-
-                  <div className="space-y-3">
-                    {STOCK_TICKERS.slice(0, 4).map((t) => (
-                      <div
-                        key={t.symbol}
-                        className="flex items-center justify-between rounded-2xl border border-white/6 bg-white/[0.03] px-3 py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <StockIcon symbol={t.symbol} size={28} />
-                          <div>
-                            <p className="font-mono text-sm font-semibold text-white">
-                              {t.symbol}
-                            </p>
-                            <p className="text-[11px] text-white/40">{t.name}</p>
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <p className="font-mono text-sm font-medium text-white/80">
-                            ${t.price}
-                          </p>
-                          <p
-                            className={`font-mono text-[11px] font-semibold ${
-                              t.positive ? 'text-emerald-300' : 'text-rose-300'
-                            }`}
-                          >
-                            {t.change}
-                          </p>
-                        </div>
+              <div className="rounded-lg border border-white/10 bg-[#111111] p-3.5">
+                <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-white/40">Market list</p>
+                <div className="space-y-2">
+                  {STOCK_TICKERS.slice(0, 3).map((stock) => (
+                    <div key={stock.symbol} className="flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2">
+                        <StockIcon symbol={stock.symbol} size={18} />
+                        <span className="font-mono text-white/76">{stock.symbol}</span>
                       </div>
-                    ))}
-                  </div>
+                      <span className={stock.positive ? 'font-mono text-emerald' : 'font-mono text-red'}>{stock.change}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>

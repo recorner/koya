@@ -34,9 +34,9 @@ export interface WizardState {
 }
 
 const stepVariants = {
-  enter: (dir: number) => ({ opacity: 0, y: dir * 24 }),
+  enter: (dir: number) => ({ opacity: 0, y: dir * 18 }),
   center: { opacity: 1, y: 0 },
-  exit: (dir: number) => ({ opacity: 0, y: dir * -16 }),
+  exit: (dir: number) => ({ opacity: 0, y: dir * -14 }),
 };
 
 const STORAGE_KEY = 'koya-conversion-wizard';
@@ -62,7 +62,6 @@ export function ConversionWizard() {
   const [direction, setDirection] = useState(1);
   const [isReady, setIsReady] = useState(false);
 
-  // Restore state from sessionStorage on mount
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY);
@@ -73,28 +72,24 @@ export function ConversionWizard() {
         }
       }
     } catch {
-      /* ignore */
+      // ignore
     }
     setIsReady(true);
   }, []);
 
-  // Persist state to sessionStorage on changes
   useEffect(() => {
     if (!isReady) return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      /* ignore */
+      // ignore
     }
   }, [state, isReady]);
 
-  const goForward = useCallback(
-    (updater: (s: WizardState) => WizardState) => {
-      setDirection(1);
-      setState(updater);
-    },
-    [],
-  );
+  const goForward = useCallback((updater: (s: WizardState) => WizardState) => {
+    setDirection(1);
+    setState(updater);
+  }, []);
 
   const handleBack = useCallback(() => {
     const currentIndex = STEPS.indexOf(state.step);
@@ -108,27 +103,20 @@ export function ConversionWizard() {
 
   if (!isReady) {
     return (
-      <div className="mx-auto w-full max-w-[520px]">
-        <div className="h-80 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03] sm:rounded-3xl" />
+      <div className="mx-auto w-full max-w-[560px]">
+        <div className="h-80 animate-pulse rounded-xl border border-white/10 bg-[#121212]" />
       </div>
     );
   }
 
-  // Tracking mode: fetch status by reference and show ProcessingStep or ResultStep
   if (trackingRef) {
     return <TrackingFlow referenceCode={trackingRef} />;
   }
 
   return (
-    <div className="mx-auto w-full max-w-[520px]">
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:rounded-3xl sm:p-7">
-
-        {/* Progress indicator */}
-        <StepProgress
-          currentStep={state.step}
-          canGoBack={canGoBack}
-          onBack={handleBack}
-        />
+    <div className="mx-auto w-full max-w-[560px]">
+      <div className="relative overflow-hidden rounded-xl border border-white/12 bg-[#151515] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.55)] sm:p-7">
+        <StepProgress currentStep={state.step} canGoBack={canGoBack} onBack={handleBack} />
 
         {state.expiresAt && ['identity', 'payout', 'payment'].includes(state.step) && (
           <ExpiryCountdown
@@ -148,16 +136,14 @@ export function ConversionWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.35, ease: 'easeOut' }}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
           >
             {state.step === 'amount' && (
               <AmountStep
                 initialAmount={initialAmount}
                 initialFrom={initialFrom}
                 initialTo={initialTo}
-                onQuoteReady={(quote) =>
-                  goForward((s) => ({ ...s, step: 'quote', quote }))
-                }
+                onQuoteReady={(quote) => goForward((s) => ({ ...s, step: 'quote', quote }))}
               />
             )}
             {state.step === 'quote' && state.quote && (
@@ -172,50 +158,33 @@ export function ConversionWizard() {
                     expiresAt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
                   }))
                 }
-                onExpired={() =>
-                  goForward((s) => ({ ...s, step: 'amount', quote: null }))
-                }
+                onExpired={() => goForward((s) => ({ ...s, step: 'amount', quote: null }))}
               />
             )}
             {state.step === 'identity' && state.sessionId && (
               <IdentityStep
                 sessionId={state.sessionId}
-                onComplete={(guestRef) =>
-                  goForward((s) => ({ ...s, step: 'payout', guestRef }))
-                }
+                onComplete={(guestRef) => goForward((s) => ({ ...s, step: 'payout', guestRef }))}
               />
             )}
             {state.step === 'payout' && state.sessionId && (
               <PayoutStep
                 sessionId={state.sessionId}
-                onComplete={() =>
-                  goForward((s) => ({ ...s, step: 'payment' }))
-                }
+                onComplete={() => goForward((s) => ({ ...s, step: 'payment' }))}
               />
             )}
             {state.step === 'payment' && state.sessionId && (
               <PaymentPendingStep
                 sessionId={state.sessionId}
                 referenceCode={state.referenceCode ?? ''}
-                onComplete={() =>
-                  goForward((s) => ({
-                    ...s,
-                    step: 'processing',
-                  }))
-                }
+                onComplete={() => goForward((s) => ({ ...s, step: 'processing' }))}
               />
             )}
             {state.step === 'processing' && state.sessionId && (
               <ProcessingStep
                 sessionId={state.sessionId}
                 quote={state.quote}
-                onComplete={(status) =>
-                  goForward((s) => ({
-                    ...s,
-                    step: 'result',
-                    finalStatus: status,
-                  }))
-                }
+                onComplete={(status) => goForward((s) => ({ ...s, step: 'result', finalStatus: status }))}
               />
             )}
             {state.step === 'result' && (
@@ -236,15 +205,7 @@ export function ConversionWizard() {
   );
 }
 
-const STEPS: WizardStep[] = [
-  'amount',
-  'quote',
-  'identity',
-  'payout',
-  'payment',
-  'processing',
-  'result',
-];
+const STEPS: WizardStep[] = ['amount', 'quote', 'identity', 'payout', 'payment', 'processing', 'result'];
 
 const STEP_LABELS: Record<WizardStep, string> = {
   amount: 'Amount',
@@ -273,42 +234,31 @@ function StepProgress({
         <button
           type="button"
           onClick={onBack}
-          className="mb-3 flex items-center gap-1.5 text-white/45 transition-colors hover:text-white/70"
+          className="mb-3 inline-flex items-center gap-1.5 text-white/48 transition-colors hover:text-white/78"
           aria-label="Go back"
         >
           <ChevronLeft size={14} />
-          <span className="text-[11px] font-medium">Back</span>
+          <span className="text-[11px]">Back</span>
         </button>
       )}
-      <div className="flex w-full items-center gap-1">
+
+      <div className="flex w-full items-center gap-1.5">
         {STEPS.map((step, i) => (
           <div key={step} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <div
-              className={`h-1 w-full rounded-full transition-colors duration-300 ${
-                i <= currentIndex
-                  ? 'bg-gold'
-                  : 'bg-white/8'
-              }`}
-            />
-            <span
-              className={`hidden text-[9px] font-semibold uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-300 sm:block ${
-                i <= currentIndex ? 'text-white/70' : 'text-white/25'
-              }`}
-            >
+            <div className={`h-1.5 w-full transition-colors ${i <= currentIndex ? 'bg-gold' : 'bg-white/10'}`} />
+            <span className={`hidden text-[9px] uppercase tracking-[0.14em] sm:block ${i <= currentIndex ? 'text-white/66' : 'text-white/24'}`}>
               {STEP_LABELS[step]}
             </span>
           </div>
         ))}
       </div>
-      {/* Mobile: show current step label below the bar */}
-      <p className="mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50 sm:hidden">
-        Step {currentIndex + 1} of {STEPS.length} — {STEP_LABELS[currentStep]}
+
+      <p className="mt-2 text-center text-[10px] uppercase tracking-[0.14em] text-white/46 sm:hidden">
+        Step {currentIndex + 1} of {STEPS.length} · {STEP_LABELS[currentStep]}
       </p>
     </div>
   );
 }
-
-/* ── Expiry Countdown ────────────────────────────────────────── */
 
 function ExpiryCountdown({
   expiresAt,
@@ -340,19 +290,13 @@ function ExpiryCountdown({
   const isUrgent = remaining < 120;
 
   return (
-    <div className="mb-4 flex items-center justify-center gap-1.5">
-      <span
-        className={`text-xs font-medium tabular-nums ${
-          isUrgent ? 'text-red-400' : 'text-white/40'
-        }`}
-      >
-        Order expires in {mins}:{secs.toString().padStart(2, '0')}
+    <div className="mb-4 flex items-center justify-center">
+      <span className={`text-xs font-mono tabular-nums ${isUrgent ? 'text-red' : 'text-white/44'}`}>
+        Quote expiry: {mins}:{secs.toString().padStart(2, '0')}
       </span>
     </div>
   );
 }
-
-/* ── Tracking Flow (reuses ProcessingStep & ResultStep) ─────────── */
 
 function TrackingFlow({ referenceCode }: { referenceCode: string }) {
   const [loading, setLoading] = useState(true);
@@ -373,10 +317,11 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [referenceCode]);
 
-  // Build a minimal QuoteResponse so ProcessingStep can show the conversion summary
   const syntheticQuote: QuoteResponse | null = status
     ? {
         quoteId: '',
@@ -396,7 +341,7 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 py-16">
           <Loader2 className="h-8 w-8 animate-spin text-gold" />
-          <p className="text-sm text-white/50">Looking up your order…</p>
+          <p className="text-sm text-white/52">Looking up your order...</p>
         </div>
       );
     }
@@ -404,11 +349,8 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
     if (error || !status) {
       return (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-          <p className="text-sm text-red-400">{error ?? 'Order not found.'}</p>
-          <a
-            href="/convert"
-            className="text-sm text-gold underline underline-offset-2 hover:text-gold/80"
-          >
+          <p className="text-sm text-red">{error ?? 'Order not found.'}</p>
+          <a href="/convert" className="text-sm text-gold underline underline-offset-2 hover:text-gold/80">
             Start a new conversion
           </a>
         </div>
@@ -441,8 +383,8 @@ function TrackingFlow({ referenceCode }: { referenceCode: string }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[520px]">
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 sm:rounded-3xl sm:p-7">
+    <div className="mx-auto w-full max-w-[560px]">
+      <div className="relative overflow-hidden rounded-xl border border-white/12 bg-[#151515] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.55)] sm:p-7">
         {content()}
       </div>
     </div>

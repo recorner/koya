@@ -24,43 +24,35 @@ export function ResultStep({
 
   return (
     <div className="text-center">
-      {/* Status icon */}
       <div
-        className={`mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border ${
-          isSuccess
-            ? 'border-emerald/30 bg-emerald/10'
-            : 'border-red/30 bg-red/10'
+        className={`mx-auto flex h-16 w-16 items-center justify-center rounded-lg border ${
+          isSuccess ? 'border-emerald/40 bg-emerald/10' : 'border-red/40 bg-red/10'
         }`}
       >
-        {isSuccess ? (
-          <CheckCircle size={32} className="text-emerald" />
-        ) : (
-          <XCircle size={32} className="text-red" />
-        )}
+        {isSuccess ? <CheckCircle size={30} className="text-emerald" /> : <XCircle size={30} className="text-red" />}
       </div>
 
-      <h2 className="mt-4 font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
+      <h2 className="mt-4 font-display text-2xl tracking-tight text-white-95">
         {isSuccess ? 'Conversion complete' : 'Conversion failed'}
       </h2>
 
-      <p className="mt-2 text-sm text-white/50">
+      <p className="mt-2 text-sm text-white/54">
         {isSuccess
-          ? 'Your BTC has been sent to the provided address.'
-          : 'Something went wrong. Please try again or contact support.'}
+          ? 'Settlement completed and BTC was sent to the destination address.'
+          : 'The conversion could not be completed. Please retry or contact support.'}
       </p>
 
-      {/* Details */}
       {status && (
         <div className="mt-5 space-y-2 text-left">
           {isSuccess && (
-            <DetailRow label="Converted">
+            <DetailRow label="Converted amount">
               <div className="flex items-center gap-1.5 sm:gap-3">
-                <span className="flex items-center gap-1 font-mono text-xs text-white sm:gap-1.5 sm:text-sm">
+                <span className="flex items-center gap-1 font-mono text-xs tabular-nums text-white sm:text-sm">
                   <AssetIcon symbol="KES" size={14} />
                   {status.sourceAmount} KES
                 </span>
                 <ArrowRight size={10} className="shrink-0 text-white/30 sm:size-3" />
-                <span className="flex items-center gap-1 font-mono text-xs text-white sm:gap-1.5 sm:text-sm">
+                <span className="flex items-center gap-1 font-mono text-xs tabular-nums text-white sm:text-sm">
                   <AssetIcon symbol="BTC" size={14} />
                   {status.targetAmount} BTC
                 </span>
@@ -69,16 +61,10 @@ export function ResultStep({
           )}
 
           {referenceCode && (
-            <DetailRow label="Reference">
+            <DetailRow label="Reference code">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-white">
-                  {referenceCode}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(referenceCode)}
-                  className="text-white/30 hover:text-white/60"
-                >
+                <span className="font-mono text-sm tabular-nums text-white">{referenceCode}</span>
+                <button type="button" onClick={() => copyToClipboard(referenceCode)} className="text-white/34 hover:text-white/64">
                   <Copy size={12} />
                 </button>
               </div>
@@ -92,15 +78,13 @@ export function ResultStep({
           )}
 
           {status.txHash && (
-            <DetailRow label="TX Hash">
+            <DetailRow label="TX hash">
               <div className="flex items-center gap-2">
-                <span className="max-w-[200px] truncate font-mono text-xs text-white/70">
-                  {status.txHash}
-                </span>
+                <span className="max-w-[200px] truncate font-mono text-xs text-white/74">{status.txHash}</span>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(status.txHash ?? '')}
-                  className="text-white/30 hover:text-white/60"
+                  className="text-white/34 hover:text-white/64"
                 >
                   <Copy size={12} />
                 </button>
@@ -110,29 +94,17 @@ export function ResultStep({
         </div>
       )}
 
-      <Button
-        size="lg"
-        className="mt-6 h-11 w-full text-sm font-medium"
-        onClick={onReset}
-      >
-        {isSuccess ? 'Convert Again' : 'Try Again'}
+      <Button size="lg" className="mt-6 h-11 w-full text-sm" onClick={onReset}>
+        {isSuccess ? 'Start another conversion' : 'Try again'}
       </Button>
     </div>
   );
 }
 
-function DetailRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-y-1.5 rounded-xl border border-white/6 bg-white/[0.03] px-3 py-2.5">
-      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-        {label}
-      </span>
+    <div className="flex flex-wrap items-center justify-between gap-y-1.5 rounded-md border border-white/10 bg-[#101010] px-3 py-2.5">
+      <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-white/40">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
   );

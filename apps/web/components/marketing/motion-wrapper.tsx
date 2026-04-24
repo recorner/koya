@@ -4,8 +4,6 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-/* ── Basic fade-up ─────────────────────────────────────────────── */
-
 export function FadeUp({
   children,
   delay = 0,
@@ -17,10 +15,10 @@ export function FadeUp({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.5, delay, ease: 'easeOut' }}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{ duration: 0.45, delay, ease: 'easeOut' }}
       className={cn(className)}
     >
       {children}
@@ -28,12 +26,10 @@ export function FadeUp({
   );
 }
 
-/* ── Stagger group ─────────────────────────────────────────────── */
-
 export function StaggerContainer({
   children,
   className,
-  stagger = 0.1,
+  stagger = 0.08,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -43,7 +39,7 @@ export function StaggerContainer({
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: '-40px' }}
+      viewport={{ once: true, margin: '-60px' }}
       variants={{
         hidden: {},
         visible: { transition: { staggerChildren: stagger } },
@@ -55,18 +51,12 @@ export function StaggerContainer({
   );
 }
 
-export function StaggerItem({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function StaggerItem({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <motion.div
       variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' as const } },
+        hidden: { opacity: 0, y: 14 },
+        visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
       }}
       className={cn(className)}
     >
@@ -75,16 +65,10 @@ export function StaggerItem({
   );
 }
 
-/* ── Scroll-linked parallax drift ──────────────────────────────
-   Wraps children in a container that drifts upward slightly faster
-   than the natural scroll, creating a subtle premium parallax feel.
-   `intensity` controls how many px of extra movement (default 40).
-   ─────────────────────────────────────────────────────────────── */
-
 export function ParallaxDrift({
   children,
   className,
-  intensity = 40,
+  intensity = 18,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -104,13 +88,11 @@ export function ParallaxDrift({
   );
 }
 
-/* ── Float — continuous gentle floating animation ─────────────── */
-
 export function Float({
   children,
   className,
-  amplitude = 8,
-  duration = 6,
+  amplitude = 5,
+  duration = 7,
   delay = 0,
 }: {
   children: React.ReactNode;
@@ -121,24 +103,14 @@ export function Float({
 }) {
   return (
     <motion.div
-      animate={{
-        y: [0, -amplitude, 0],
-        rotate: [0, 0.4, 0],
-      }}
-      transition={{
-        duration,
-        repeat: Infinity,
-        ease: 'easeInOut',
-        delay,
-      }}
+      animate={{ y: [0, -amplitude, 0] }}
+      transition={{ duration, repeat: Infinity, ease: 'easeInOut', delay }}
       className={cn(className)}
     >
       {children}
     </motion.div>
   );
 }
-
-/* ── ScaleReveal — entrance that scales from slightly small ───── */
 
 export function ScaleReveal({
   children,
@@ -151,10 +123,10 @@ export function ScaleReveal({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.92 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, delay, ease: [0.32, 0.72, 0, 1] }}
+      viewport={{ once: true, margin: '-70px' }}
+      transition={{ duration: 0.5, delay, ease: [0.32, 0.72, 0, 1] }}
       className={cn(className)}
     >
       {children}
@@ -162,21 +134,19 @@ export function ScaleReveal({
   );
 }
 
-/* ── GlowPulse — subtle pulsing glow effect ───────────────────── */
-
 export function GlowPulse({
   className,
-  color = 'rgba(212,175,55,0.15)',
+  color = 'rgba(200, 150, 60, 0.08)',
 }: {
   className?: string;
   color?: string;
 }) {
   return (
     <motion.div
-      className={cn('pointer-events-none absolute rounded-full blur-3xl', className)}
-      style={{ background: `radial-gradient(circle, ${color} 0%, transparent 72%)` }}
-      animate={{ opacity: [0.3, 0.7, 0.3], scale: [0.95, 1.05, 0.95] }}
-      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+      className={cn('pointer-events-none absolute rounded-full blur-2xl', className)}
+      style={{ background: `radial-gradient(circle, ${color} 0%, transparent 76%)` }}
+      animate={{ opacity: [0.25, 0.45, 0.25] }}
+      transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
     />
   );
 }

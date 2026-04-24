@@ -2,12 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import {
-  CheckCircle,
-  Loader2,
-  ArrowRight,
-  CircleDot,
-} from 'lucide-react';
+import { CheckCircle, Loader2, ArrowRight, CircleDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssetIcon } from '@/components/marketing/asset-icons';
 import { conversionApi, type QuoteResponse, type StatusResponse } from '@/lib/api/conversion';
@@ -26,31 +21,12 @@ interface StageInfo {
 }
 
 const STAGES: StageInfo[] = [
-  {
-    key: 'payment_confirmed',
-    label: 'Payment received',
-    description: 'M-Pesa payment confirmed',
-  },
-  {
-    key: 'executing',
-    label: 'Converting',
-    description: 'Executing KES → BTC conversion',
-  },
-  {
-    key: 'delivering',
-    label: 'Sending BTC',
-    description: 'Broadcasting to your wallet',
-  },
-  {
-    key: 'completed',
-    label: 'BTC sent',
-    description: 'Transaction confirmed',
-  },
+  { key: 'payment_confirmed', label: 'Payment received', description: 'M-Pesa payment confirmed.' },
+  { key: 'executing', label: 'Executing conversion', description: 'Converting KES to BTC at locked terms.' },
+  { key: 'delivering', label: 'Broadcasting transfer', description: 'Sending BTC to your destination wallet.' },
+  { key: 'completed', label: 'Settlement complete', description: 'Transaction finalized.' },
 ];
 
-/**
- * Maps backend ConversionState to a processing phase index.
- */
 function stateToPhaseIndex(state: string): number {
   switch (state) {
     case 'PAYMENT_CONFIRMED':
@@ -81,11 +57,10 @@ export function ProcessingStep({
   const [currentStage, setCurrentStage] = useState(0);
   const [failed, setFailed] = useState(false);
   const [finalStatus, setFinalStatus] = useState<StatusResponse | null>(null);
-  const [revealedStages, setRevealedStages] = useState(1); // starts with first stage visible
+  const [revealedStages, setRevealedStages] = useState(1);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const backendStageRef = useRef(0);
 
-  // Poll backend for status
   const pollStatus = useCallback(async () => {
     try {
       const status = await conversionApi.getStatus(sessionId);
@@ -107,29 +82,24 @@ export function ProcessingStep({
         if (pollingRef.current) clearInterval(pollingRef.current);
       }
     } catch {
-      // Silently retry
+      // retry silently
     }
   }, [sessionId]);
 
-  // Start polling on mount
   useEffect(() => {
-    pollStatus(); // initial fetch
+    pollStatus();
     pollingRef.current = setInterval(pollStatus, 2000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, [pollStatus]);
 
-  // Animate through stages with a stagger — driven by backend + minimum reveal timing
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentStage((prev) => {
-        // Only advance if backend has reached that stage
         const nextStage = prev + 1;
-        if (nextStage > 3) return prev; // max
-        if (nextStage <= backendStageRef.current) {
-          return nextStage;
-        }
+        if (nextStage > 3) return prev;
+        if (nextStage <= backendStageRef.current) return nextStage;
         return prev;
       });
     }, 1500);
@@ -137,7 +107,6 @@ export function ProcessingStep({
     return () => clearInterval(timer);
   }, []);
 
-  // Reveal stages with a slight delay for animation
   useEffect(() => {
     setRevealedStages(currentStage + 1);
   }, [currentStage]);
@@ -147,43 +116,33 @@ export function ProcessingStep({
   return (
     <div>
       <div className="text-center">
-        <h2 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
-          {failed
-            ? 'Conversion failed'
-            : isComplete
-              ? 'Conversion complete'
-              : 'Processing your conversion'}
+        <h2 className="font-display text-2xl tracking-tight text-white-95">
+          {failed ? 'Conversion failed' : isComplete ? 'Conversion complete' : 'Processing conversion'}
         </h2>
-        <p className="mt-2 text-sm text-white/50">
+        <p className="mt-2 text-sm text-white/54">
           {failed
-            ? 'Something went wrong. Please contact support.'
+            ? 'An issue occurred during settlement. View details below.'
             : isComplete
-              ? 'Your BTC has been sent to your wallet.'
-              : 'This usually takes a few seconds.'}
+              ? 'BTC delivery has been finalized to your provided address.'
+              : 'This process typically completes in under a minute.'}
         </p>
       </div>
 
-      {/* Conversion summary */}
       {quote && (
         <div className="mt-5 flex items-center justify-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/10 bg-[#111111] px-3 py-2">
             <AssetIcon symbol="KES" size={16} />
-            <span className="font-mono text-sm font-semibold text-white">
-              {quote.sourceAmount}
-            </span>
+            <span className="font-mono text-sm tabular-nums text-white">{quote.sourceAmount}</span>
           </div>
           <ArrowRight size={14} className="text-white/30" />
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/8 bg-white/[0.04] px-3 py-2">
+          <div className="flex items-center gap-1.5 rounded-md border border-white/10 bg-[#111111] px-3 py-2">
             <AssetIcon symbol="BTC" size={16} />
-            <span className="font-mono text-sm font-semibold text-white">
-              {quote.targetAmount}
-            </span>
+            <span className="font-mono text-sm tabular-nums text-white">{quote.targetAmount}</span>
           </div>
         </div>
       )}
 
-      {/* Stage progress */}
-      <div className="mt-6 space-y-1">
+      <div className="mt-6 space-y-1.5">
         {STAGES.map((stage, i) => {
           const isRevealed = i < revealedStages;
           const isActive = i === currentStage && !isComplete && !failed;
@@ -193,112 +152,64 @@ export function ProcessingStep({
             <motion.div
               key={stage.key}
               initial={{ opacity: 0, y: 12 }}
-              animate={
-                isRevealed
-                  ? { opacity: 1, y: 0 }
-                  : { opacity: 0, y: 12 }
-              }
-              transition={{ duration: 0.4, delay: i * 0.1, ease: 'easeOut' }}
+              animate={isRevealed ? { opacity: 1, y: 0 } : { opacity: 0, y: 12 }}
+              transition={{ duration: 0.35, delay: i * 0.08, ease: 'easeOut' }}
             >
               <div
-                className={`flex items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-500 ${
+                className={`flex items-center gap-3 rounded-md border px-4 py-3 ${
                   isDone
-                    ? 'border-emerald/20 bg-emerald/[0.06]'
+                    ? 'border-emerald/30 bg-emerald/10'
                     : isActive
-                      ? 'border-gold/20 bg-gold/[0.06]'
-                      : 'border-white/6 bg-white/[0.02]'
+                      ? 'border-gold/30 bg-gold/10'
+                      : 'border-white/10 bg-[#111111]'
                 }`}
               >
-                {/* Icon */}
                 <div className="flex h-7 w-7 items-center justify-center">
                   {isDone ? (
-                    <CheckCircle
-                      size={18}
-                      className="text-emerald"
-                    />
+                    <CheckCircle size={18} className="text-emerald" />
                   ) : isActive ? (
-                    <Loader2
-                      size={18}
-                      className="animate-spin text-gold"
-                    />
+                    <Loader2 size={18} className="animate-spin text-gold" />
                   ) : (
-                    <CircleDot size={18} className="text-white/20" />
+                    <CircleDot size={18} className="text-white/28" />
                   )}
                 </div>
 
-                {/* Text */}
-                <div className="flex-1">
-                  <p
-                    className={`text-sm font-medium transition-colors duration-300 ${
-                      isDone
-                        ? 'text-emerald'
-                        : isActive
-                          ? 'text-white'
-                          : 'text-white/30'
-                    }`}
-                  >
+                <div className="flex-1 text-left">
+                  <p className={`text-sm font-medium ${isDone ? 'text-emerald' : isActive ? 'text-white' : 'text-white/42'}`}>
                     {stage.label}
                   </p>
-                  <p
-                    className={`text-xs transition-colors duration-300 ${
-                      isDone
-                        ? 'text-emerald/60'
-                        : isActive
-                          ? 'text-white/50'
-                          : 'text-white/15'
-                    }`}
-                  >
+                  <p className={`text-xs ${isDone ? 'text-emerald/70' : isActive ? 'text-white/58' : 'text-white/28'}`}>
                     {stage.description}
                   </p>
                 </div>
-
-                {/* Status indicator */}
-                {isDone && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald/70">
-                    Done
-                  </span>
-                )}
-                {isActive && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gold/70">
-                    In progress
-                  </span>
-                )}
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      {/* TX Hash when complete */}
       {isComplete && finalStatus?.txHash && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="mt-4 rounded-xl border border-white/6 bg-white/[0.03] p-3"
+          transition={{ duration: 0.35, delay: 0.2 }}
+          className="mt-4 rounded-md border border-white/10 bg-[#101010] p-3"
         >
           <div className="flex justify-between text-xs">
-            <span className="text-white/40">TX Hash</span>
-            <span className="max-w-[220px] truncate font-mono text-white/70">
-              {finalStatus.txHash}
-            </span>
+            <span className="text-white/42">TX Hash</span>
+            <span className="max-w-[220px] truncate font-mono text-white/72">{finalStatus.txHash}</span>
           </div>
         </motion.div>
       )}
 
-      {/* CTA */}
       {(isComplete || failed) && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.5 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.4 }}>
           <Button
             size="lg"
-            className="mt-5 h-11 w-full text-sm font-medium"
+            className="mt-5 h-11 w-full text-sm"
             onClick={() => onComplete(finalStatus as NonNullable<typeof finalStatus>)}
           >
-            {isComplete ? 'View Details' : 'View Details'}
+            View details
           </Button>
         </motion.div>
       )}

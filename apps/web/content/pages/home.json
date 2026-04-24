@@ -2,12 +2,17 @@
   "title": "Home",
   "slug": "/",
   "status": "published",
-  "meta_title": "Koya — Borderless Finance",
-  "meta_description": "Convert KES to BTC instantly with Koya. Secure, fast, and transparent.",
+  "meta_title": "Koya — Premium Borderless Finance",
+  "meta_description": "Fund with M-Pesa, convert KES to BTC with clear pricing, and operate globally from one trusted financial system.",
   "sections": [
     { "_template": "market_ribbon" },
     { "_template": "hero" },
-    { "_template": "swap_widget", "heading": "Preview your conversion", "subheading": "See live indicative rates between KES, USD, BTC, and stablecoins — no account needed.", "badge_text": "Try It" },
+    {
+      "_template": "swap_widget",
+      "heading": "Preview your conversion",
+      "subheading": "Check indicative KES, USD, BTC, and stablecoin pricing before entering the secure execution flow.",
+      "badge_text": "Live conversion preview"
+    },
     { "_template": "stats" },
     { "_template": "feature_grid" },
     { "_template": "how_it_works" },

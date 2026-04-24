@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { DM_Sans, Syne, JetBrains_Mono } from 'next/font/google';
+import { Inter, Syne, IBM_Plex_Mono } from 'next/font/google';
 import { getGlobalSettings, getSeoDefaults, getBranding } from '@/lib/cms';
 import './globals.css';
 
-const dmSans = DM_Sans({
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-body',
   display: 'swap',
@@ -17,7 +17,7 @@ const syne = Syne({
   weight: ['700', '800'],
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
@@ -75,9 +75,15 @@ export async function generateMetadata(): Promise<Metadata> {
 export async function generateViewport(): Promise<Viewport> {
   const branding = await getBranding();
   return {
-    themeColor: branding?.theme_color || '#070708',
+    themeColor: branding?.theme_color || '#080808',
     colorScheme: 'dark',
   };
+}
+
+function safeHexColor(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(trimmed) ? trimmed : null;
 }
 
 export default async function RootLayout({
@@ -86,19 +92,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const branding = await getBranding();
-  const themeStyle = {
-    ...(branding?.primary_color ? { '--color-gold': branding.primary_color } : {}),
-    ...(branding?.background_color
-      ? { '--color-vault-black': branding.background_color }
-      : {}),
-  } as React.CSSProperties;
+  const accent = safeHexColor(branding?.primary_color) || '#C8963C';
 
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${syne.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${syne.variable} ${ibmPlexMono.variable}`}
+      style={{ ['--color-accent' as string]: accent }}
     >
-      <body style={themeStyle}>{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
