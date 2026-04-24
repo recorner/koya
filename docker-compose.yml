@@ -137,52 +137,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── MongoDB (TinaCMS content index) ─────────────────────────
-  tina-mongo:
-    image: mongo:7-jammy
-    container_name: koya-tina-mongo
-    ports:
-      - '127.0.0.1:27017:27017'
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: tina
-      MONGO_INITDB_ROOT_PASSWORD: ${TINA_MONGO_PASSWORD:-tina_dev_password}
-    volumes:
-      - tina_mongo_data:/data/db
-    healthcheck:
-      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
-  # ── TinaCMS Admin ──────────────────────────────────────────
-  tina:
-    build:
-      context: .
-      dockerfile: Dockerfile.tina
-    container_name: koya-tina
-    ports:
-      - '127.0.0.1:3001:3001'
-    environment:
-      - NODE_ENV=production
-      - TINA_PUBLIC_IS_LOCAL=false
-      - TINA_AUTH_SECRET=${TINA_AUTH_SECRET}
-      - MONGODB_URI=mongodb://tina:${TINA_MONGO_PASSWORD:-tina_dev_password}@tina-mongo:27017/tinacms?authSource=admin
-      - GITHUB_OWNER=westronet
-      - GITHUB_REPO=koya
-      - GITHUB_BRANCH=main
-      - GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}
-    volumes:
-      - ./apps/web/content:/app/content
-      - ./apps/web/tina/auth/users.json:/app/tina/auth/users.json
-    depends_on:
-      tina-mongo:
-        condition: service_healthy
-    restart: unless-stopped
-
 volumes:
   redis_data:
   bitcoind_data:
   bria_pg_data:
-  tina_mongo_data:

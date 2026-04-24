@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Block /admin paths on the public site (koyabank.com / www.koyabank.com).
- * The CMS admin is only reachable via tina.koyabank.com.
+ * Internal admin paths are not exposed publicly.
  */
 export function middleware(request: NextRequest) {
   const host = request.headers.get('host') || '';
