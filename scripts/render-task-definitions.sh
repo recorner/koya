@@ -76,6 +76,9 @@ fi
 export BRIA_STREAM_RECONNECT_BASE_MS="${BRIA_STREAM_RECONNECT_BASE_MS:-1000}"
 export BRIA_STREAM_RECONNECT_MAX_MS="${BRIA_STREAM_RECONNECT_MAX_MS:-30000}"
 export BRIA_STREAM_RECONNECT_JITTER_MS="${BRIA_STREAM_RECONNECT_JITTER_MS:-500}"
+export BRIA_ACCOUNT_NAME="${BRIA_ACCOUNT_NAME:-${BRIA_WALLET_NAME:-koya-wallet}-account}"
+export BRIA_SERVICE_PROFILE="${BRIA_SERVICE_PROFILE:-${BRIA_WALLET_NAME:-koya-wallet}-service}"
+export BRIA_SETUP_ENABLED="${BRIA_SETUP_ENABLED:-false}"
 export BTC_PRODUCTION_NETWORK_MODE="${BTC_PRODUCTION_NETWORK_MODE:-}"
 export BTC_PAYOUT_RETRY_MAX_ATTEMPTS="${BTC_PAYOUT_RETRY_MAX_ATTEMPTS:-5}"
 export BTC_PAYOUT_RETRY_POLL_MS="${BTC_PAYOUT_RETRY_POLL_MS:-5000}"
@@ -191,7 +194,8 @@ if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
   # Drift-safe live mode:
   # Preserve runtime connectivity/payment values from the currently running task
   # so deploys can roll forward safely even if env/<env>.env differs.
-  # Do NOT carry forward wallet identity fields (BRIA_WALLET_NAME/BRIA_XPUB_REF):
+  # Do NOT carry forward Bria lineage identity fields
+  # (BRIA_WALLET_NAME/BRIA_PAYOUT_QUEUE[_NAME]/BRIA_XPUB_REF):
   # those must come from explicit environment config to avoid pinning stale
   # regtest-era wallet material in testnet4/mainnet deploys.
   for key in \
@@ -210,8 +214,6 @@ if [[ "${LIVE_ECS_MODE}" == "true" ]]; then
     DFNS_API_URL \
     DFNS_APP_ID \
     DFNS_WALLET_ID \
-    BRIA_PAYOUT_QUEUE \
-    BRIA_PAYOUT_QUEUE_NAME \
     DFNS_SERVICE_ACCOUNT; do
     set_from_current_env "${key}" "force"
   done

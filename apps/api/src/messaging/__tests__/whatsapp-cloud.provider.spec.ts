@@ -11,8 +11,9 @@ describe('WhatsAppCloudProvider', () => {
   const provider = new WhatsAppCloudProvider(
     new ConfigService({
       MESSAGING_ENABLE_WHATSAPP_CLOUD: 'true',
-      WHATSAPP_CLOUD_API_VERSION: 'v21.0',
+      WHATSAPP_CLOUD_API_VERSION: 'v25.0',
       WHATSAPP_PHONE_NUMBER_ID: '123',
+      WHATSAPP_BUSINESS_ACCOUNT_ID: '456',
       WHATSAPP_ACCESS_TOKEN: 'token',
       WHATSAPP_APP_SECRET: 'secret',
       WHATSAPP_VERIFY_TOKEN: 'verify',

@@ -31,6 +31,26 @@ describe('WhatsAppTemplateService', () => {
       expect(msg.interactive).toBeUndefined();
     });
 
+    it('should generate Telegram welcome menu with explicit intents', () => {
+      const msg = templates.welcomeMenu('TELEGRAM');
+      expect(bodyOf(msg)).toContain('Telegram Desk');
+      expect(msg.interactive?.buttons).toEqual([
+        { id: 'menu:start_conversion', title: 'Start Conversion' },
+        { id: 'menu:track_order', title: 'Track Order' },
+        { id: 'menu:transactions', title: 'Transactions' },
+        { id: 'menu:help', title: 'Help' },
+      ]);
+    });
+
+    it('should generate Telegram start conversion prompt with back/restart', () => {
+      const msg = templates.askAmount('TELEGRAM');
+      expect(bodyOf(msg)).toContain('Start Conversion');
+      expect(msg.interactive?.buttons).toEqual([
+        { id: 'menu:back', title: 'Back' },
+        { id: 'menu:restart', title: 'Restart' },
+      ]);
+    });
+
     it('should generate quote display', () => {
       const msg = templates.showQuote({
         quoteId: 'q1',
@@ -95,6 +115,23 @@ describe('WhatsAppTemplateService', () => {
     it('should generate cancel confirmation', () => {
       const msg = templates.cancelConfirmation();
       expect(bodyOf(msg)).toContain('Cancelled');
+    });
+
+    it('should generate Telegram track-order fallback and transactions menu', () => {
+      const track = templates.trackOrderPrompt('TELEGRAM');
+      expect(bodyOf(track)).toContain('Track Order');
+      expect(track.interactive?.buttons).toEqual([
+        { id: 'menu:start_conversion', title: 'Start Conversion' },
+        { id: 'menu:back', title: 'Back' },
+      ]);
+
+      const transactions = templates.transactionsOverview('TELEGRAM');
+      expect(bodyOf(transactions)).toContain('Transactions');
+      expect(transactions.interactive?.buttons).toEqual([
+        { id: 'menu:track_order', title: 'Track Order' },
+        { id: 'menu:start_conversion', title: 'Start Conversion' },
+        { id: 'menu:back', title: 'Back' },
+      ]);
     });
   });
 

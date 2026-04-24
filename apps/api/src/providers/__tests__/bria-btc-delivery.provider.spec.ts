@@ -124,4 +124,16 @@ describe('BriaBtcDeliveryProvider', () => {
       metadata: { context: 'test' },
     });
   });
+
+  it('should reject deposit address when Bria emits wrong network family', async () => {
+    briaClient.newAddress.mockResolvedValue({
+      address: 'bcrt1q9m63xvh6m2m0w3j8xdm7h22rmp6j92cpkgf9af',
+    });
+
+    await expect(
+      provider.generateDepositAddress({
+        externalId: 'koya:deposit:test:regtest',
+      }),
+    ).rejects.toThrow('Bria emitted address not valid for configured BTC network');
+  });
 });

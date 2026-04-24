@@ -31,10 +31,12 @@ import { DfnsModule } from '../dfns/dfns.module';
 import type { Type } from '@nestjs/common';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const controllers: Type<any>[] = [ConversionController, BriaHealthController, BtcBackendController];
-if (process.env['NODE_ENV'] !== 'production') {
-  controllers.push(BriaSetupController);
-}
+const controllers: Type<any>[] = [
+  ConversionController,
+  BriaHealthController,
+  BtcBackendController,
+  BriaSetupController,
+];
 
 @Module({
   imports: [KycModule, PaymentsModule, RiskModule, RatesModule, BriaModule, DfnsModule, ConfigModule],

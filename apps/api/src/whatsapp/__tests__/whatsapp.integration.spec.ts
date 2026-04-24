@@ -22,7 +22,7 @@ import { randomUUID } from 'crypto';
 class FakeProvider implements MessagingProvider {
   constructor(public readonly provider: 'WHATSAPP_CLOUD' | 'TELEGRAM') {}
 
-  public readonly sentMessages: Array<{ to: string; body: string }> = [];
+  public readonly sentMessages: Array<{ to: string; message: ChatOutboundMessage }> = [];
 
   verifyWebhook(): void {}
   verifyChallenge(): { accepted: boolean } {
@@ -42,7 +42,7 @@ class FakeProvider implements MessagingProvider {
     recipient: string;
     message: ChatOutboundMessage;
   }): Promise<ProviderSendResult> {
-    this.sentMessages.push({ to: input.recipient, body: input.message.body });
+    this.sentMessages.push({ to: input.recipient, message: input.message });
     return {
       success: true,
       providerMessageId: `MSG-${randomUUID()}`,
@@ -54,7 +54,7 @@ class FakeProvider implements MessagingProvider {
     recipient: string;
     message: ChatOutboundMessage;
   }): Promise<ProviderSendResult> {
-    this.sentMessages.push({ to: input.recipient, body: input.message.body });
+    this.sentMessages.push({ to: input.recipient, message: input.message });
     return {
       success: true,
       providerMessageId: `TPL-${randomUUID()}`,
@@ -70,7 +70,7 @@ class FakeProvider implements MessagingProvider {
   }): Promise<ProviderSendResult> {
     this.sentMessages.push({
       to: input.recipient,
-      body: `Track ${input.referenceCode} ${input.trackingUrl}`,
+      message: { body: `Track ${input.referenceCode} ${input.trackingUrl}` },
     });
     return {
       success: true,
@@ -91,6 +91,7 @@ describe('Chat Flow (Integration)', () => {
     process.env['MESSAGING_ENABLE_WHATSAPP_CLOUD'] = 'true';
     process.env['MESSAGING_ENABLE_TELEGRAM'] = 'true';
     process.env['WHATSAPP_WEB_BASE_URL'] = 'https://koyabank.com';
+    process.env['WHATSAPP_BUSINESS_ACCOUNT_ID'] = '654321';
 
     module = await Test.createTestingModule({
       imports: [
@@ -234,5 +235,82 @@ describe('Chat Flow (Integration)', () => {
     expect(conv).toBeTruthy();
     expect(conv?.currentStep).toBe('WAITING_FOR_BTC_ADDRESS');
     expect(fakeTelegram.sentMessages.length).toBeGreaterThan(0);
+  });
+
+  it('routes Telegram callback payloads into visible menu actions', async () => {
+    const sender = `tg-menu-${Date.now()}`;
+    const before = fakeTelegram.sentMessages.length;
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '/start',
+      providerMessageId: newMsgId(),
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'menu:start_conversion',
+      providerMessageId: newMsgId(),
+      rawPayload: { buttonPayload: 'menu:start_conversion' },
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'menu:back',
+      providerMessageId: newMsgId(),
+      rawPayload: { buttonPayload: 'menu:back' },
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'menu:transactions',
+      providerMessageId: newMsgId(),
+      rawPayload: { buttonPayload: 'menu:transactions' },
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'menu:track_order',
+      providerMessageId: newMsgId(),
+      rawPayload: { buttonPayload: 'menu:track_order' },
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: 'menu:help',
+      providerMessageId: newMsgId(),
+      rawPayload: { buttonPayload: 'menu:help' },
+    });
+
+    await flowService.handleInboundMessage({
+      provider: 'TELEGRAM',
+      from: sender,
+      body: '/start',
+      providerMessageId: newMsgId(),
+    });
+
+    const sent = fakeTelegram.sentMessages.slice(before).map((item) => item.message);
+    const latestBodies = sent.map((message) => message.body).join('\n---\n');
+
+    expect(latestBodies).toContain('Telegram Desk');
+    expect(latestBodies).toContain('Start Conversion');
+    expect(latestBodies).toContain('Transactions');
+    expect(latestBodies).toContain('Track Order');
+    expect(latestBodies).toContain('Koya Help');
+    expect(latestBodies).toContain('Telegram Desk');
+
+    const startConversionMessage = sent.find((message) =>
+      message.body.includes('Send the KES amount to convert.'),
+    );
+    expect(startConversionMessage?.interactive?.buttons.map((button) => button.id)).toEqual([
+      'menu:back',
+      'menu:restart',
+    ]);
   });
 });

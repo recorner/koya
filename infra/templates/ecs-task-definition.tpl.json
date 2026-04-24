@@ -18,6 +18,7 @@
         }
       ],
       "environment": [
+        { "name": "ENVIRONMENT", "value": "${ENVIRONMENT}" },
         { "name": "NODE_ENV", "value": "${NODE_ENV}" },
         { "name": "PORT", "value": "${PORT}" },
         { "name": "MPESA_SHORTCODE", "value": "${MPESA_SHORTCODE}" },
@@ -33,6 +34,7 @@
         { "name": "MESSAGING_MAX_RETRIES", "value": "${MESSAGING_MAX_RETRIES}" },
         { "name": "MESSAGING_RETRY_BASE_MS", "value": "${MESSAGING_RETRY_BASE_MS}" },
         { "name": "WHATSAPP_PHONE_NUMBER_ID", "value": "${WHATSAPP_PHONE_NUMBER_ID}" },
+        { "name": "WHATSAPP_BUSINESS_ACCOUNT_ID", "value": "${WHATSAPP_BUSINESS_ACCOUNT_ID}" },
         { "name": "WHATSAPP_CLOUD_API_VERSION", "value": "${WHATSAPP_CLOUD_API_VERSION}" },
         { "name": "WHATSAPP_WEB_BASE_URL", "value": "${WHATSAPP_WEB_BASE_URL}" },
         { "name": "TELEGRAM_ALLOWED_IPS", "value": "${TELEGRAM_ALLOWED_IPS}" },
@@ -58,8 +60,11 @@
         { "name": "MPESA_CALLBACK_URL", "value": "${MPESA_CALLBACK_URL}" },
         { "name": "DFNS_WEBHOOK_URL", "value": "${DFNS_WEBHOOK_URL}" },
         { "name": "BRIA_WALLET_NAME", "value": "${BRIA_WALLET_NAME}" },
+        { "name": "BRIA_ACCOUNT_NAME", "value": "${BRIA_ACCOUNT_NAME}" },
+        { "name": "BRIA_SERVICE_PROFILE", "value": "${BRIA_SERVICE_PROFILE}" },
         { "name": "BRIA_PAYOUT_QUEUE_NAME", "value": "${BRIA_PAYOUT_QUEUE_NAME}" },
         { "name": "BRIA_XPUB_REF", "value": "${BRIA_XPUB_REF}" },
+        { "name": "BRIA_SETUP_ENABLED", "value": "${BRIA_SETUP_ENABLED}" },
         { "name": "PSBT_ARCHIVE_S3_BUCKET", "value": "${PSBT_ARCHIVE_S3_BUCKET}" },
         { "name": "TRUST_PROXY_HOPS", "value": "${TRUST_PROXY_HOPS}" },
         { "name": "JSON_BODY_LIMIT", "value": "${JSON_BODY_LIMIT}" },

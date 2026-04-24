@@ -186,9 +186,14 @@ variable "whatsapp_phone_number_id" {
   default = ""
 }
 
+variable "whatsapp_business_account_id" {
+  type    = string
+  default = ""
+}
+
 variable "whatsapp_cloud_api_version" {
   type    = string
-  default = "v21.0"
+  default = "v25.0"
 }
 
 variable "whatsapp_web_base_url" {
@@ -281,6 +286,16 @@ variable "bria_wallet_name" {
   default = "koya-testnet"
 }
 
+variable "bria_account_name" {
+  type    = string
+  default = "koya-testnet-account"
+}
+
+variable "bria_service_profile" {
+  type    = string
+  default = "koya-testnet-service"
+}
+
 variable "bria_payout_queue_name" {
   type    = string
   default = "koya-payouts"
@@ -289,6 +304,11 @@ variable "bria_payout_queue_name" {
 variable "bria_xpub_ref" {
   type    = string
   default = "koya-testnet-xpub"
+}
+
+variable "bria_setup_enabled" {
+  type    = string
+  default = "false"
 }
 
 variable "bria_private_dns_namespace" {

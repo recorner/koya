@@ -104,9 +104,7 @@ export class TelegramProvider implements MessagingProvider {
         return [];
       }
 
-      const messageId = callbackQuery.message.message_id
-        ? String(callbackQuery.message.message_id)
-        : `${updateId}`;
+      const messageId = `cb:${callbackQuery.id}`;
 
       return [
         {
@@ -155,8 +153,8 @@ export class TelegramProvider implements MessagingProvider {
     const chatId = String(update.message.chat.id);
     const senderId = String(update.message.from?.id ?? update.message.chat.id);
     const messageId = update.message.message_id
-      ? String(update.message.message_id)
-      : `${updateId}`;
+      ? `msg:${chatId}:${update.message.message_id}`
+      : `update:${updateId}`;
 
     return [
       {
@@ -316,14 +314,14 @@ export class TelegramProvider implements MessagingProvider {
     }
 
     const result = (json['result'] as Record<string, unknown>) ?? {};
-    const providerMessageId = String(result['message_id'] ?? '');
-    if (!providerMessageId) {
+    const telegramMessageId = String(result['message_id'] ?? '');
+    if (!telegramMessageId) {
       throw new ProviderTransientError('Telegram response missing message_id');
     }
 
     return {
       success: true,
-      providerMessageId,
+      providerMessageId: `msg:${recipient}:${telegramMessageId}`,
       channel: message.interactive ? 'quick_reply' : 'text',
     };
   }

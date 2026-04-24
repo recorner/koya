@@ -31,6 +31,7 @@ resource "aws_ecs_task_definition" "api" {
       ]
 
       environment = [
+        { name = "ENVIRONMENT", value = var.environment },
         { name = "NODE_ENV", value = var.node_env },
         { name = "PORT", value = tostring(var.api_port) },
         { name = "MPESA_SHORTCODE", value = var.mpesa_shortcode },
@@ -46,6 +47,7 @@ resource "aws_ecs_task_definition" "api" {
         { name = "MESSAGING_MAX_RETRIES", value = var.messaging_max_retries },
         { name = "MESSAGING_RETRY_BASE_MS", value = var.messaging_retry_base_ms },
         { name = "WHATSAPP_PHONE_NUMBER_ID", value = var.whatsapp_phone_number_id },
+        { name = "WHATSAPP_BUSINESS_ACCOUNT_ID", value = var.whatsapp_business_account_id },
         { name = "WHATSAPP_CLOUD_API_VERSION", value = var.whatsapp_cloud_api_version },
         { name = "WHATSAPP_WEB_BASE_URL", value = var.whatsapp_web_base_url },
         { name = "TELEGRAM_ALLOWED_IPS", value = var.telegram_allowed_ips },
@@ -67,9 +69,12 @@ resource "aws_ecs_task_definition" "api" {
         { name = "MPESA_CALLBACK_URL", value = var.mpesa_callback_url },
         { name = "DFNS_WEBHOOK_URL", value = var.dfns_webhook_url },
         { name = "BRIA_WALLET_NAME", value = var.bria_wallet_name },
+        { name = "BRIA_ACCOUNT_NAME", value = var.bria_account_name },
+        { name = "BRIA_SERVICE_PROFILE", value = var.bria_service_profile },
         { name = "BRIA_PAYOUT_QUEUE", value = var.bria_payout_queue_name },
         { name = "BRIA_PAYOUT_QUEUE_NAME", value = var.bria_payout_queue_name },
         { name = "BRIA_XPUB_REF", value = var.bria_xpub_ref },
+        { name = "BRIA_SETUP_ENABLED", value = var.bria_setup_enabled },
         { name = "BRIA_STREAM_RECONNECT_BASE_MS", value = var.bria_stream_reconnect_base_ms },
         { name = "BRIA_STREAM_RECONNECT_MAX_MS", value = var.bria_stream_reconnect_max_ms },
         { name = "BRIA_STREAM_RECONNECT_JITTER_MS", value = var.bria_stream_reconnect_jitter_ms },

@@ -147,6 +147,7 @@ describe('Messaging Retry Integration', () => {
     process.env['MESSAGING_ENABLE_TELEGRAM'] = 'true';
     process.env['WHATSAPP_WEB_BASE_URL'] = 'https://koyabank.com';
     process.env['WHATSAPP_RATE_LIMIT_PER_MINUTE'] = '100';
+    process.env['WHATSAPP_BUSINESS_ACCOUNT_ID'] = '654321';
 
     const module: TestingModule = await Test.createTestingModule({
       imports: [

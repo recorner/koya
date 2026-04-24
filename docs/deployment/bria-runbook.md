@@ -41,6 +41,11 @@ Validation enforces:
 - subnets do not auto-map public IPs
 
 ## Wallet Provisioning and Verification
+Preflight lineage snapshot (non-mutating):
+```bash
+./scripts/inspect-bria-lineage.sh <staging|production>
+```
+
 ```bash
 ./scripts/provision-bria-wallet.sh <staging|production>
 ```
@@ -48,6 +53,16 @@ Validation enforces:
 Fresh-lineage reprovision (recommended when address family mismatch persists):
 ```bash
 ./scripts/provision-bria-wallet.sh <staging|production> --fresh-lineage --lineage-tag <yyyymmddhhmmss>
+```
+
+End-to-end reprovision helper (inspect -> fresh lineage -> persist env lineage refs -> validate):
+```bash
+./scripts/reprovision-bria-lineage.sh <staging|production> [--lineage-tag <yyyymmddhhmmss>] [--deploy]
+```
+
+Post-deploy runtime lineage check (ECS task env vs source-of-truth):
+```bash
+./scripts/verify-bria-runtime-lineage.sh <staging|production>
 ```
 
 The provisioning script fails fast if the verification address family does not match Koya policy network.
@@ -73,17 +88,37 @@ Note: these internal endpoints are intended for private/VPC access. Public API e
 1. Confirm runtime mapping is correct:
    - `BTC_NETWORK=testnet4`
    - `BRIA_NETWORK=testnet`
-2. Run `./scripts/validate-bria-address-family.sh ...` and capture the emitted address family.
-3. If mismatch persists, inspect Bria wallet lineage:
+2. Run `./scripts/inspect-bria-lineage.sh ...` and capture the active lineage snapshot.
+3. Run `./scripts/validate-bria-address-family.sh ...` and capture the emitted address family.
+4. If mismatch persists, inspect Bria wallet lineage:
    - legacy regtest-era wallet material may still exist in the Bria tenant/database.
    - creating a new wallet from the same descriptor can fail with `DescriptorAlreadyInUse`.
-4. Remediate deterministically:
+5. Remediate deterministically:
    - provision fresh wallet material (new descriptor/xpub branch with signer path), or
    - re-bootstrap Bria on a fresh tenant/database, then re-provision wallet and payout queue.
-5. Re-run:
+6. Re-run:
+   - `./scripts/inspect-bria-lineage.sh ...`
    - `./scripts/provision-bria-wallet.sh ...`
    - `./scripts/validate-bria-address-family.sh ...`
    - payout submission and event-reconciliation smoke checks.
+
+## Production Network Posture
+- Current production testing posture:
+  - `BTC_PRODUCTION_NETWORK_MODE=testnet4`
+  - `BTC_NETWORK=testnet4`
+  - `BRIA_NETWORK=testnet`
+- Mainnet cutover posture (future):
+  - `BTC_PRODUCTION_NETWORK_MODE=mainnet`
+  - `BTC_NETWORK=bitcoin`
+  - `BRIA_NETWORK=bitcoin`
+  - require address-family validation gate (`bc1...`) before funding.
+
+## Legacy Stack Isolation Checklist
+- Confirm active production control plane is `koya-production` cluster and `koya-api-service-production` / `koya-bria-service-production`.
+- Confirm legacy `koya` cluster services are not referenced by deploy scripts, env files, or runbooks for production operations.
+- If legacy `koya-api` service still runs, either:
+  - decommission it, or
+  - isolate/document it as non-production and deny write operations.
 
 ## Security
 - Never expose Bria gRPC publicly.

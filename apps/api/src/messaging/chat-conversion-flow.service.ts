@@ -99,7 +99,7 @@ export class ChatConversionFlowService {
       await this.sendReply({
         provider: input.provider,
         to: input.from,
-        message: this.templates.sessionExpired(),
+        message: this.templates.sessionExpired(input.provider),
         conversationId: newConv.id,
         correlationId,
       });
@@ -131,7 +131,9 @@ export class ChatConversionFlowService {
     } catch (error) {
       this.logger.error(`[${correlationId}] flow handler error`, error as Error);
       reply = this.templates.errorMessage(
-        'Something went wrong. Reply *HELP* for commands.',
+        input.provider === 'TELEGRAM'
+          ? 'Something went wrong. Tap Help or send /start.'
+          : 'Something went wrong. Reply *HELP* for commands.',
       );
     }
 
@@ -201,14 +203,35 @@ export class ChatConversionFlowService {
     conversation: WhatsAppConversation,
     command: ReturnType<WhatsAppParserService['parseCommand']>,
   ): Promise<ChatOutboundMessage | null> {
+    const provider = this.fromPrismaProvider(conversation.provider);
+
     switch (command.type) {
+      case 'GREETING':
+        if (provider === 'TELEGRAM') {
+          await this.sessionSvc.updateStep(conversation.id, 'MENU');
+          return this.templates.welcomeMenu(provider);
+        }
+        return null;
+
+      case 'START_CONVERSION':
+        await this.sessionSvc.resetConversation(conversation.id);
+        await this.sessionSvc.updateStep(conversation.id, 'WAITING_FOR_AMOUNT');
+        return this.templates.askAmount(provider);
+
+      case 'BACK':
+        await this.sessionSvc.updateStep(conversation.id, 'MENU');
+        return this.templates.welcomeMenu(provider);
+
       case 'HELP':
-        return this.templates.helpMessage();
+        return this.templates.helpMessage(provider);
+
+      case 'TRANSACTIONS':
+        return this.templates.transactionsOverview(provider);
 
       case 'RATES': {
         try {
           const rates = await this.ratesService.getAllRates();
-          return this.templates.showRates(rates);
+          return this.templates.showRates(rates, provider);
         } catch {
           return this.templates.errorMessage('Could not fetch live rates right now.');
         }
@@ -217,14 +240,14 @@ export class ChatConversionFlowService {
       case 'CANCEL':
         if (conversation.currentStep !== 'IDLE' && conversation.currentStep !== 'COMPLETED') {
           await this.sessionSvc.resetConversation(conversation.id);
-          return this.templates.cancelConfirmation();
+          return this.templates.cancelConfirmation(provider);
         }
-        return this.templates.welcomeMenu();
+        return this.templates.welcomeMenu(provider);
 
       case 'START_OVER':
         await this.sessionSvc.setStatus(conversation.id, 'CANCELLED');
         await this.sessionSvc.createConversation(conversation.phoneNumber, conversation.provider);
-        return this.templates.welcomeMenu();
+        return this.templates.welcomeMenu(provider);
 
       case 'STATUS':
         if (conversation.conversionSessionId) {
@@ -232,12 +255,12 @@ export class ChatConversionFlowService {
             const status = await this.conversionService.getStatus(
               conversation.conversionSessionId,
             );
-            return this.templates.conversionStatus(status);
+            return this.templates.conversionStatus(status, provider);
           } catch {
             return this.templates.errorMessage('Could not retrieve status.');
           }
         }
-        return null;
+        return this.templates.trackOrderPrompt(provider);
 
       default:
         return null;

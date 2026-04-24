@@ -88,9 +88,12 @@
 | `BRIA_ADMIN_HOST` | `localhost` | Bria host | Bria host | ECS task def |
 | `BRIA_ADMIN_PORT` | `2743` | `2743` | `2743` | ECS task def |
 | `BRIA_ADMIN_API_KEY` | local key | Same as API key | Same as API key | Secret |
-| `BRIA_WALLET_NAME` | `koya-testnet` | `koya-testnet` | `koya-mainnet` | ECS task def |
+| `BRIA_WALLET_NAME` | `koya-testnet` | `koya-testnet4` | `koya-testnet4-v2` | ECS task def / env file |
+| `BRIA_ACCOUNT_NAME` | `koya` | `koya` | `koya` | ECS task def / env file |
+| `BRIA_SERVICE_PROFILE` | `koya-service` | `koya-service` | `koya-service` | ECS task def / env file |
 | `BRIA_PAYOUT_QUEUE_NAME` | `koya-payouts` | `koya-payouts` | `koya-payouts` | ECS task def |
 | `BRIA_XPUB_REF` | local ref | xpub ref | xpub ref | ECS task def |
+| `BRIA_SETUP_ENABLED` | `true` | `false` | `false` | ECS task def / env file |
 | `BRIA_TIMEOUT_MS` | `5000` | `5000` | `5000` | ECS task def |
 | `BRIA_MAX_RETRIES` | `3` | `3` | `3` | ECS task def |
 

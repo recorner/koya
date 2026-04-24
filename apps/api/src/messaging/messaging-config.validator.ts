@@ -18,6 +18,7 @@ export class MessagingConfigValidator implements OnModuleInit {
 
     if (whatsappEnabled) {
       this.require('WHATSAPP_PHONE_NUMBER_ID', nodeEnv);
+      this.require('WHATSAPP_BUSINESS_ACCOUNT_ID', nodeEnv);
       this.require('WHATSAPP_ACCESS_TOKEN', nodeEnv);
       this.require('WHATSAPP_APP_SECRET', nodeEnv);
       this.require('WHATSAPP_VERIFY_TOKEN', nodeEnv);

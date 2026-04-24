@@ -10,12 +10,19 @@ import {
 @Injectable()
 export class BriaSetupService {
   private readonly logger = new Logger(BriaSetupService.name);
+  private readonly walletName: string;
+  private readonly accountName: string;
+  private readonly serviceProfileName: string;
 
   constructor(
     private readonly briaAdmin: BriaAdminService,
     private readonly briaClient: BriaClientService,
     private readonly config: ConfigService,
-  ) {}
+  ) {
+    this.walletName = this.config.get<string>('BRIA_WALLET_NAME', 'koya-wallet');
+    this.accountName = this.config.get<string>('BRIA_ACCOUNT_NAME', `${this.walletName}-account`);
+    this.serviceProfileName = this.config.get<string>('BRIA_SERVICE_PROFILE', `${this.walletName}-service`);
+  }
 
   async bootstrapAdmin(): Promise<{ key: string }> {
     this.logger.log('Bootstrapping Bria admin...');
@@ -33,34 +40,34 @@ export class BriaSetupService {
   }
 
   async createKoyaAccount(): Promise<{ accountId: string; key: string }> {
-    this.logger.log('Creating Koya account...');
+    this.logger.log(`Creating Bria account '${this.accountName}'...`);
     try {
       const accounts = await this.briaAdmin.listAccounts();
-      const existing = accounts.find((a) => a.name === 'koya');
+      const existing = accounts.find((a) => a.name === this.accountName);
       if (existing) {
-        this.logger.warn(`Account 'koya' already exists: id=${existing.id}`);
+        this.logger.warn(`Account '${this.accountName}' already exists: id=${existing.id}`);
         return { accountId: existing.id, key: '(use existing account key)' };
       }
     } catch {
       // listAccounts may fail if admin key not configured — proceed to create
     }
 
-    const result = await this.briaAdmin.createAccount('koya');
+    const result = await this.briaAdmin.createAccount(this.accountName);
     this.logger.log(`Account created: accountId=${result.accountId}`);
     return { accountId: result.accountId, key: result.key };
   }
 
   async createServiceProfile(): Promise<{ profileId: string; apiKey: string }> {
-    this.logger.log('Creating service profile...');
+    this.logger.log(`Creating service profile '${this.serviceProfileName}'...`);
     try {
-      const profile = await this.briaClient.createProfile({ name: 'koya-service' });
-      const apiKey = await this.briaClient.createProfileApiKey('koya-service');
+      const profile = await this.briaClient.createProfile({ name: this.serviceProfileName });
+      const apiKey = await this.briaClient.createProfileApiKey(this.serviceProfileName);
       this.logger.log(`Profile created: id=${profile.id} apiKeyId=${apiKey.id}`);
       return { profileId: profile.id, apiKey: apiKey.key };
     } catch (err) {
       if (err instanceof BriaClientError && err.code === BriaErrorCode.ALREADY_EXISTS) {
-        this.logger.warn('Profile koya-service already exists, creating new API key');
-        const apiKey = await this.briaClient.createProfileApiKey('koya-service');
+        this.logger.warn(`Profile '${this.serviceProfileName}' already exists, creating new API key`);
+        const apiKey = await this.briaClient.createProfileApiKey(this.serviceProfileName);
         return { profileId: '(existing)', apiKey: apiKey.key };
       }
       throw err;
@@ -71,13 +78,12 @@ export class BriaSetupService {
     xpub: string,
     derivation = "m/84'/1'/0'",
   ): Promise<{ walletId: string; xpubId: string }> {
-    const walletName = this.config.get<string>('BRIA_WALLET_NAME', 'koya-wallet');
-    this.logger.log(`Importing xpub and creating wallet '${walletName}'...`);
+    this.logger.log(`Importing xpub and creating wallet '${this.walletName}'...`);
 
     let xpubId: string;
     try {
       const xpubResult = await this.briaClient.importXpub({
-        name: `${walletName}-xpub`,
+        name: `${this.walletName}-xpub`,
         xpub,
         derivation,
       });
@@ -93,14 +99,14 @@ export class BriaSetupService {
 
     try {
       const wallet = await this.briaClient.createWallet({
-        name: walletName,
+        name: this.walletName,
         keychainConfig: { wpkh: { xpub } },
       });
       this.logger.log(`Wallet created: id=${wallet.id}`);
       return { walletId: wallet.id, xpubId };
     } catch (err) {
       if (err instanceof BriaClientError && err.code === BriaErrorCode.ALREADY_EXISTS) {
-        this.logger.warn(`Wallet '${walletName}' already exists`);
+        this.logger.warn(`Wallet '${this.walletName}' already exists`);
         return { walletId: '(existing)', xpubId };
       }
       throw err;
@@ -108,9 +114,8 @@ export class BriaSetupService {
   }
 
   async verifySetup(): Promise<{ address: string }> {
-    const walletName = this.config.get<string>('BRIA_WALLET_NAME', 'koya-wallet');
-    this.logger.log(`Verifying setup — generating address from '${walletName}'...`);
-    const result = await this.briaClient.newAddress({ walletName });
+    this.logger.log(`Verifying setup — generating address from '${this.walletName}'...`);
+    const result = await this.briaClient.newAddress({ walletName: this.walletName });
     this.logger.log(`Verification address: ${result.address}`);
     return { address: result.address };
   }

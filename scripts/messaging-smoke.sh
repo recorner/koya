@@ -71,16 +71,47 @@ get_secret() { aws secretsmanager get-secret-value --secret-id "$1" --region "${
 
 WA_TOKEN=$(get_secret "$(get_secret_path WHATSAPP_ACCESS_TOKEN)")
 WA_PHONE_ID="${WHATSAPP_PHONE_NUMBER_ID}"
+WA_WABA_ID="${WHATSAPP_BUSINESS_ACCOUNT_ID}"
 WA_API_VERSION="${WHATSAPP_CLOUD_API_VERSION}"
 TG_TOKEN=$(get_secret "$(get_secret_path TELEGRAM_BOT_TOKEN)")
 
 if [[ "${WHATSAPP_PREFLIGHT}" == "true" ]]; then
+  if [[ -z "${WA_WABA_ID}" ]]; then
+    echo "ERROR: WHATSAPP_BUSINESS_ACCOUNT_ID is not set."
+    exit 1
+  fi
+
   PREFLIGHT_RESP=$(curl -sS -X GET \
-    "https://graph.facebook.com/${WA_API_VERSION}/${WA_PHONE_ID}?fields=id,display_phone_number,verified_name" \
+    "https://graph.facebook.com/${WA_API_VERSION}/${WA_PHONE_ID}?fields=id,display_phone_number,verified_name,quality_rating,account_mode" \
     -H "Authorization: Bearer ${WA_TOKEN}" \
     -H "Content-Type: application/json")
-  echo "WhatsApp preflight response:"
+  echo "WhatsApp phone-id preflight response:"
   echo "${PREFLIGHT_RESP}" | jq .
+
+  if echo "${PREFLIGHT_RESP}" | jq -e '.error' >/dev/null 2>&1; then
+    echo "ERROR: Phone-id preflight failed. Token may be invalid/expired or missing permissions."
+    exit 1
+  fi
+
+  WABA_RESP=$(curl -sS -X GET \
+    "https://graph.facebook.com/${WA_API_VERSION}/${WA_WABA_ID}/phone_numbers?fields=id,display_phone_number,verified_name&limit=200" \
+    -H "Authorization: Bearer ${WA_TOKEN}" \
+    -H "Content-Type: application/json")
+  echo "WhatsApp WABA preflight response:"
+  echo "${WABA_RESP}" | jq .
+
+  if echo "${WABA_RESP}" | jq -e '.error' >/dev/null 2>&1; then
+    echo "ERROR: WABA preflight failed. Token may not belong to this WABA or lacks whatsapp_business_management scope."
+    exit 1
+  fi
+
+  MATCH_COUNT=$(echo "${WABA_RESP}" | jq -r --arg phone_id "${WA_PHONE_ID}" '[.data[]? | select((.id|tostring) == $phone_id)] | length')
+  if [[ "${MATCH_COUNT}" == "0" ]]; then
+    echo "ERROR: Config mismatch. WHATSAPP_PHONE_NUMBER_ID=${WA_PHONE_ID} is not attached to WHATSAPP_BUSINESS_ACCOUNT_ID=${WA_WABA_ID}."
+    exit 1
+  fi
+
+  echo "WhatsApp preflight checks passed: phone id is attached to configured WABA."
 fi
 
 if [[ "${PREFLIGHT_ONLY}" == "true" ]]; then
@@ -88,7 +119,7 @@ if [[ "${PREFLIGHT_ONLY}" == "true" ]]; then
   exit 0
 fi
 
-WA_PAYLOAD=$(jq -n --arg to "${WHATSAPP_RECIPIENT}" '{messaging_product:"whatsapp",to:$to,type:"text",text:{body:"Koya WhatsApp smoke test"}}')
+WA_PAYLOAD=$(jq -n --arg to "${WHATSAPP_RECIPIENT}" --arg msg "Koya check-in: your new WhatsApp sender is active and replies are working." '{messaging_product:"whatsapp",to:$to,type:"text",text:{body:$msg}}')
 WA_RESP=$(curl -sS -X POST "https://graph.facebook.com/${WA_API_VERSION}/${WA_PHONE_ID}/messages" \
   -H "Authorization: Bearer ${WA_TOKEN}" \
   -H "Content-Type: application/json" \

@@ -27,9 +27,11 @@ echo "=== Validating environment files ==="
 REQUIRED_ENV_VARS=(
   AWS_REGION ENVIRONMENT PROJECT NODE_ENV PORT
   MPESA_DRIVER BTC_DELIVERY_DRIVER REDIS_HOST REDIS_PORT
+  BTC_NETWORK BTC_PRODUCTION_NETWORK_MODE BRIA_NETWORK BRIA_ELECTRUM_URL
+  BRIA_WALLET_NAME BRIA_ACCOUNT_NAME BRIA_SERVICE_PROFILE BRIA_PAYOUT_QUEUE BRIA_PAYOUT_QUEUE_NAME BRIA_XPUB_REF BRIA_SETUP_ENABLED
   MESSAGING_ENABLE_WHATSAPP_CLOUD MESSAGING_ENABLE_TELEGRAM
   MESSAGING_MAX_RETRIES MESSAGING_RETRY_BASE_MS
-  WHATSAPP_PHONE_NUMBER_ID WHATSAPP_CLOUD_API_VERSION TELEGRAM_ALLOWED_IPS WHATSAPP_WEB_BASE_URL
+  WHATSAPP_PHONE_NUMBER_ID WHATSAPP_BUSINESS_ACCOUNT_ID WHATSAPP_CLOUD_API_VERSION TELEGRAM_ALLOWED_IPS WHATSAPP_WEB_BASE_URL
   ECS_CLUSTER_NAME ECS_SERVICE_NAME API_TASK_FAMILY MIGRATE_TASK_FAMILY
   API_CPU API_MEMORY MIGRATE_CPU MIGRATE_MEMORY DESIRED_COUNT
   TRUST_PROXY_HOPS THROTTLE_DEFAULT_LIMIT
@@ -201,7 +203,19 @@ done
 echo ""
 echo "=== Validating scripts ==="
 
-for script in bootstrap-aws.sh deploy-api.sh destroy-environment.sh load-env.sh sync-secrets.sh render-task-definitions.sh validate-bootstrap.sh; do
+for script in \
+  bootstrap-aws.sh \
+  deploy-api.sh \
+  destroy-environment.sh \
+  load-env.sh \
+  sync-secrets.sh \
+  render-task-definitions.sh \
+  validate-bootstrap.sh \
+  inspect-bria-lineage.sh \
+  reprovision-bria-lineage.sh \
+  verify-bria-runtime-lineage.sh \
+  provision-bria-wallet.sh \
+  validate-bria-address-family.sh; do
   script_path="${REPO_ROOT}/scripts/${script}"
 
   if [[ ! -f "${script_path}" ]]; then

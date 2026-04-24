@@ -39,6 +39,7 @@ export class WhatsAppCloudProvider implements MessagingProvider {
   private readonly enabled: boolean;
   private readonly graphApiVersion: string;
   private readonly phoneNumberId: string;
+  private readonly businessAccountId: string;
   private readonly accessToken: string;
   private readonly appSecret: string;
   private readonly verifyToken: string;
@@ -47,8 +48,9 @@ export class WhatsAppCloudProvider implements MessagingProvider {
     this.enabled =
       this.config.get<string>('MESSAGING_ENABLE_WHATSAPP_CLOUD', 'true') ===
       'true';
-    this.graphApiVersion = this.config.get<string>('WHATSAPP_CLOUD_API_VERSION', 'v21.0');
+    this.graphApiVersion = this.config.get<string>('WHATSAPP_CLOUD_API_VERSION', 'v25.0');
     this.phoneNumberId = this.config.get<string>('WHATSAPP_PHONE_NUMBER_ID', '');
+    this.businessAccountId = this.config.get<string>('WHATSAPP_BUSINESS_ACCOUNT_ID', '');
     this.accessToken = this.config.get<string>('WHATSAPP_ACCESS_TOKEN', '');
     this.appSecret = this.config.get<string>('WHATSAPP_APP_SECRET', '');
     this.verifyToken = this.config.get<string>('WHATSAPP_VERIFY_TOKEN', '');
@@ -211,7 +213,13 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       provider: this.provider,
       healthy:
         this.enabled &&
-        Boolean(this.phoneNumberId && this.accessToken && this.appSecret && this.verifyToken),
+        Boolean(
+          this.phoneNumberId &&
+            this.businessAccountId &&
+            this.accessToken &&
+            this.appSecret &&
+            this.verifyToken,
+        ),
       capabilities: ['text', 'interactive', 'tracking_link'],
     };
   }
@@ -221,7 +229,13 @@ export class WhatsAppCloudProvider implements MessagingProvider {
       throw new ProviderPermanentError('WhatsApp Cloud provider is disabled');
     }
 
-    if (!this.phoneNumberId || !this.accessToken || !this.appSecret || !this.verifyToken) {
+    if (
+      !this.phoneNumberId ||
+      !this.businessAccountId ||
+      !this.accessToken ||
+      !this.appSecret ||
+      !this.verifyToken
+    ) {
       throw new ProviderPermanentError('WhatsApp Cloud provider is not configured');
     }
   }

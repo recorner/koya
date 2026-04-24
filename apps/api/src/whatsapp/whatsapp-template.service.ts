@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { ConversionQuoteResponse } from '@koya/types';
 import type { RateSnapshot } from '../rates/rates.types';
 import type {
+  MessagingProviderType,
   WhatsAppOutboundMessage,
   WhatsAppQuickReplyButton,
 } from '../messaging/messaging.types';
@@ -10,13 +11,13 @@ import { WhatsAppCmsCopyService } from './whatsapp-cms-copy.service';
 const DEFAULT_TEMPLATES = {
   welcome_menu: [
     '*Koya | WhatsApp Desk*',
-    'Convert Kenyan shillings to Bitcoin in a few guided replies.',
+    'Fast, guided KES to BTC conversion.',
     '',
     '*Menu*',
     '1. Convert KES to BTC',
     '2. Live Rates',
     '',
-    'Reply *1* or *2* to choose.',
+    'Reply *1* or *2* to continue.',
     'Reply *HELP* to see commands.',
     'Reply *CANCEL* anytime to stop.',
   ].join('\n'),
@@ -35,7 +36,7 @@ const DEFAULT_TEMPLATES = {
     'Fee: *KES {{fee}}*',
     '',
     'This quote expires in about *30 seconds*.',
-    'Reply *YES* to continue.',
+    'Reply *YES* to lock this quote and continue.',
   ].join('\n'),
   quote_expired: [
     '*Koya | Quote Expired*',
@@ -126,6 +127,8 @@ const DEFAULT_TEMPLATES = {
     '*CANCEL* Stop the current conversion',
     '*START OVER* Reset the chat and begin again',
     '*HELP* Show this command list',
+    '',
+    'Tip: You can type a command or tap a button whenever shown.',
   ].join('\n'),
   cancel_confirmation: [
     '*Koya | Conversion Cancelled*',
@@ -133,13 +136,13 @@ const DEFAULT_TEMPLATES = {
     'Reply *1* whenever you want to start a new KES to BTC conversion.',
   ].join('\n'),
   error_message: [
-    '*Koya | We Need One More Step*',
+    '*Koya | Action Needed*',
     '{{message}}',
     '',
     'Next: {{next_step}}',
   ].join('\n'),
   invalid_input: [
-    '*Koya | Input Not Accepted*',
+    '*Koya | Try This Instead*',
     '{{message}}',
     '',
     'Next: {{next_step}}',
@@ -210,6 +213,41 @@ const DEFAULT_BUTTONS: Partial<
   reference_accepted: [{ id: 'STATUS', title: 'Check Status' }],
 };
 
+const TELEGRAM_BUTTONS = {
+  welcome: [
+    { id: 'menu:start_conversion', title: 'Start Conversion' },
+    { id: 'menu:track_order', title: 'Track Order' },
+    { id: 'menu:transactions', title: 'Transactions' },
+    { id: 'menu:help', title: 'Help' },
+  ] as WhatsAppQuickReplyButton[],
+  startConversion: [
+    { id: 'menu:back', title: 'Back' },
+    { id: 'menu:restart', title: 'Restart' },
+  ] as WhatsAppQuickReplyButton[],
+  help: [
+    { id: 'menu:start_conversion', title: 'Start Conversion' },
+    { id: 'menu:track_order', title: 'Track Order' },
+    { id: 'menu:restart', title: 'Restart' },
+  ] as WhatsAppQuickReplyButton[],
+  trackOrder: [
+    { id: 'menu:start_conversion', title: 'Start Conversion' },
+    { id: 'menu:back', title: 'Back' },
+  ] as WhatsAppQuickReplyButton[],
+  transactions: [
+    { id: 'menu:track_order', title: 'Track Order' },
+    { id: 'menu:start_conversion', title: 'Start Conversion' },
+    { id: 'menu:back', title: 'Back' },
+  ] as WhatsAppQuickReplyButton[],
+  status: [
+    { id: 'menu:track_order', title: 'Refresh Status' },
+    { id: 'menu:back', title: 'Back' },
+  ] as WhatsAppQuickReplyButton[],
+  restart: [
+    { id: 'menu:start_conversion', title: 'Start Conversion' },
+    { id: 'menu:help', title: 'Help' },
+  ] as WhatsAppQuickReplyButton[],
+};
+
 @Injectable()
 export class WhatsAppTemplateService {
   private readonly webBaseUrl: string;
@@ -218,11 +256,36 @@ export class WhatsAppTemplateService {
     this.webBaseUrl = process.env['WHATSAPP_WEB_BASE_URL'] ?? 'https://koyabank.com';
   }
 
-  welcomeMenu(): WhatsAppOutboundMessage {
+  welcomeMenu(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        [
+          '*Koya | Telegram Desk*',
+          'Choose what you want to do next.',
+          '',
+          'Use the buttons below to continue.',
+        ].join('\n'),
+        TELEGRAM_BUTTONS.welcome,
+      );
+    }
+
     return this.buildMessage('welcome_menu');
   }
 
-  askAmount(): WhatsAppOutboundMessage {
+  askAmount(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        [
+          '*Start Conversion*',
+          'Send the KES amount to convert.',
+          '',
+          'Range: *KES 100* to *KES 100,000*',
+          'Example: `2500`',
+        ].join('\n'),
+        TELEGRAM_BUTTONS.startConversion,
+      );
+    }
+
     return this.buildMessage('ask_amount');
   }
 
@@ -316,8 +379,8 @@ export class WhatsAppTemplateService {
     sourceAsset: string;
     targetAmount: string | null;
     targetAsset: string;
-  }): WhatsAppOutboundMessage {
-    return this.buildMessage('conversion_status', {
+  }, provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    const message = this.buildMessage('conversion_status', {
       reference_code: status.referenceCode,
       current_state: this.humanizeState(status.currentState),
       source_asset: status.sourceAsset,
@@ -326,13 +389,36 @@ export class WhatsAppTemplateService {
         ? `Expected payout: *${status.targetAsset} ${status.targetAmount}*`
         : '',
     });
+
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(message.body, TELEGRAM_BUTTONS.status);
+    }
+
+    return message;
   }
 
-  helpMessage(): WhatsAppOutboundMessage {
+  helpMessage(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        [
+          '*Koya Help*',
+          '1. Start conversion',
+          '2. Track order',
+          '3. View transactions',
+          '',
+          'You can also type `/start` anytime.',
+        ].join('\n'),
+        TELEGRAM_BUTTONS.help,
+      );
+    }
+
     return this.buildMessage('help_message');
   }
 
-  showRates(rates: RateSnapshot[]): WhatsAppOutboundMessage {
+  showRates(
+    rates: RateSnapshot[],
+    provider: MessagingProviderType = 'WHATSAPP_CLOUD',
+  ): WhatsAppOutboundMessage {
     const DISPLAY_PAIRS: Record<string, (mid: number) => string> = {
       'BTC/KES': (m) => `1 BTC = *KES ${Math.round(m).toLocaleString('en-US')}*`,
       'BTC/USD': (m) => `1 BTC = *$${m.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}*`,
@@ -350,12 +436,29 @@ export class WhatsAppTemplateService {
       }
     }
     lines.push('', 'Rates update every few seconds.');
-    lines.push('Reply *1* to convert KES to BTC.');
+    lines.push(provider === 'TELEGRAM'
+      ? 'Use Start Conversion to continue.'
+      : 'Reply *1* to convert KES to BTC.');
 
-    return { body: lines.join('\n') };
+    const message = { body: lines.join('\n') };
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(message.body, [
+        { id: 'menu:start_conversion', title: 'Start Conversion' },
+        { id: 'menu:back', title: 'Back' },
+      ]);
+    }
+
+    return message;
   }
 
-  cancelConfirmation(): WhatsAppOutboundMessage {
+  cancelConfirmation(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        '*Conversion cancelled.* You can start again whenever you are ready.',
+        TELEGRAM_BUTTONS.restart,
+      );
+    }
+
     return this.buildMessage('cancel_confirmation');
   }
 
@@ -382,11 +485,25 @@ export class WhatsAppTemplateService {
     return this.buildMessage('rate_limited');
   }
 
-  sessionExpired(): WhatsAppOutboundMessage {
+  sessionExpired(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        '*Session expired.* Tap Start Conversion to begin again.',
+        TELEGRAM_BUTTONS.restart,
+      );
+    }
+
     return this.buildMessage('session_expired');
   }
 
-  orderExpired(): WhatsAppOutboundMessage {
+  orderExpired(provider: MessagingProviderType = 'WHATSAPP_CLOUD'): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        '*Order expired.* Start a new conversion when ready.',
+        TELEGRAM_BUTTONS.restart,
+      );
+    }
+
     return this.buildMessage('order_expired');
   }
 
@@ -412,6 +529,64 @@ export class WhatsAppTemplateService {
     return this.buildMessage('reference_rejected', {
       reason: reason ?? 'We could not match that M-Pesa reference yet.',
     });
+  }
+
+  trackOrderPrompt(
+    provider: MessagingProviderType = 'WHATSAPP_CLOUD',
+  ): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        [
+          '*Track Order*',
+          'No active order is linked to this chat right now.',
+          '',
+          'If you already paid, send your reference as `REF XXXXXXXXXX`.',
+        ].join('\n'),
+        TELEGRAM_BUTTONS.trackOrder,
+      );
+    }
+
+    return this.errorMessage(
+      'No active conversion is linked to this chat right now.',
+      'reply *1* to start a conversion or *STATUS* after payment.',
+    );
+  }
+
+  transactionsOverview(
+    provider: MessagingProviderType = 'WHATSAPP_CLOUD',
+  ): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        [
+          '*Transactions*',
+          'Recent transaction history in Telegram is coming soon.',
+          '',
+          'For now, use Track Order for live order status.',
+        ].join('\n'),
+        TELEGRAM_BUTTONS.transactions,
+      );
+    }
+
+    return this.errorMessage(
+      'Transaction history is not available in chat yet.',
+      'reply *STATUS* for your current order progress.',
+    );
+  }
+
+  callbackProcessingError(
+    provider: MessagingProviderType = 'WHATSAPP_CLOUD',
+  ): WhatsAppOutboundMessage {
+    if (provider === 'TELEGRAM') {
+      return this.telegramMessage(
+        'That button tap did not complete. Please try again or use /start.',
+        TELEGRAM_BUTTONS.restart,
+      );
+    }
+
+    return this.errorMessage(
+      'That button tap did not complete.',
+      'reply *HELP* or *START OVER* to continue.',
+    );
   }
 
   combine(
@@ -448,6 +623,20 @@ export class WhatsAppTemplateService {
   private maskTxHash(hash: string): string {
     if (hash.length <= 12) return hash;
     return `${hash.slice(0, 8)}...${hash.slice(-4)}`;
+  }
+
+  private telegramMessage(
+    body: string,
+    buttons: WhatsAppQuickReplyButton[],
+  ): WhatsAppOutboundMessage {
+    return {
+      body,
+      interactive: {
+        templateKey: 'telegram_menu',
+        bodyTemplate: body,
+        buttons,
+      },
+    };
   }
 
   private buildMessage(

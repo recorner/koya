@@ -5,7 +5,10 @@ import { WhatsAppSessionService } from './whatsapp-session.service';
 import { WhatsAppParserService, type ParsedCommand } from './whatsapp-parser.service';
 import { WhatsAppTemplateService } from './whatsapp-template.service';
 import type { WhatsAppConversation } from '@prisma/client';
-import type { WhatsAppOutboundMessage } from '../messaging/messaging.types';
+import type {
+  MessagingProviderType,
+  WhatsAppOutboundMessage,
+} from '../messaging/messaging.types';
 
 interface ConversationMetadata {
   fullName?: string;
@@ -70,19 +73,25 @@ export class WhatsAppFlowHandler {
     conversation: WhatsAppConversation,
     command: ParsedCommand,
   ): Promise<WhatsAppOutboundMessage> {
+    const provider = this.providerFor(conversation);
+
     if (command.type === 'GREETING') {
       await this.sessionSvc.updateStep(conversation.id, 'MENU');
-      return this.templates.welcomeMenu();
+      return this.templates.welcomeMenu(provider);
     }
 
-    if (command.type === 'MENU_SELECT' && command.option === '1') {
+    if (command.type === 'START_CONVERSION' || (command.type === 'MENU_SELECT' && command.option === '1')) {
       await this.sessionSvc.updateStep(conversation.id, 'WAITING_FOR_AMOUNT');
-      return this.templates.askAmount();
+      return this.templates.askAmount(provider);
     }
 
     if (command.type === 'MENU_SELECT' && command.option === '2') {
       const rates = await this.ratesService.getAllRates();
-      return this.templates.showRates(rates);
+      return this.templates.showRates(rates, provider);
+    }
+
+    if (command.type === 'TRANSACTIONS') {
+      return this.templates.transactionsOverview(provider);
     }
 
     if (command.type === 'MENU_SELECT' && command.option !== '1' && command.option !== '2') {
@@ -93,17 +102,21 @@ export class WhatsAppFlowHandler {
     }
 
     // Show menu for any other input
-    return this.templates.welcomeMenu();
+    return this.templates.welcomeMenu(provider);
   }
 
   private async handleAmount(
     conversation: WhatsAppConversation,
     command: ParsedCommand,
   ): Promise<WhatsAppOutboundMessage> {
+    const provider = this.providerFor(conversation);
+
     if (command.type !== 'TEXT' && command.type !== 'MENU_SELECT') {
       return this.templates.invalidInput(
         'We need the KES amount you want to convert.',
-        'Send a number between *KES 100* and *KES 100,000*, for example `2500`.',
+        provider === 'TELEGRAM'
+          ? 'Send a number between *KES 100* and *KES 100,000*, for example `2500`, or tap Back.'
+          : 'Send a number between *KES 100* and *KES 100,000*, for example `2500`.',
       );
     }
 
@@ -136,7 +149,9 @@ export class WhatsAppFlowHandler {
       return this.renderError(
         error,
         'We could not create your quote right now.',
-        'Send your KES amount again to retry.',
+        provider === 'TELEGRAM'
+          ? 'Send your KES amount again, or tap Restart.'
+          : 'Send your KES amount again to retry.',
       );
     }
   }
@@ -145,6 +160,8 @@ export class WhatsAppFlowHandler {
     conversation: WhatsAppConversation,
     command: ParsedCommand,
   ): Promise<WhatsAppOutboundMessage> {
+    const provider = this.providerFor(conversation);
+
     if (command.type !== 'YES') {
       return this.templates.invalidInput(
         'This step needs a quote confirmation.',
@@ -154,7 +171,12 @@ export class WhatsAppFlowHandler {
 
     if (!conversation.quoteId) {
       await this.sessionSvc.updateStep(conversation.id, 'WAITING_FOR_AMOUNT');
-      return this.templates.quoteExpired();
+      return provider === 'TELEGRAM'
+        ? this.templates.combine(
+            this.templates.quoteExpired(),
+            this.templates.askAmount(provider),
+          )
+        : this.templates.quoteExpired();
     }
 
     try {
@@ -183,7 +205,9 @@ export class WhatsAppFlowHandler {
       return this.renderError(
         error,
         'We could not confirm that quote.',
-        'Send a new amount to request another quote.',
+        provider === 'TELEGRAM'
+          ? 'Send a new amount or tap Restart.'
+          : 'Send a new amount to request another quote.',
       );
     }
   }
@@ -556,7 +580,7 @@ export class WhatsAppFlowHandler {
       const status = await this.conversionService.getStatus(
         conversation.conversionSessionId,
       );
-      return this.templates.conversionStatus(status);
+      return this.templates.conversionStatus(status, this.providerFor(conversation));
     }
 
     return this.templates.invalidInput(
@@ -569,6 +593,8 @@ export class WhatsAppFlowHandler {
     conversation: WhatsAppConversation,
     command: ParsedCommand,
   ): Promise<WhatsAppOutboundMessage> {
+    const provider = this.providerFor(conversation);
+
     // Allow starting a new conversion
     if (
       command.type === 'GREETING' ||
@@ -578,13 +604,14 @@ export class WhatsAppFlowHandler {
       // Create a new conversation for the new conversion
       const newConv = await this.sessionSvc.createConversation(
         conversation.phoneNumber,
+        conversation.provider,
       );
       await this.sessionSvc.setStatus(conversation.id, 'COMPLETED');
       await this.sessionSvc.updateStep(newConv.id, 'WAITING_FOR_AMOUNT');
-      return this.templates.askAmount();
+      return this.templates.askAmount(provider);
     }
 
-    return this.templates.welcomeMenu();
+    return this.templates.welcomeMenu(provider);
   }
 
   private getMetadata(
@@ -680,8 +707,12 @@ export class WhatsAppFlowHandler {
       this.sessionSvc.resetConversation(conversation.id).catch((e) =>
         this.logger.error(`Failed to reset conversation after expiry: ${e}`),
       );
-      return this.templates.orderExpired();
+      return this.templates.orderExpired(this.providerFor(conversation));
     }
     return null;
+  }
+
+  private providerFor(conversation: WhatsAppConversation): MessagingProviderType {
+    return conversation.provider === 'TELEGRAM' ? 'TELEGRAM' : 'WHATSAPP_CLOUD';
   }
 }

@@ -9,6 +9,9 @@ import {
 export type ParsedCommand =
   | { type: 'GREETING' }
   | { type: 'MENU_SELECT'; option: string }
+  | { type: 'START_CONVERSION' }
+  | { type: 'TRANSACTIONS' }
+  | { type: 'BACK' }
   | { type: 'HELP' }
   | { type: 'CANCEL' }
   | { type: 'START_OVER' }
@@ -59,6 +62,37 @@ export class WhatsAppParserService {
 
     const trimmed = body;
     const upper = trimmed.toUpperCase();
+    const normalized = upper.replace(/[\s_-]+/g, ':');
+
+    // Telegram callback payload aliases.
+    if (normalized === 'MENU:START:CONVERSION' || normalized === 'MENU:CONVERT') {
+      return { type: 'START_CONVERSION' };
+    }
+    if (normalized === 'MENU:TRACK:ORDER' || normalized === 'MENU:STATUS') {
+      return { type: 'STATUS' };
+    }
+    if (normalized === 'MENU:TRANSACTIONS') {
+      return { type: 'TRANSACTIONS' };
+    }
+    if (normalized === 'MENU:HELP') {
+      return { type: 'HELP' };
+    }
+    if (normalized === 'MENU:BACK') {
+      return { type: 'BACK' };
+    }
+    if (normalized === 'MENU:RESTART') {
+      return { type: 'START_OVER' };
+    }
+
+    if (/^TRANSACTIONS?$/.test(upper)) {
+      return { type: 'TRANSACTIONS' };
+    }
+    if (upper === 'BACK') {
+      return { type: 'BACK' };
+    }
+    if (upper === 'START CONVERSION') {
+      return { type: 'START_CONVERSION' };
+    }
 
     // Global commands
     if (upper === 'HELP') return { type: 'HELP' };

@@ -21,8 +21,8 @@ const lineageSuffix = freshLineage ? `-${lineageTag}` : '';
 const walletNameBase = process.env.BRIA_WALLET_NAME || 'koya-testnet4';
 const payoutQueueNameBase =
   process.env.BRIA_PAYOUT_QUEUE_NAME || process.env.BRIA_PAYOUT_QUEUE || 'koya-payouts';
-const serviceProfileNameBase = process.env.BRIA_SERVICE_PROFILE || 'koya-service';
-const accountNameBase = process.env.BRIA_ACCOUNT_NAME || 'koya';
+const serviceProfileNameBase = process.env.BRIA_SERVICE_PROFILE || `${walletNameBase}-service`;
+const accountNameBase = process.env.BRIA_ACCOUNT_NAME || `${walletNameBase}-account`;
 const walletName = `${walletNameBase}${lineageSuffix}`;
 const payoutQueueName = `${payoutQueueNameBase}${lineageSuffix}`;
 const serviceProfileName = `${serviceProfileNameBase}${lineageSuffix}`;

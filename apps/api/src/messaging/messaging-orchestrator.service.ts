@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Cron } from '@nestjs/schedule';
-import type { MessagingProviderType } from './messaging.types';
+import type { MessagingProviderType, NormalizedInboundEvent } from './messaging.types';
 import { MessagingProviderRouter } from './messaging-provider.router';
 import { MessagingPersistenceService } from './messaging-persistence.service';
 import { ChatConversionFlowService } from './chat-conversion-flow.service';
@@ -11,6 +11,7 @@ import {
   WebhookSignatureError,
 } from './messaging.errors';
 import { backoffDelayMs } from './messaging.utils';
+import type { MessagingProvider } from './providers/messaging-provider.interface';
 
 @Injectable()
 export class MessagingOrchestratorService {
@@ -110,6 +111,12 @@ export class MessagingOrchestratorService {
           `[${correlationId}] webhook.processed provider=${event.provider} event=${event.providerEventId}`,
         );
       } catch (error) {
+        await this.trySendCallbackFallback({
+          provider,
+          event,
+          correlationId,
+        });
+
         await this.handleProcessingError({
           eventId: stored.eventId,
           eventProvider: event.provider,
@@ -122,6 +129,34 @@ export class MessagingOrchestratorService {
     }
 
     return { accepted: true };
+  }
+
+  private async trySendCallbackFallback(input: {
+    provider: MessagingProvider;
+    event: NormalizedInboundEvent;
+    correlationId: string;
+  }): Promise<void> {
+    if (input.event.webhookEventKind !== 'callback_query') {
+      return;
+    }
+
+    try {
+      await input.provider.sendTextMessage({
+        recipient: input.event.senderExternalId,
+        correlationId: input.correlationId,
+        message: {
+          body: 'We could not process that button tap. Please try again or send /start.',
+        },
+      });
+      this.logger.warn(
+        `[${input.correlationId}] webhook.callback_fallback_sent provider=${input.event.provider} event=${input.event.providerEventId}`,
+      );
+    } catch (fallbackError) {
+      this.logger.error(
+        `[${input.correlationId}] webhook.callback_fallback_failed provider=${input.event.provider} event=${input.event.providerEventId}`,
+        fallbackError as Error,
+      );
+    }
   }
 
   @Cron('*/20 * * * * *')

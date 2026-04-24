@@ -106,6 +106,30 @@ describe('WhatsAppParserService', () => {
         parser.parseCommand(payload('Continue', 'quote_yes', 'YES')),
       ).toEqual({ type: 'YES' });
     });
+
+    it('should parse Telegram menu callback aliases', () => {
+      expect(parser.parseCommand(payload('x', 'menu:start_conversion'))).toEqual({
+        type: 'START_CONVERSION',
+      });
+      expect(parser.parseCommand(payload('x', 'menu:track_order'))).toEqual({
+        type: 'STATUS',
+      });
+      expect(parser.parseCommand(payload('x', 'menu:transactions'))).toEqual({
+        type: 'TRANSACTIONS',
+      });
+      expect(parser.parseCommand(payload('x', 'menu:help'))).toEqual({
+        type: 'HELP',
+      });
+      expect(parser.parseCommand(payload('x', 'menu:back'))).toEqual({
+        type: 'BACK',
+      });
+      expect(parser.parseCommand(payload('x', 'menu:restart'))).toEqual({
+        type: 'START_OVER',
+      });
+      expect(parser.parseCommand(payload('START CONVERSION'))).toEqual({
+        type: 'START_CONVERSION',
+      });
+    });
   });
 
   describe('parseAmount', () => {

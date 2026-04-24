@@ -116,4 +116,64 @@ describe('MessagingOrchestratorService', () => {
     const updateArgs = (persistence.markFailedWithRetry as jest.Mock).mock.calls.at(-1)?.[0];
     expect(updateArgs?.nextRetryAt).toBeInstanceOf(Date);
   });
+
+  it('sends visible fallback message when Telegram callback processing fails', async () => {
+    const telegramProvider: MessagingProvider = {
+      ...provider,
+      provider: 'TELEGRAM',
+      normalizeInbound: jest.fn().mockReturnValue([
+        {
+          provider: 'TELEGRAM',
+          providerAccountId: 'acct-1',
+          providerEventId: 'ev-cb-1',
+          providerMessageId: 'msg-cb-1',
+          conversationExternalId: '7904666227',
+          senderExternalId: '7904666227',
+          eventType: 'INBOUND_MESSAGE',
+          occurredAt: new Date(),
+          checksum: 'sum',
+          idempotencyKey: 'idem-cb-1',
+          rawPayloadRef: 'raw-cb-1',
+          messageText: 'menu:transactions',
+          rawPayload: { buttonPayload: 'menu:transactions' },
+          webhookEventKind: 'callback_query',
+          callbackQueryId: 'cb_1',
+        },
+      ]),
+      sendTextMessage: jest.fn().mockResolvedValue({
+        success: true,
+        providerMessageId: 'fallback-1',
+      }),
+    };
+
+    const telegramRouter = {
+      getProvider: jest.fn().mockReturnValue(telegramProvider),
+    } as unknown as MessagingProviderRouter;
+
+    (chatFlow.handleInboundMessage as jest.Mock).mockRejectedValueOnce(
+      new ProviderTransientError('temporary failure'),
+    );
+
+    const orchestrator = new MessagingOrchestratorService(
+      telegramRouter,
+      persistence,
+      chatFlow,
+    );
+
+    await orchestrator.handleWebhook({
+      provider: 'TELEGRAM',
+      headers: {},
+      payload: { any: 'value' },
+      rawBody: '{}',
+    });
+
+    expect(telegramProvider.sendTextMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipient: '7904666227',
+        message: expect.objectContaining({
+          body: expect.stringContaining('button tap'),
+        }),
+      }),
+    );
+  });
 });

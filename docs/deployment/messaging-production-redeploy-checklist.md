@@ -32,7 +32,7 @@ Use this checklist before redeploying the API to `api.koyabank.com`.
   - `MESSAGING_ENABLE_TELEGRAM=true`
   - `MESSAGING_MAX_RETRIES` and `MESSAGING_RETRY_BASE_MS`
   - `WHATSAPP_PHONE_NUMBER_ID` (real value, not placeholder)
-  - `WHATSAPP_CLOUD_API_VERSION=v21.0` (or intentional override)
+  - `WHATSAPP_CLOUD_API_VERSION=v25.0` (or intentional override)
   - `TELEGRAM_ALLOWED_IPS` (intentional, may be empty)
   - `WHATSAPP_WEB_BASE_URL=https://koyabank.com`
 - [ ] Required Secrets Manager entries exist and are not placeholders:

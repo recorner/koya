@@ -22,6 +22,7 @@ describe('Messaging Webhooks (Integration)', () => {
     process.env['WHATSAPP_VERIFY_TOKEN'] = 'test-verify-token';
     process.env['WHATSAPP_ACCESS_TOKEN'] = 'test-access-token';
     process.env['WHATSAPP_PHONE_NUMBER_ID'] = '123456';
+    process.env['WHATSAPP_BUSINESS_ACCOUNT_ID'] = '654321';
     process.env['TELEGRAM_BOT_TOKEN'] = '123456:TEST';
     process.env['TELEGRAM_WEBHOOK_SECRET'] = 'telegram-secret';
     process.env['WHATSAPP_WEB_BASE_URL'] = 'https://koyabank.com';

@@ -45,6 +45,7 @@ describe('TelegramProvider', () => {
 
     expect(event).toBeDefined();
     expect(event!.messageText).toBe('/start');
+    expect(event!.providerMessageId).toBe('msg:9911:22');
     expect(event!.webhookEventKind).toBe('message');
     expect(event!.callbackQueryId).toBeUndefined();
   });
@@ -70,6 +71,7 @@ describe('TelegramProvider', () => {
 
     expect(event).toBeDefined();
     expect(event!.messageText).toBe('menu:transactions');
+    expect(event!.providerMessageId).toBe('cb:cb_1');
     expect(event!.webhookEventKind).toBe('callback_query');
     expect(event!.callbackQueryId).toBe('cb_1');
     expect(event!.rawPayload['buttonPayload']).toBe('menu:transactions');

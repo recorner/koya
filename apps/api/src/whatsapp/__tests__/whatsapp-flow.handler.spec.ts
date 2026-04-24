@@ -107,6 +107,35 @@ describe('WhatsAppFlowHandler', () => {
 
       expect(bodyOf(result)).toContain('1');
     });
+
+    it('should render Telegram menu and conversion prompts with navigation buttons', async () => {
+      const telegramConversation = {
+        ...baseConversation,
+        provider: 'TELEGRAM' as const,
+      };
+
+      const welcome = await handler.handle(
+        { ...telegramConversation, currentStep: 'IDLE' },
+        { type: 'GREETING' },
+      );
+      expect(bodyOf(welcome)).toContain('Telegram Desk');
+      expect(welcome.interactive?.buttons).toEqual([
+        { id: 'menu:start_conversion', title: 'Start Conversion' },
+        { id: 'menu:track_order', title: 'Track Order' },
+        { id: 'menu:transactions', title: 'Transactions' },
+        { id: 'menu:help', title: 'Help' },
+      ]);
+
+      const start = await handler.handle(
+        { ...telegramConversation, currentStep: 'MENU' },
+        { type: 'MENU_SELECT', option: '1' },
+      );
+      expect(bodyOf(start)).toContain('Start Conversion');
+      expect(start.interactive?.buttons).toEqual([
+        { id: 'menu:back', title: 'Back' },
+        { id: 'menu:restart', title: 'Restart' },
+      ]);
+    });
   });
 
   describe('WAITING_FOR_AMOUNT step', () => {
